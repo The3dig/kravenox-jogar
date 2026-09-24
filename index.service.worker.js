@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1790269335|12442664';
+const CACHE_VERSION = '1790272159|7467577';
 /** @type {string} */
 const CACHE_PREFIX = 'Kravenox: Crater-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
