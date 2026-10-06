@@ -110,7 +110,7 @@
     const lead = G.state.party[0];
     const spr = G.state.flags.prata ? 'kravenoxP' : (lead ? G.data.HEROES[lead.id].sprite : 'kravenox');
     const wf = this.mv ? [1, 0, 2, 0][this.walkF & 3] : 0;
-    talls.push({ y: fy + 0.2, draw: () => { const sx = Math.round(fx * T - cx), sy = Math.round(fy * T - cy); X.drawShadow(ctx, sx, sy); ctx.drawImage(X.sprite(spr, this.dir, wf), sx - 1, sy - 7); } });
+    talls.push({ y: fy + 0.2, draw: () => { const sx = Math.round(fx * T - cx), sy = Math.round(fy * T - cy); X.drawShadow(ctx, sx, sy); const im = X.sprite(spr, this.dir, wf); ctx.drawImage(im, sx + 8 - (im.width >> 1), sy + 15 - im.height); } });
     talls.sort((a, b) => a.y - b.y).forEach(t => t.draw());
     // atmosfera
     if (m.theme === 'vale') {

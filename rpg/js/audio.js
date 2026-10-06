@@ -110,15 +110,19 @@
 
 // ---------- Trilhas ----------
 G.TRACKS = {
-  title: { bpm: 70, v: [
-    { w: 'triangle', vol: 0.22, n: 'A3:1 E4:1 A4:1 C5:1 E5:2 C5:1 A4:1 F3:1 C4:1 F4:1 A4:1 C5:2 A4:1 F4:1 G3:1 D4:1 G4:1 B4:1 D5:2 B4:1 G4:1 E3:1 B3:1 E4:1 G#4:1 B4:2 G#4:1 E4:1' },
-    { w: 'square', vol: 0.06, vib: true, att: 0.08, n: 'r:8 E5:4 D5:2 C5:2 B4:6 A4:2 G#4:8 r:8 C5:4 B4:2 A4:2 G4:4 B4:4 A4:8 r:8' },
-    { w: 'sine', vol: 0.25, n: 'A2:8 F2:8 G2:8 E2:8' },
+  // Abertura tensa: ostinato grave, batida de coração e dissonâncias agudas
+  title: { bpm: 100, v: [
+    { w: 'triangle', vol: 0.26, gate: 0.6, n: 'D2:1 D2:1 D2:1 D2:1 D2:1 D2:1 Eb2:1 D2:1 D2:1 D2:1 D2:1 D2:1 D2:1 D2:1 Eb2:1 D2:1 Bb1:1 Bb1:1 Bb1:1 Bb1:1 Bb1:1 Bb1:1 C2:1 Bb1:1 A1:1 A1:1 A1:1 A1:1 A1:1 A1:1 Bb1:1 C#2:1' },
+    { w: 'drum', vol: 0.34, n: 'k:1 k:1 r:6 k:1 k:1 r:4 h:1 h:1 k:1 k:1 r:6 k:1 k:1 r:2 s:1 r:1 h:1 s:1' },
+    { w: 'square', vol: 0.035, vib: true, att: 0.35, sus: 0.9, n: 'D5:8 Eb5:8 D5:8 A4:4 Ab4:4' },
+    { w: 'sawtooth', vol: 0.045, gate: 0.4, n: 'r:4 F3:1 r:3 r:4 Eb3:1 r:3 r:4 F3:1 r:1 Ab3:1 r:1 r:6 A3:1 C#4:1' },
   ] },
-  abismo: { bpm: 60, v: [
-    { w: 'sine', vol: 0.3, n: 'D2:8 D2:8 C2:8 C#2:8' },
-    { w: 'triangle', vol: 0.12, n: 'r:2 F4:1 E4:1 D4:4 r:4 A3:2 Bb3:2 A3:4 r:2 F4:1 G4:1 E4:4 r:4 C#4:2 D4:2 E4:4' },
-    { w: 'square', vol: 0.03, vib: true, att: 0.2, n: 'r:16 A5:8 G#5:8' },
+  // Abismo Carmesim: pulso lento, coração e sussurros agudos
+  abismo: { bpm: 84, v: [
+    { w: 'triangle', vol: 0.26, gate: 0.7, n: 'D2:2 D2:2 D2:2 Eb2:2 D2:2 D2:2 D2:2 C#2:2' },
+    { w: 'drum', vol: 0.3, n: 'k:1 k:1 r:6 k:1 k:1 r:6' },
+    { w: 'sine', vol: 0.08, vib: true, att: 0.2, n: 'r:8 A5:4 Bb5:4 r:8 G#5:8' },
+    { w: 'sawtooth', vol: 0.04, gate: 0.5, n: 'r:14 D3:1 C#3:1 r:12 F3:1 r:1 Eb3:1 r:1' },
   ] },
   reino: { bpm: 96, v: [
     { w: 'square', vol: 0.07, vib: true, n: 'D4:2 F4:1 A4:1 D5:3 C5:1 Bb4:2 A4:2 G4:2 F4:2 E4:2 F4:1 G4:1 A4:4 r:2 D4:2 F4:1 A4:1 C5:3 Bb4:1 A4:2 G4:2 F4:2 E4:2 D4:2 C#4:2 D4:6' },

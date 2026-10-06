@@ -12,7 +12,7 @@
         G.win(ctx, x, 6, w, 8 + p.length * 44);
         p.forEach((h, i) => {
           const y = 12 + i * 44;
-          ctx.drawImage(G.gfx.sprite(h.id === 'kravenox' && G.state.flags.prata ? 'kravenoxP' : D.HEROES[h.id].sprite, 'down', 0), x + 8, y + 4);
+          { const im = G.gfx.sprite(h.id === 'kravenox' && G.state.flags.prata ? 'kravenoxP' : D.HEROES[h.id].sprite, 'down', 0); const sc = Math.min(1, 26 / im.height); ctx.drawImage(im, x + 15 - im.width * sc / 2, y + 2, im.width * sc, im.height * sc); }
           G.text(ctx, h.name, x + 30, y, h.alive ? '#ffcf6a' : '#8a4a4a', 9, 'left', true);
           G.text(ctx, 'Nv ' + h.lv, x + w - 10, y, '#a89a8a', 8, 'right');
           G.bar(ctx, x + 30, y + 13, w - 44, h.hp / h.maxhp, '#c84040', '#3a1214');
