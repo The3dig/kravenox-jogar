@@ -10,24 +10,44 @@
   function glowDot(g, x, y, r, c) { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, c); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
 
   // Larvas da Essência (variações)
+  // Larva da Essência: corpo segmentado verde-acinzentado que se ergue, bocarra cheia de dentes e olho vermelho
   ART.larva = (g, w, h, o) => {
     const r = X.rng(o.seed || 3);
-    const segs = o.long ? 7 : 5;
-    for (let i = segs - 1; i >= 0; i--) {
-      const x = w * 0.25 + i * (w * 0.5 / segs), y = h * 0.62 - Math.sin(i / segs * 3) * h * 0.12, rad = h * (0.16 - i * 0.012);
-      g.fillStyle = o.c1; g.globalAlpha = 0.85; g.beginPath(); g.ellipse(x, y, rad * 1.1, rad, 0, 0, 7); g.fill();
-      g.globalAlpha = 1; g.fillStyle = o.c2; g.beginPath(); g.ellipse(x - rad * 0.3, y - rad * 0.3, rad * 0.5, rad * 0.35, 0, 0, 7); g.fill();
-      glowDot(g, x, y, rad * 0.6, o.core);
-      if (o.crystal && i % 2 === 0) { g.fillStyle = '#1a0f28'; g.beginPath(); g.moveTo(x - 3, y - rad + 2); g.lineTo(x + 1, y - rad - 9 - r() * 6); g.lineTo(x + 4, y - rad + 2); g.fill(); g.fillStyle = '#c18bff'; g.fillRect(x, y - rad - 5, 1, 4); }
-      if (o.armor && i % 2 === 1) { g.fillStyle = '#3a3640'; g.fillRect(x - rad, y - rad * 0.9, rad * 2, rad * 0.6); g.fillStyle = '#5a5660'; g.fillRect(x - rad, y - rad * 0.9, rad * 2, 1); }
-      if (o.long) { g.strokeStyle = o.c2; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y + rad * 0.8); g.lineTo(x - 4, y + rad + 6); g.moveTo(x, y + rad * 0.8); g.lineTo(x + 4, y + rad + 6); g.stroke(); }
+    const segs = o.long ? 9 : 7;
+    const pts = [];
+    for (let i = 0; i <= segs; i++) {
+      const t = i / segs; // 0 = cauda, 1 = cabeça
+      const x = w * (0.92 - 0.62 * t) + Math.sin(t * 5) * w * 0.03;
+      const y = h * (0.9 - 0.52 * Math.sin(t * Math.PI * 0.62));
+      pts.push([x, y, h * (0.07 + 0.13 * t)]);
     }
-    // cabeça
-    const hx = w * 0.2, hy = h * 0.55;
-    g.fillStyle = o.c1; g.beginPath(); g.ellipse(hx, hy, h * 0.15, h * 0.14, 0, 0, 7); g.fill();
-    g.fillStyle = '#100608'; g.beginPath(); g.ellipse(hx - h * 0.06, hy + 2, h * 0.07, h * 0.05, 0, 0, 7); g.fill();
-    g.fillStyle = '#f0e0e0'; for (let i = 0; i < 4; i++) g.fillRect(hx - h * 0.11 + i * 2.5, hy, 1, 2);
-    g.fillStyle = o.eye; g.fillRect(hx - 3, hy - 6, 2, 2); g.fillRect(hx + 2, hy - 5, 2, 2);
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x, y, rad] = pts[i];
+      g.fillStyle = o.c1; g.beginPath(); g.ellipse(x, y, rad * 1.15, rad, -0.4, 0, 7); g.fill();
+      g.fillStyle = o.c2; g.beginPath(); g.ellipse(x - rad * 0.3, y - rad * 0.35, rad * 0.55, rad * 0.32, -0.4, 0, 7); g.fill();
+      g.strokeStyle = o.ring || 'rgba(20,26,18,0.7)'; g.lineWidth = 1; g.beginPath(); g.ellipse(x, y, rad * 1.15, rad, -0.4, 0.2, 2.2); g.stroke();
+      glowDot(g, x, y + rad * 0.2, rad * 0.5, o.core);
+      if (o.crystal && i % 2 === 0) { g.fillStyle = '#1a0f28'; g.beginPath(); g.moveTo(x - 3, y - rad + 2); g.lineTo(x + 1, y - rad - 8 - r() * 6); g.lineTo(x + 4, y - rad + 2); g.fill(); g.fillStyle = '#c18bff'; g.fillRect(x, y - rad - 5, 1, 4); }
+      if (o.armor && i % 2 === 1) { g.fillStyle = '#3a3640'; g.beginPath(); g.ellipse(x, y - rad * 0.4, rad * 1.1, rad * 0.55, -0.4, Math.PI, 0); g.fill(); g.fillStyle = '#6a6670'; g.fillRect(x - rad * 0.8, y - rad * 0.9, rad * 1.6, 1); }
+      if (o.long) { g.strokeStyle = o.c1; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y + rad * 0.8); g.lineTo(x - 4, y + rad + 6); g.moveTo(x + 2, y + rad * 0.8); g.lineTo(x + 6, y + rad + 5); g.stroke(); }
+    }
+    // cabeça com a bocarra
+    const [hx, hy, hr] = pts[pts.length - 1];
+    g.fillStyle = o.c1; g.beginPath(); g.ellipse(hx, hy, hr * 1.15, hr * 1.05, -0.3, 0, 7); g.fill();
+    g.fillStyle = o.c2; g.beginPath(); g.ellipse(hx + hr * 0.1, hy - hr * 0.55, hr * 0.6, hr * 0.3, -0.3, 0, 7); g.fill();
+    const mx = hx - hr * 0.35, my = hy + hr * 0.15, mw = hr * 0.78, mh = hr * 0.62;
+    g.fillStyle = '#2a0608'; g.beginPath(); g.ellipse(mx, my, mw, mh, -0.3, 0, 7); g.fill();
+    g.fillStyle = '#5a0e12'; g.beginPath(); g.ellipse(mx + 1, my + 1, mw * 0.6, mh * 0.55, -0.3, 0, 7); g.fill();
+    g.fillStyle = o.teeth || '#e8dcc0';
+    const n = 7;
+    for (let k = 0; k < n; k++) {
+      const a = Math.PI * (1.05 + 0.9 * k / (n - 1)), tx = mx + Math.cos(a) * mw, ty = my + Math.sin(a) * mh;
+      g.beginPath(); g.moveTo(tx - 1.5, ty); g.lineTo(tx + 1.5, ty); g.lineTo(mx + Math.cos(a) * mw * 0.45, my + Math.sin(a) * mh * 0.45); g.fill();
+      const b = Math.PI * (0.1 + 0.8 * k / (n - 1)), bx = mx + Math.cos(b) * mw, by = my + Math.sin(b) * mh;
+      g.beginPath(); g.moveTo(bx - 1.5, by); g.lineTo(bx + 1.5, by); g.lineTo(mx + Math.cos(b) * mw * 0.5, my + Math.sin(b) * mh * 0.5); g.fill();
+    }
+    glowDot(g, hx + hr * 0.45, hy - hr * 0.35, hr * 0.35, 'rgba(255,40,20,0.9)');
+    g.fillStyle = o.eye; g.fillRect(hx + hr * 0.4, hy - hr * 0.42, 2, 2);
   };
   // Eco / fantasma / lembrança
   ART.ghost = (g, w, h, o) => {
@@ -212,6 +232,6 @@
     if (cache[key]) return cache[key];
     const [c, g] = X.canvas(e.w, e.h);
     ART[e.art](g, e.w, e.h, e.o || {});
-    return (cache[key] = c);
+    return (cache[key] = X.pixelize(c, { step: e.o && e.o.step || 18 }));
   };
 })();

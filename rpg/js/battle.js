@@ -2,8 +2,9 @@
 // Batalha por turnos no estilo Phantasy Star.
 (function () {
   const D = G.data, X = G.gfx;
-  const BASE = 134;          // linha do chão dos inimigos
-  const PW_Y = 168;          // janela do grupo
+  const BASE = 150;          // linha do chão dos inimigos
+  const PW_Y = 188;          // janela do grupo
+  const VIEW_H = 174;        // altura do quadro da batalha
 
   const B = G.Battle = { dialogTop: true };
 
@@ -35,9 +36,19 @@
 
   // ---------- Efeitos ----------
   function addFx(f) { B.fxs.push(f); }
-  function numFx(x, y, txt, color) { addFx({ t: 0, life: 50, draw(ctx) { const k = this.t / this.life; ctx.globalAlpha = 1 - Math.max(0, k - 0.7) / 0.3; G.text(ctx, txt, x, y - Math.min(14, this.t * 0.8), color, 10, 'center', true); ctx.globalAlpha = 1; } }); }
-  function slotX(i) { const w = (G.W - 12) / 3; return 6 + w * i + w / 2; }
+  function numFx(x, y, txt, color) { addFx({ t: 0, life: 50, ui: y >= PW_Y - 10, draw(ctx) {
+    const k = this.t / this.life, yy = y - (this.t < 10 ? Math.sin(this.t / 10 * Math.PI) * 8 : 0) - Math.max(0, this.t - 30) * 0.4;
+    ctx.globalAlpha = 1 - Math.max(0, k - 0.7) / 0.3;
+    ctx.font = G.font(11, true); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 3; ctx.strokeText(txt, x, yy); ctx.fillStyle = color; ctx.fillText(txt, x, yy);
+    ctx.globalAlpha = 1; } }); }
+  function slotX(i) { const w = Math.floor((G.W - 12 - 8) / 3); return 6 + i * (w + 4) + w / 2; }
   function playFx(kind, targets, onParty) {
+    const n0 = B.fxs.length;
+    playFx2(kind, targets, onParty);
+    for (let i = n0; i < B.fxs.length; i++) B.fxs[i].ui = !!onParty;
+  }
+  function playFx2(kind, targets, onParty) {
     const pts = targets.map(t => onParty ? { x: slotX(party().indexOf(t)), y: PW_Y + 10 } : { x: t.x, y: BASE - t.h * 0.5, base: BASE, w: t.w, h: t.h });
     switch (kind) {
       case 'spines': case 'spinesAll': case 'silver':
@@ -53,7 +64,17 @@
         G.Audio.sfx('dark');
         for (const p of pts) addFx({ t: 0, life: 30, draw(ctx) {
           const k = this.t / this.life;
-          if (kind === 'slash') { ctx.strokeStyle = '#100410'; ctx.lineWidth = 5 * (1 - k); ctx.beginPath(); ctx.moveTo(p.x - 40, p.y - 40); ctx.lineTo(p.x - 40 + 80 * Math.min(1, k * 3), p.y - 40 + 80 * Math.min(1, k * 3)); ctx.stroke(); ctx.strokeStyle = '#ff3a5a'; ctx.lineWidth = 1; ctx.stroke(); }
+          if (kind === 'slash') {
+            const e2 = Math.min(1, k * 3.5);
+            for (let c = -1; c <= 1; c++) {
+              const ox = c * 9, x1 = p.x - 26 + ox, y1 = p.y - 30, x2 = x1 + 46 * e2, y2 = y1 + 56 * e2;
+              ctx.globalAlpha = 1 - Math.max(0, k - 0.5) * 2;
+              ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+              ctx.strokeStyle = '#ff3a2a'; ctx.lineWidth = 2; ctx.stroke();
+              ctx.strokeStyle = '#ffe0c0'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x1 + (x2 - x1) * 0.3, y1 + (y2 - y1) * 0.3); ctx.lineTo(x2, y2); ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+          }
           else for (let i = 0; i < 10; i++) { const a = i * 0.63 + k * 6, r = 30 * (1 - k); ctx.fillStyle = i % 2 ? '#3a0a3a' : '#0a0410'; ctx.beginPath(); ctx.arc(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, 4, 0, 7); ctx.fill(); }
         } });
         break;
@@ -139,7 +160,7 @@
     for (;;) {
       const cmds = ['Atacar', 'Técnica', 'Item', 'Defender', 'Fugir'];
       const items = cmds.map((c, i) => ({ label: c, disabled: (i === 1 && D.techsOf(h).length === 0) || (i === 2 && !Object.keys(G.state.inv).some(k => G.state.inv[k] > 0)) || (i === 4 && B.opt.noEscape) }));
-      let pick = G.debug.auto ? (G.debug.battlePick ? G.debug.battlePick(h, B) : 0) : await G.menu({ x: 6, y: 82, w: 78, items, title: h.name, index: h.lastCmd || 0, cancel: idx > 0 });
+      let pick = G.debug.auto ? (G.debug.battlePick ? G.debug.battlePick(h, B) : 0) : await G.menu({ x: 10, y: 94, w: 78, items, title: h.name, index: h.lastCmd || 0, cancel: idx > 0 });
       if (typeof pick === 'object' && pick) return pick;
       if (pick < 0) return null; // volta para o anterior
       h.lastCmd = pick;
@@ -391,45 +412,87 @@
     for (const e of (B.enemies || [])) { if (e.flash) e.flash--; if (e.shake) e.shake--; if (e.lunge) e.lunge--; if (e.dying && e.dying < 40) e.dying++; }
     for (let i = 0; i < 3; i++) if (B.slotFlash[i]) B.slotFlash[i]--;
   };
+  // Moldura do quadro de batalha, com espinhos nos cantos
+  function frame(ctx, x, y, w, h) {
+    ctx.fillStyle = '#06030a'; ctx.fillRect(x - 3, y - 3, w + 6, 3); ctx.fillRect(x - 3, y + h, w + 6, 3); ctx.fillRect(x - 3, y, 3, h); ctx.fillRect(x + w, y, 3, h);
+    ctx.fillStyle = '#7a5a2a'; ctx.fillRect(x - 2, y - 2, w + 4, 1); ctx.fillRect(x - 2, y + h + 1, w + 4, 1); ctx.fillRect(x - 2, y - 2, 1, h + 4); ctx.fillRect(x + w + 1, y - 2, 1, h + 4);
+    ctx.fillStyle = '#c9a24a'; ctx.fillRect(x - 1, y - 1, w + 2, 1); ctx.fillRect(x - 1, y + h, w + 2, 1); ctx.fillRect(x - 1, y - 1, 1, h + 2); ctx.fillRect(x + w, y - 1, 1, h + 2);
+    for (const [cx, cy, sx, sy] of [[x, y, 1, 1], [x + w, y, -1, 1], [x, y + h, 1, -1], [x + w, y + h, -1, -1]]) {
+      ctx.fillStyle = '#06030a'; ctx.beginPath(); ctx.moveTo(cx - sx * 4, cy - sy * 4); ctx.lineTo(cx + sx * 11, cy - sy * 1); ctx.lineTo(cx - sx * 1, cy + sy * 11); ctx.fill();
+      ctx.fillStyle = '#c9a24a'; ctx.beginPath(); ctx.moveTo(cx - sx * 2, cy - sy * 2); ctx.lineTo(cx + sx * 8, cy); ctx.lineTo(cx, cy + sy * 8); ctx.fill();
+      ctx.fillStyle = '#ff5a2a'; ctx.fillRect(cx + (sx > 0 ? 0 : -2), cy + (sy > 0 ? 0 : -2), 2, 2);
+    }
+  }
+  // Morte: o inimigo se desfaz em pixels que caem
+  function dissolve(e) {
+    if (!e.dis) { const img = X.enemyImg(e); const [c, g] = X.canvas(img.width, img.height); g.drawImage(img, 0, 0); e.dis = c; e.disG = g; }
+    const n = Math.ceil(e.dis.width * e.dis.height / 26);
+    for (let i = 0; i < n; i++) { const x = (Math.random() * e.dis.width) | 0, y = (Math.random() * e.dis.height) | 0; e.disG.clearRect(x, y, 1 + (Math.random() * 2 | 0), 1); }
+    if (Math.random() < 0.9 && B.fxs) {
+      const px = e.x - e.w / 2 + Math.random() * e.w, py = BASE - e.h + Math.random() * e.h, col = e.void ? '#7a1a2a' : '#c8c0e0';
+      B.fxs.push({ t: 0, life: 30, draw(ctx) { ctx.globalAlpha = 1 - this.t / 30; ctx.fillStyle = col; ctx.fillRect(px, py - this.t * 0.8, 1, 1); ctx.globalAlpha = 1; } });
+    }
+  }
   B.draw = function (ctx) {
-    X.drawBG(ctx, B.bg, G.time, 150);
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 150, G.W, G.H - 150);
+    ctx.fillStyle = '#05030a'; ctx.fillRect(0, 0, G.W, G.H);
+    const VX = 6, VY = 6, VW = G.W - 12, VH = VIEW_H;
+    ctx.save(); ctx.beginPath(); ctx.rect(VX, VY, VW, VH); ctx.clip();
+    ctx.translate(0, VY - 2);
+    X.drawBG(ctx, B.bg, G.time, VIEW_H);
     for (const e of B.enemies) {
       if (!e.alive && e.dying >= 40) continue;
       const img = X.enemyImg(e);
-      const bob = Math.sin(G.time / 18 + e.idx) * (e.art === 'ghost' || e.art === 'shards' ? 3 : 1);
-      const sx = Math.round(e.x - e.w / 2 + (e.shake ? (e.shake % 4 < 2 ? 2 : -2) : 0)), sy = Math.round(BASE - e.h + bob + (e.lunge ? Math.sin(e.lunge / 12 * Math.PI) * 6 : 0));
-      ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(e.x, BASE, e.w * 0.4, 4, 0, 0, 7); ctx.fill();
+      const bob = e.dying ? 0 : Math.sin(G.time / 18 + e.idx) * (e.art === 'ghost' || e.art === 'shards' ? 3 : 1);
+      const sx = Math.round(e.x - e.w / 2 + (e.shake ? (e.shake % 4 < 2 ? 2 : -2) : 0)) - 1, sy = Math.round(BASE - e.h + bob + (e.lunge ? Math.sin(e.lunge / 12 * Math.PI) * 6 : 0)) - 1;
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      for (let k = 0; k < 3; k++) ctx.fillRect(Math.round(e.x - e.w * (0.38 - k * 0.08)), BASE - 1 + k, Math.round(e.w * (0.76 - k * 0.16)), 1);
       if (e.boss) X.glow(ctx, e.x, BASE - e.h / 2, e.h * 0.7, e.void ? 'rgba(120,0,30,0.5)' : 'rgba(200,200,255,0.3)', 0.6 + 0.2 * Math.sin(G.time / 20));
-      if (e.dying) { ctx.globalAlpha = Math.max(0, 1 - e.dying / 40); }
-      if (e.status.sleep) ctx.globalAlpha *= 0.7;
-      ctx.drawImage(img, sx, e.dying ? sy + e.dying * 0.5 : sy);
-      if (e.flash && (e.flash & 2)) { ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(img, sx, sy); ctx.globalCompositeOperation = 'source-over'; }
+      if (e.dying) { dissolve(e); ctx.drawImage(e.dis, sx, sy); continue; }
+      if (e.status.sleep) ctx.globalAlpha = 0.7;
+      ctx.drawImage(img, sx, sy);
+      if (e.flash && (e.flash & 2)) { ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(img, sx, sy); ctx.drawImage(img, sx, sy); ctx.globalCompositeOperation = 'source-over'; }
       ctx.globalAlpha = 1;
       if (e.status.sleep && e.alive) G.text(ctx, 'z', e.x + e.w * 0.3, BASE - e.h - 6 + Math.sin(G.time / 10) * 3, '#e8ecff', 9);
     }
-    for (const f of B.fxs) f.draw(ctx);
+    for (const f of B.fxs) if (!f.ui) f.draw(ctx);
+    ctx.restore();
+    frame(ctx, VX, VY, VW, VH);
     drawParty(ctx);
-    if (B.msg) { G.win(ctx, 6, 4, G.W - 12, 20); G.text(ctx, B.msg, 14, 9, '#f1e6d2', 9); }
+    for (const f of B.fxs) if (f.ui) f.draw(ctx);
+    if (B.msg) { G.win(ctx, 12, 10, G.W - 24, 20); G.text(ctx, B.msg, 20, 15, '#f1e6d2', 9); }
   };
   function drawParty(ctx) {
-    const p = party(), w = (G.W - 12) / 3;
-    G.win(ctx, 6, PW_Y, G.W - 12, G.H - PW_Y - 4);
-    p.forEach((h, i) => {
-      const x = 6 + i * w + 8, y = PW_Y + 6;
-      if (B.turnHero === i) { ctx.fillStyle = 'rgba(201,162,74,0.18)'; ctx.fillRect(x - 5, y - 3, w - 6, G.H - PW_Y - 14); }
-      if (B.slotFlash[i] & 2) { ctx.fillStyle = 'rgba(255,40,40,0.3)'; ctx.fillRect(x - 5, y - 3, w - 6, G.H - PW_Y - 14); }
-      const nameCol = !h.alive ? '#8a4a4a' : h.hp < h.maxhp * 0.25 ? '#ff9a6a' : '#ffcf6a';
-      G.text(ctx, h.name, x, y, nameCol, 9, 'left', true);
-      G.text(ctx, 'Nv ' + h.lv, x + w - 18, y + 1, '#a89a8a', 7, 'right');
-      bar(ctx, x, y + 15, w - 22, h.hp / h.maxhp, '#c84040', '#3a1214');
-      G.text(ctx, 'HP ' + h.hp + '/' + h.maxhp, x, y + 20, '#efe3cf', 8);
-      bar(ctx, x, y + 33, w - 22, h.ep / Math.max(1, h.mep), '#5a8ad8', '#141c3a');
-      G.text(ctx, 'EP ' + h.ep + '/' + h.mep, x, y + 38, '#c8d4f0', 8);
-      let st = []; if (h.status.shield) st.push('Barreira'); if (h.status.guard) st.push('Defende'); if (h.status.sleep) st.push('Lembrança');
-      if (st.length) G.text(ctx, st.join(' '), x, y + 50, '#e0c060', 7);
+    const p = party(), n = 3, gap = 4, w = Math.floor((G.W - 12 - gap * (n - 1)) / n), y0 = PW_Y - 2, h = G.H - y0 - 4;
+    p.forEach((h0, i) => {
+      const hero = h0, x0 = 6 + i * (w + gap);
+      const on = B.turnHero === i;
+      G.win(ctx, x0, y0, w, h, on ? { border: '#ffcf6a', inner: 'rgba(255,207,106,0.5)', bg: 'rgba(30,18,10,0.96)' } : {});
+      if (B.slotFlash[i] & 2) { ctx.fillStyle = 'rgba(255,40,40,0.35)'; ctx.fillRect(x0 + 2, y0 + 2, w - 4, h - 4); }
+      // retrato do herói (sprite do mapa)
+      const spr = X.sprite(hero.id === 'kravenox' && G.state.flags.prata ? 'kravenoxP' : G.data.HEROES[hero.id].sprite, 'down', on && ((G.time >> 4) & 1) ? 1 : 0);
+      const sc = Math.min(1, 26 / spr.height);
+      ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(x0 + 5, y0 + 5, 28, h - 10);
+      if (!hero.alive) ctx.globalAlpha = 0.35;
+      ctx.drawImage(spr, Math.round(x0 + 19 - spr.width * sc / 2), Math.round(y0 + h - 7 - spr.height * sc), Math.round(spr.width * sc), Math.round(spr.height * sc));
+      ctx.globalAlpha = 1;
+      const tx = x0 + 37, bw = w - 43;
+      const nameCol = !hero.alive ? '#8a4a4a' : hero.hp < hero.maxhp * 0.25 ? '#ff9a6a' : '#ffcf6a';
+      G.text(ctx, hero.name, tx, y0 + 4, nameCol, 8, 'left', true);
+      let st = ''; if (!hero.alive) st = 'Caído'; else if (hero.status.sleep) st = 'Lembr.'; else if (hero.status.guard) st = 'Defesa'; else if (hero.status.shield) st = 'Barreira';
+      G.text(ctx, st || 'Nv' + hero.lv, x0 + w - 6, y0 + 5, st ? '#e0c060' : '#a89a8a', 6.5, 'right');
+      G.text(ctx, 'HP', tx, y0 + 16, '#a89a8a', 6.5); G.text(ctx, hero.hp + '', x0 + w - 6, y0 + 15, '#efe3cf', 8, 'right');
+      bar(ctx, tx, y0 + 25, bw, hero.hp / hero.maxhp, '#d84a3a', '#3a1214');
+      G.text(ctx, 'EP', tx, y0 + 31, '#a89a8a', 6.5); G.text(ctx, hero.ep + '', x0 + w - 6, y0 + 30, '#c8d4f0', 8, 'right');
+      bar(ctx, tx, y0 + 40, bw, hero.ep / Math.max(1, hero.mep), '#5a8ad8', '#141c3a');
     });
   }
-  function bar(ctx, x, y, w, k, c, bg) { ctx.fillStyle = bg; ctx.fillRect(x, y, w, 3); ctx.fillStyle = c; ctx.fillRect(x, y, Math.max(0, w * G.clamp(k, 0, 1)), 3); }
+  function bar(ctx, x, y, w, k, c, bg) {
+    const v = Math.max(0, Math.round(w * G.clamp(k, 0, 1)));
+    ctx.fillStyle = '#000'; ctx.fillRect(x - 1, y - 1, w + 2, 5);
+    ctx.fillStyle = bg; ctx.fillRect(x, y, w, 3);
+    ctx.fillStyle = c; ctx.fillRect(x, y, v, 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x, y, v, 1);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(x, y + 2, v, 1);
+  }
   G.bar = bar;
 })();
