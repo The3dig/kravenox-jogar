@@ -6,6 +6,15 @@
   const Title = {
     draw(ctx) {
       const t = G.time;
+      const art = G.gfx.imgs.titulo;
+      if (art) {
+        ctx.imageSmoothingEnabled = true; ctx.drawImage(art, 0, -24, 320, 320); ctx.imageSmoothingEnabled = false;
+        const pulse = 0.5 + 0.5 * Math.sin(t / 18);
+        for (const [ex, ey] of [[132, 80], [174, 80]]) G.gfx.glow(ctx, ex, ey, 12, 'rgba(255,50,20,0.9)', 0.25 + pulse * 0.45);
+        let sh = ctx.createLinearGradient(0, 0, 0, 90); sh.addColorStop(0, 'rgba(0,0,0,0.85)'); sh.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = sh; ctx.fillRect(0, 0, G.W, 90);
+        sh = ctx.createLinearGradient(0, 140, 0, G.H); sh.addColorStop(0, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.9)'); ctx.fillStyle = sh; ctx.fillRect(0, 140, G.W, G.H - 140);
+        ctx.fillStyle = 'rgba(80,0,10,' + (0.08 + pulse * 0.06) + ')'; ctx.fillRect(0, 0, G.W, G.H);
+      } else {
       const gr = ctx.createLinearGradient(0, 0, 0, G.H); gr.addColorStop(0, '#12030a'); gr.addColorStop(0.6, '#3a0a10'); gr.addColorStop(1, '#0a0204'); ctx.fillStyle = gr; ctx.fillRect(0, 0, G.W, G.H);
       // montanhas quebradas
       ctx.fillStyle = '#0a0406'; ctx.beginPath(); ctx.moveTo(0, 170);
@@ -21,6 +30,7 @@
       // espinhos entrelaçados
       ctx.strokeStyle = '#c9a24a'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
       ctx.beginPath(); ctx.moveTo(cx - 34, cy + 34); ctx.lineTo(cx + 34, cy - 34); ctx.moveTo(cx + 34, cy + 34); ctx.lineTo(cx - 34, cy - 34); ctx.stroke(); ctx.globalAlpha = 1;
+      }
       // brasas
       for (let i = 0; i < 30; i++) { const x = (i * 71 + t * (0.2 + (i % 5) * 0.08)) % G.W, y = G.H - ((i * 43 + t * (0.3 + (i % 3) * 0.2)) % G.H); ctx.fillStyle = i % 3 ? '#ff5a2a' : '#ffcf6a'; ctx.globalAlpha = 0.5; ctx.fillRect(x, y, 1, 1); }
       ctx.globalAlpha = 1;
@@ -96,7 +106,8 @@
   // salva ao fechar/ocultar (só se já houver jogo em andamento fora de roteiros)
   addEventListener('visibilitychange', () => { if (document.hidden && G.state && G.lock === 0 && G.scene !== Title && G.scene !== G.Battle) D.save(); });
 
-  function boot() {
+  async function boot() {
+    await G.gfx.loadImages();
     G.start();
     G.setupTouch();
     if (location.search.includes('debug')) { window.__G = G; G.debug.showPos = true; }

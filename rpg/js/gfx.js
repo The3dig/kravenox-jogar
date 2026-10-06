@@ -308,7 +308,18 @@
     }
     d.data.set(o); g.putImageData(d, 0, 0);
   }
+  // Imagens desenhadas à mão (Kravenox)
+  X.imgs = {};
+  X.loadImages = function () {
+    const names = ['titulo', 'k_portrait', 'kp_portrait'];
+    for (const p of ['k', 'kp']) for (const d of ['down', 'up', 'left', 'right']) for (const f of [0, 1]) names.push(p + '_' + d + '_' + f);
+    return Promise.all(names.map(n => new Promise(res => { const im = new Image(); im.onload = () => { X.imgs[n] = im; res(); }; im.onerror = () => res(); im.src = 'img/' + n + '.png'; })));
+  };
   X.sprite = function (name, dir, frame) {
+    if (name === 'kravenox' || name === 'kravenoxP') {
+      const im = X.imgs[(name === 'kravenoxP' ? 'kp_' : 'k_') + dir + '_' + (frame ? 1 : 0)];
+      if (im) return im;
+    }
     const key = 'spr' + name + dir + frame;
     if (cache[key]) return cache[key];
     const s = X.SPEC[name] || X.SPEC.mascate;
@@ -448,6 +459,17 @@
     bust(g, { bg1: '#1a1030', bg2: '#06040a', body: '#4a4a6a', skin: '#b0a8c8', skinD: '#8a82a8', hair: '#3a3050', eye: '#202030', eyeBg: '#fff' });
     g.fillStyle = 'rgba(180,140,255,0.25)'; g.fillRect(0, 0, 48, 48);
   });
+  for (const [k, img] of [['kravenox', 'k_portrait'], ['kravenoxP', 'kp_portrait']]) {
+    const base = P[k];
+    P[k] = function (ctx, x, y, t) {
+      const im = X.imgs[img];
+      if (!im) return base(ctx, x, y, t);
+      const gr = ctx.createLinearGradient(0, y, 0, y + 48); gr.addColorStop(0, k === 'kravenox' ? '#3a0a10' : '#1a2030'); gr.addColorStop(1, '#050204');
+      ctx.fillStyle = gr; ctx.fillRect(x, y, 48, 48);
+      X.glow(ctx, x + 24, y + 22, 24, k === 'kravenox' ? 'rgba(255,60,30,0.35)' : 'rgba(200,220,255,0.3)', 0.6 + 0.25 * Math.sin(t / 25));
+      ctx.drawImage(im, x, y);
+    };
+  }
   X.P = P;
   G.portraitFor = function (name) {
     const map = { 'Kravenox': G.state && G.state.flags.prata ? 'kravenoxP' : 'kravenox', 'Thornox': 'thornox', 'Lyra': 'lyra', 'Lira': G.state && G.state.flags.liraDourada ? 'lira2' : 'lira',
