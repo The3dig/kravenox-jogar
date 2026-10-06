@@ -66,17 +66,17 @@
   const atk = (w = 3) => ({ w, type: 'atk' });
   const tech = (w, name, pow, target = 'um', fx = 'dark', extra = {}) => ({ w, type: 'tech', name, pow, target, fx, ...extra });
 
-  const LARVA = { c1: 'rgba(170,140,150,0.85)', c2: '#e0c8d0', core: 'rgba(255,200,120,0.9)', eye: '#ff3a2a' };
-  en('larva', 'Larva da Essência', 'larva', LARVA, 64, 44, { hp: 16, atk: 9, def: 3, mag: 6, agi: 5, xp: 6, fr: 4 }, [atk(5), tech(1, 'cospe Essência podre', 1.2)], { void: true });
-  en('larvaCristal', 'Larva Cristalina', 'larva', { ...LARVA, c1: 'rgba(130,110,170,0.9)', core: 'rgba(200,140,255,0.9)', crystal: true }, 70, 52, { hp: 30, atk: 13, def: 6, mag: 8, agi: 6, xp: 10, fr: 7 }, [atk(4), tech(1, 'dispara cristais', 1.1, 'todos')], { void: true });
+  const LARVA = { c1: '#5c6650', c2: '#8a9476', core: 'rgba(255,170,90,0.55)', eye: '#ff3a2a' };
+  en('larva', 'Larva da Essência', 'larva', LARVA, 60, 54, { hp: 16, atk: 9, def: 3, mag: 6, agi: 5, xp: 6, fr: 4 }, [atk(5), tech(1, 'cospe Essência podre', 1.2)], { void: true });
+  en('larvaCristal', 'Larva Cristalina', 'larva', { ...LARVA, c1: '#4e5662', c2: '#7a8496', core: 'rgba(200,140,255,0.8)', crystal: true }, 66, 60, { hp: 30, atk: 13, def: 6, mag: 8, agi: 6, xp: 10, fr: 7 }, [atk(4), tech(1, 'dispara cristais', 1.1, 'todos')], { void: true });
   en('larvaMae', 'Larva-Mãe', 'swarm', { ...LARVA, long: true }, 110, 70, { hp: 120, atk: 15, def: 6, mag: 12, agi: 4, xp: 40, fr: 30 }, [atk(3), tech(2, 'libera o enxame', 1.0, 'todos'), tech(1, 'regenera a carne', 0, 'cura', 'heal', { heal: 25 })], { void: true, boss: true });
   en('eco', 'Eco Faminto', 'ghost', { c1: '#7a6a90', eye: '#ff5a2a' }, 56, 60, { hp: 22, atk: 9, def: 3, mag: 12, agi: 9, xp: 9, fr: 6 }, [atk(2), tech(2, 'sussurra seu nome', 1.2, 'um', 'dark', { drainEp: 4 })], { void: true });
-  en('larvaLonga', 'Larva Alongada', 'larva', { ...LARVA, long: true, c1: 'rgba(150,120,130,0.9)' }, 76, 50, { hp: 38, atk: 16, def: 7, mag: 8, agi: 7, xp: 14, fr: 9 }, [atk(5), tech(1, 'se enrosca', 1.3)], { void: true });
+  en('larvaLonga', 'Larva Alongada', 'larva', { ...LARVA, long: true, c1: '#56604a', c2: '#7e8a6a' }, 70, 62, { hp: 38, atk: 16, def: 7, mag: 8, agi: 7, xp: 14, fr: 9 }, [atk(5), tech(1, 'se enrosca', 1.3)], { void: true });
   en('sombra', 'Sombra Errante', 'ghost', { c1: '#2a2030', eye: '#c18bff', mouth: 4 }, 56, 62, { hp: 34, atk: 15, def: 6, mag: 14, agi: 10, xp: 14, fr: 10 }, [atk(3), tech(2, 'toque gelado', 1.3)], { void: true });
   en('sentinela', 'Sentinela do Vazio', 'sentinel', { c1: '#2a2632', c2: '#16131c', eye: '#b26bff' }, 72, 90, { hp: 58, atk: 19, def: 10, mag: 10, agi: 7, xp: 22, fr: 16 }, [atk(5), tech(1, 'golpe corroído', 1.5)]);
   en('semRosto', 'Sentinela sem Rosto', 'sentinel', { c1: '#2a2632', c2: '#16131c', eye: '#b26bff', faceless: true }, 80, 100, { hp: 230, atk: 22, def: 11, mag: 18, agi: 9, xp: 90, fr: 60 }, [atk(4), tech(2, 'explode em energia violeta', 1.2, 'todos', 'violet'), tech(1, 'golpe que racha o chão', 1.7)], { boss: true });
   en('raizRast', 'Raiz Rastejante', 'root', { c1: '#1a1214', c2: '#2a1a20', eyes: 1, eye: 'rgba(255,60,60,0.9)', n: 6, thick: 3 }, 64, 64, { hp: 44, atk: 18, def: 9, mag: 10, agi: 6, xp: 18, fr: 12 }, [atk(4), tech(1, 'prende e aperta', 1.4)]);
-  en('larvaArmor', 'Larva Encouraçada', 'larva', { ...LARVA, armor: true, long: true }, 78, 52, { hp: 52, atk: 20, def: 13, mag: 8, agi: 6, xp: 20, fr: 14 }, [atk(5), tech(1, 'investida blindada', 1.4)], { void: true });
+  en('larvaArmor', 'Larva Encouraçada', 'larva', { ...LARVA, armor: true, long: true }, 72, 62, { hp: 52, atk: 20, def: 13, mag: 8, agi: 6, xp: 20, fr: 14 }, [atk(5), tech(1, 'investida blindada', 1.4)], { void: true });
   en('guardiao1', 'Guardião Branco', 'guardian', {}, 80, 104, { hp: 360, atk: 25, def: 14, mag: 22, agi: 12, xp: 150, fr: 90 }, [atk(4), tech(2, 'arremete a lança', 1.6), tech(1, 'força anterior ao Vazio', 1.15, 'todos', 'white')], { boss: true });
   en('voz', 'Voz Aprisionada', 'ghost', { c1: '#c8a860', eye: '#fff', crystal: true }, 60, 64, { hp: 50, atk: 18, def: 9, mag: 22, agi: 10, xp: 24, fr: 14 }, [atk(1), tech(3, '"Não deixe que ele descubra"', 1.3, 'um', 'dark', { drainEp: 5 })]);
   en('raizPetra', 'Raiz Petrificada', 'root', { c1: '#4a3a30', c2: '#2a201a', n: 8, thick: 5, eyes: 2, eye: 'rgba(224,192,96,0.9)' }, 70, 70, { hp: 76, atk: 25, def: 16, mag: 10, agi: 4, xp: 28, fr: 18 }, [atk(5), tech(1, 'esmaga', 1.5)]);

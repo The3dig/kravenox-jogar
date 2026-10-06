@@ -527,9 +527,9 @@
           g.fillStyle = 'rgba(255,224,138,0.5)'; for (let i = 0; i < 40; i++) { const x = r() * G.W, y = r() * hz * 0.7; g.fillRect(x, y, 2, 1); } break;
       }
       void sil;
-      cache[key] = c;
+      cache[key] = X.dither(c, B.levels || 15);
     }
-    ctx.drawImage(cache[key], 0, 0);
+    ctx.drawImage(cache[key], 0, 0, G.W, h);
     // animação leve: partículas
     ctx.fillStyle = B.acc;
     for (let i = 0; i < 14; i++) {
@@ -537,6 +537,51 @@
       ctx.globalAlpha = 0.25 + 0.2 * Math.sin(t / 20 + i); ctx.fillRect(x, y, 1, 1);
     }
     ctx.globalAlpha = 1;
+  };
+
+  // Filtro de pixel art: alfa duro, cores reduzidas, luz de borda, sombra e contorno.
+  X.pixelize = function (src, opt = {}) {
+    const w = src.width + 2, h = src.height + 2;
+    const [c, g] = X.canvas(w, h);
+    g.drawImage(src, 1, 1);
+    const d = g.getImageData(0, 0, w, h), a = d.data;
+    const step = opt.step || 20;
+    const op = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) op[i] = a[i * 4 + 3] >= (opt.alpha || 110) ? 1 : 0;
+    const out = new Uint8ClampedArray(a.length);
+    const at = (x, y) => x >= 0 && y >= 0 && x < w && y < h && op[y * w + x];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x, k = i * 4;
+      if (op[i]) {
+        const r = a[k], gg = a[k + 1], b = a[k + 2];
+        let f = 1;
+        if (!at(x, y - 1) || !at(x - 1, y)) f = 1.35;           // luz vinda de cima/esquerda
+        else if (!at(x, y + 1) || !at(x + 1, y)) f = 0.62;      // sombra embaixo/direita
+        out[k] = Math.min(255, Math.round(r * f / step) * step);
+        out[k + 1] = Math.min(255, Math.round(gg * f / step) * step);
+        out[k + 2] = Math.min(255, Math.round(b * f / step) * step);
+        out[k + 3] = 255;
+      } else if (at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1)) {
+        out[k] = 4; out[k + 1] = 2; out[k + 2] = 6; out[k + 3] = 255;   // contorno
+      }
+    }
+    d.data.set(out); g.putImageData(d, 0, 0);
+    return c;
+  };
+  // Cenário em meia resolução com pontilhado ordenado (Bayer 4x4), como nos 16 bits.
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  X.dither = function (src, levels = 6) {
+    const w = src.width >> 1, h = src.height >> 1;
+    const [c, g] = X.canvas(w, h);
+    g.imageSmoothingEnabled = true; g.drawImage(src, 0, 0, w, h);
+    const d = g.getImageData(0, 0, w, h), a = d.data, q = 255 / (levels - 1);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const k = (y * w + x) * 4, t = (BAYER[(y & 3) * 4 + (x & 3)] / 16 - 0.5) * q;
+      for (let ch = 0; ch < 3; ch++) a[k + ch] = Math.max(0, Math.min(255, Math.round((a[k + ch] + t) / q) * q));
+      a[k + 3] = 255;
+    }
+    g.putImageData(d, 0, 0);
+    return c;
   };
 
   // Brilho radial simples
