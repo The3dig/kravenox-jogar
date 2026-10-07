@@ -51,8 +51,36 @@
     G.canvas.style.filter = on ? 'invert(1) grayscale(1) sepia(0.6) hue-rotate(180deg) saturate(3) contrast(1.1)' : '';
     return on;
   };
+  // Vídeo de abertura: se ninguém mexer na tela título por 25 s, passa o vídeo de apresentação.
+  let idle = 0;
+  function attract() {
+    const cv = G.canvas.getBoundingClientRect();
+    const v = document.createElement('video');
+    for (const [ext, type] of [['mp4', 'video/mp4'], ['webm', 'video/webm']]) { const so = document.createElement('source'); so.src = 'video/abertura.' + ext + '?v=' + (window.KRAVENOX_V || ''); so.type = type; v.appendChild(so); }
+    v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
+    const sound = G.Audio.ctx && G.Audio.ctx.state === 'running';
+    v.muted = !sound;
+    Object.assign(v.style, { position: 'fixed', left: cv.left + 'px', top: cv.top + 'px', width: cv.width + 'px', height: cv.height + 'px', objectFit: 'contain', background: '#000', zIndex: 20 });
+    document.body.appendChild(v);
+    if (sound) G.Audio.stop();
+    let done = false;
+    const ov = { update() { const I = G.Input; if (I.pressed.a || I.pressed.b || I.pressed.up || I.pressed.down || I.pressed.left || I.pressed.right) end(); }, draw(ctx) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, G.W, G.H); } };
+    function end() {
+      if (done) return; done = true;
+      v.pause(); v.remove(); G.pop(ov); idle = 0;
+      G.Audio.unlock(); G.Audio.play('title');
+    }
+    G.push(ov);
+    v.addEventListener('ended', end);
+    v.addEventListener('error', end);
+    for (const ev of ['touchstart', 'mousedown']) v.addEventListener(ev, e => { e.preventDefault(); end(); }, { passive: false });
+    const p = v.play(); if (p && p.catch) p.catch(() => { v.muted = true; v.play().catch(end); });
+  }
   Title.tick = function () {
     const I = G.Input;
+    if (I.any || Object.values(I.pressed).some(Boolean) || Object.values(I.held).some(Boolean)) idle = 0;
+    I.any = false;
+    if (G.scene === Title && ++idle > 60 * 25 && !G.debug.auto && !location.search.includes('debug')) { idle = 0; attract(); }
     for (const k of ['up', 'down', 'left', 'right', 'a', 'b']) if (I.pressed[k]) {
       if (k === CODE[codeI]) codeI++; else codeI = k === CODE[0] ? 1 : 0;
       if (codeI === CODE.length) {

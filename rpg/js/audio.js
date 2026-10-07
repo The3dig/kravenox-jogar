@@ -1,20 +1,62 @@
 'use strict';
-// Música chiptune e efeitos com WebAudio (sem arquivos externos).
+// Música (trilhas gravadas em music/, com chiptune de reserva) e efeitos com WebAudio.
 (function () {
   const A = G.Audio = { ctx: null, master: null, music: null, cur: null, vol: 0.5, muted: false };
   const NOTE = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
   const freq = n => { const m = /^([A-G][#b]?)(\d)$/.exec(n); if (!m) return 0; const midi = 12 * (+m[2] + 1) + NOTE[m[1]]; return 440 * Math.pow(2, (midi - 69) / 12); };
 
   A.unlock = function () {
-    if (A.ctx) { if (A.ctx.state === 'suspended') A.ctx.resume(); return; }
+    if (A.ctx) {
+      // iPhone: ao sair e voltar, o áudio fica "interrompido"; retoma, e se não voltar, recria
+      if (A.ctx.state !== 'running') {
+        const st = A.ctx.state;
+        if (st === 'closed' || st === 'interrupted') A.rebuild();
+        else { const c = A.ctx; c.resume().catch(() => {}); setTimeout(() => { if (A.ctx === c && c.state !== 'running') A.rebuild(); }, 400); }
+      }
+      return;
+    }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     A.ctx = new AC();
     A.master = A.ctx.createGain(); A.master.gain.value = A.vol; A.master.connect(A.ctx.destination);
     A.musicGain = A.ctx.createGain(); A.musicGain.gain.value = 0.55; A.musicGain.connect(A.master);
     A.sfxGain = A.ctx.createGain(); A.sfxGain.gain.value = 0.7; A.sfxGain.connect(A.master);
-    setInterval(schedule, 40);
+    A.timer = setInterval(schedule, 40);
     if (A.want) { const w = A.want; A.want = null; A.play(w); }
+    A.preload(['title', 'abismo', 'batalha']);
   };
+  A.rebuild = function () {
+    const cur = A.cur;
+    clearInterval(A.timer); try { A.ctx.close(); } catch (e) {}
+    A.ctx = null; A.src = null; A.music = null; A.cur = null; A.nbuf = null;
+    A.want = cur; A.unlock();
+  };
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && A.ctx && A.ctx.state !== 'running') A.ctx.resume().catch(() => {}); });
+  addEventListener('pageshow', () => { if (A.ctx && A.ctx.state !== 'running') A.ctx.resume().catch(() => {}); });
+
+  // ---------- trilhas gravadas (music/*.m4a), com o chiptune como reserva ----------
+  A.idx = null; A.bufs = {};
+  const V = () => window.KRAVENOX_V || '';
+  A.idxP = fetch('music/index.json?v=' + V()).then(r => r.json()).then(j => { A.idx = j; }).catch(() => { A.idx = {}; });
+  function loadBuf(name) {
+    // m4a (Safari/Chrome); se o navegador não decodificar AAC, tenta ogg
+    const get = ext => fetch('music/' + name + '.' + ext + '?v=' + V()).then(r => { if (!r.ok) throw new Error('404'); return r.arrayBuffer(); })
+      .then(ab => new Promise((res, rej) => A.ctx.decodeAudioData(ab, res, rej)));
+    let ogg = false; try { ogg = new Audio().canPlayType('audio/ogg; codecs="vorbis"') === 'probably'; } catch (e) {}
+    const [x, y] = ogg ? ['ogg', 'm4a'] : ['m4a', 'ogg'];
+    if (!A.bufs[name]) A.bufs[name] = get(x).catch(() => get(y)).catch(e => { delete A.bufs[name]; throw e; });
+    return A.bufs[name];
+  }
+  A.preload = names => { if (!A.ctx) return; A.idxP.then(() => names.forEach(n => A.idx[n] && loadBuf(n).catch(() => {}))); };
+  function stopFile(fade = 0.5) {
+    if (!A.src) return; const { src, g } = A.src; A.src = null;
+    const t = A.ctx.currentTime; try { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0.0001, t + fade); src.stop(t + fade + 0.05); } catch (e) {}
+  }
+  function startChip(name) {
+    const tr = G.TRACKS[name];
+    if (!tr) { A.music = null; return; }
+    const t0 = A.ctx.currentTime + 0.08;
+    A.music = { tr, stop: false, voices: tr.v.map(v => ({ ...v, seq: parse(v.n), i: 0, t: t0 })) };
+  }
 
   function tone(dest, f, t, dur, wave, vol, opt = {}) {
     const c = A.ctx;
@@ -48,13 +90,27 @@
     if (!A.ctx) { A.want = name; return; }
     if (A.cur === name) return;
     A.cur = name;
-    const tr = G.TRACKS[name];
-    if (A.music) A.music.stop = true;
-    if (!tr) { A.music = null; return; }
-    const t0 = A.ctx.currentTime + 0.08;
-    A.music = { tr, stop: false, voices: tr.v.map(v => ({ ...v, seq: parse(v.n), i: 0, t: t0 })) };
+    if (A.music) A.music.stop = true; A.music = null;
+    stopFile();
+    if (!name) return;
+    A.idxP.then(() => {
+      if (A.cur !== name) return;
+      const info = A.idx[name];
+      if (!info) { startChip(name); return; }
+      const ctx0 = A.ctx;
+      loadBuf(name).then(buf => {
+        if (A.cur !== name || A.ctx !== ctx0) return;
+        const src = A.ctx.createBufferSource(), g = A.ctx.createGain();
+        src.buffer = buf; src.connect(g); g.connect(A.musicGain);
+        const t = A.ctx.currentTime + 0.03;
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(1, t + 0.6);
+        if (info.loop) { src.loop = true; src.loopStart = info.a; src.loopEnd = Math.min(info.b, buf.duration); src.start(t, info.a); }
+        else src.start(t);
+        A.src = { src, g, name };
+      }).catch(() => { if (A.cur === name && !A.music) startChip(name); });
+    });
   };
-  A.stop = function () { if (A.music) A.music.stop = true; A.music = null; A.cur = null; };
+  A.stop = function () { if (A.music) A.music.stop = true; A.music = null; if (A.ctx) stopFile(); A.cur = null; };
   function schedule() {
     const m = A.music; if (!m || m.stop || !A.ctx) return;
     const ahead = A.ctx.currentTime + 0.25;
