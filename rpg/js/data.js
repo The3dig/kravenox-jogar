@@ -17,7 +17,9 @@
     espinhos: { name: 'Espinhos', ep: 3, lv: 1, who: 'kravenox', target: 'inimigo', kind: 'dano', pow: 1.7, stat: 'atk', fx: 'spines', desc: 'Espinhos negros explodem do chão.' },
     vorazes: { name: 'Espinhos Vorazes', ep: 7, lv: 4, who: 'kravenox', target: 'inimigos', kind: 'dano', pow: 1.25, stat: 'atk', fx: 'spinesAll', desc: 'Centenas de espinhos atingem todos.' },
     fome: { name: 'Fome do Abismo', ep: 6, lv: 7, who: 'kravenox', target: 'inimigo', kind: 'dreno', pow: 1.6, stat: 'atk', fx: 'dark', desc: 'Devora a Essência do alvo e recupera vida.' },
-    lamina: { name: 'Lâmina Sombria', ep: 10, lv: 10, who: 'kravenox', target: 'inimigo', kind: 'dano', pow: 2.7, stat: 'atk', fx: 'slash', desc: 'Uma lâmina de energia escura.' },
+    furia: { name: 'Modo Fúria', ep: 6, lv: 6, who: 'kravenox', target: 'eu', kind: 'furia', fx: 'fury', desc: 'Ataque +50% por 3 turnos; a defesa cai.' },
+    esmagamento: { name: 'Esmagamento', ep: 9, lv: 9, who: 'kravenox', target: 'inimigos', kind: 'dano', pow: 1.55, stat: 'atk', fx: 'slam', desc: 'Golpeia o chão; espinhos e abismo atingem todos.' },
+    lamina: { name: 'Raio da Essência', ep: 10, lv: 11, who: 'kravenox', target: 'inimigo', kind: 'dano', pow: 2.7, stat: 'atk', fx: 'beam', desc: 'Um raio concentrado de Essência escura.' },
     sombras: { name: 'Pelas Sombras', ep: 9, lv: 13, who: 'kravenox', target: 'inimigos', kind: 'dano', pow: 1.8, stat: 'atk', fx: 'spinesAll', desc: '"Thornox pela frente, Kravenox pelas sombras."' },
     prateados: { name: 'Espinhos Prateados', ep: 12, lv: 99, who: 'kravenox', target: 'inimigos', kind: 'dano', pow: 3.2, stat: 'atk', fx: 'silver', desc: 'A Quarta Essência.' },
 

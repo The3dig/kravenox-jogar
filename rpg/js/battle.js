@@ -51,7 +51,32 @@
   function playFx2(kind, targets, onParty) {
     const pts = targets.map(t => onParty ? { x: slotX(party().indexOf(t)), y: PW_Y + 10 } : { x: t.x, y: BASE - t.h * 0.5, base: BASE, w: t.w, h: t.h });
     switch (kind) {
-      case 'spines': case 'spinesAll': case 'silver':
+      case 'slash': if (X.imgs.fx_garra1) {
+        G.Audio.sfx('hit');
+        for (const p of pts) addFx({ t: 0, life: 22, draw(ctx) {
+          const k = this.t / this.life, im = this.t < 11 ? X.imgs.fx_garra1 : X.imgs.fx_garra2;
+          ctx.globalAlpha = 1 - Math.max(0, k - 0.6) / 0.4;
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.drawImage(im, Math.round(p.x - im.width / 2 + (this.t < 11 ? -4 : 4)), Math.round(p.y - im.height / 2));
+          ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+        } });
+        break;
+      } // sem a imagem, cai no desenho antigo
+      // falls through
+      case 'spines': case 'spinesAll': if (X.imgs.fx_espinhos && kind !== 'slash') {
+        G.Audio.sfx('spines');
+        for (const p of pts) addFx({ t: 0, life: 30, draw(ctx) {
+          const k = this.t / this.life, im = X.imgs.fx_espinhos, grow = Math.min(1, k * 3), h = Math.round(im.height * grow);
+          if (h < 1) return;
+          ctx.globalAlpha = 1 - Math.max(0, k - 0.65) / 0.35;
+          const w = Math.min(im.width, p.w * 1.1), x = Math.round(p.x - w / 2);
+          ctx.drawImage(im, 0, im.height - h, im.width, h, x, p.base - h + 4, w, h);
+          ctx.globalAlpha = 1;
+        } });
+        break;
+      }
+      // falls through
+      case 'silver':
         G.Audio.sfx('spines');
         for (const p of pts) addFx({ t: 0, life: 26, draw(ctx) {
           const k = this.t / this.life, n = 9;
@@ -83,6 +108,35 @@
         for (const p of pts) addFx({ t: 0, life: 30, draw(ctx) { const k = this.t / this.life; X.glow(ctx, p.x, p.y, 10 + 50 * k, kind === 'white' ? 'rgba(240,240,255,0.95)' : 'rgba(255,224,138,0.95)', 1 - k);
           ctx.strokeStyle = kind === 'white' ? '#fff' : '#ffe08a'; ctx.globalAlpha = 1 - k; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; ctx.moveTo(p.x + Math.cos(a) * 8, p.y + Math.sin(a) * 8); ctx.lineTo(p.x + Math.cos(a) * (14 + 40 * k), p.y + Math.sin(a) * (14 + 40 * k)); } ctx.stroke(); ctx.globalAlpha = 1; } });
         break;
+      case 'beam': {
+        G.Audio.sfx('dark'); G.Audio.sfx('light');
+        const im = X.imgs.fx_raio, orb = X.imgs.fx_orbe;
+        for (const p of pts) addFx({ t: 0, life: 34, draw(ctx) {
+          const k = this.t / this.life;
+          if (!im) return;
+          const len = Math.max(20, p.x + 20 - 0) * Math.min(1, k * 4);
+          ctx.globalAlpha = 1 - Math.max(0, k - 0.7) / 0.3; ctx.globalCompositeOperation = 'lighter';
+          ctx.drawImage(im, 0, 0, im.width, im.height, p.x + 20 - len, Math.round(p.y - im.height / 2), len, im.height);
+          if (orb && k < 0.5) ctx.drawImage(orb, Math.round(p.x - orb.width / 2), Math.round(p.y - orb.height / 2));
+          ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+        } });
+        break;
+      }
+      case 'slam': {
+        G.Audio.sfx('boom'); G.shake = 14; G.flash('#ff2a1a', 0.35);
+        const ex = X.imgs.fx_explosao, sp = X.imgs.fx_espinhos2;
+        for (const p of pts) addFx({ t: 0, life: 32, draw(ctx) {
+          const k = this.t / this.life;
+          ctx.globalAlpha = 1 - Math.max(0, k - 0.6) / 0.4;
+          if (sp) { const h = Math.round(sp.height * Math.min(1, k * 3)); if (h > 0) ctx.drawImage(sp, 0, sp.height - h, sp.width, h, Math.round(p.x - sp.width / 2), p.base - h + 4, sp.width, h); }
+          if (ex) { ctx.globalCompositeOperation = 'lighter'; const s = 0.6 + k; ctx.drawImage(ex, p.x - ex.width * s / 2, p.base - ex.height * s * 0.7, ex.width * s, ex.height * s); ctx.globalCompositeOperation = 'source-over'; }
+          ctx.globalAlpha = 1;
+        } });
+        break;
+      }
+      case 'fury':
+        G.Audio.sfx('dark'); G.flash('#ff1a0a', 0.45); G.shake = 8;
+        break;
       case 'violet':
         G.Audio.sfx('dark'); G.flash('#b26bff', 0.5); break;
       case 'heal': case 'memory': case 'shield':
@@ -95,15 +149,17 @@
   }
 
   // ---------- Fórmulas ----------
+  const furyAtk = a => (a.status && a.status.fury ? 1.5 : 1);
+  const furyDef = d => (d.status && d.status.fury ? 0.8 : 1);
   function physDmg(a, d) {
-    const def = d.def * (d.status.shield ? 1.5 : 1);
-    let dmg = Math.max(1, Math.round((a.atk - def * 0.55) * rnd()));
+    const def = d.def * (d.status.shield ? 1.5 : 1) * furyDef(d);
+    let dmg = Math.max(1, Math.round((a.atk * furyAtk(a) - def * 0.55) * rnd()));
     if (d.status.guard) dmg = Math.ceil(dmg / 2);
     return dmg;
   }
   function techDmg(a, d, tech) {
-    const stat = (tech.stat === 'mag' ? a.mag : a.atk);
-    let dmg = Math.max(1, Math.round((stat * tech.pow - d.def * 0.4) * rnd()));
+    const stat = (tech.stat === 'mag' ? a.mag : a.atk * furyAtk(a));
+    let dmg = Math.max(1, Math.round((stat * tech.pow - d.def * furyDef(d) * 0.4) * rnd()));
     if (tech.holy && d.void) dmg = Math.round(dmg * 1.4);
     if (d.status && d.status.guard) dmg = Math.ceil(dmg / 2);
     return dmg;
@@ -221,6 +277,10 @@
         playFx(T.fx, ts, true); await G.wait(10);
         for (const p of ts) { const v = Math.round((h.mag * T.pow + T.base) * rnd()); p.hp = Math.min(p.maxhp, p.hp + v); numFx(slotX(party().indexOf(p)), PW_Y - 4, '+' + v, '#9aff8a'); }
         await B.say(ts.length > 1 ? 'O grupo se recupera.' : ts[0].name + ' se recupera.', 28);
+      } else if (T.kind === 'furia') {
+        playFx('fury', [h], true);
+        h.status.fury = 3;
+        await B.say('A Essência do Abismo transborda. Kravenox entra em fúria!', 34);
       } else if (T.kind === 'escudo') {
         playFx('shield', alive(party()), true);
         for (const p of alive(party())) p.status.shield = 4;
@@ -280,7 +340,7 @@
       G.Audio.sfx('dark');
       const ts = a.target === 'todos' ? targets : [G.pick(targets)];
       for (const t of ts) {
-        let dmg = Math.max(1, Math.round((e.atk * a.pow - t.def * (t.status.shield ? 0.82 : 0.55)) * rnd()));
+        let dmg = Math.max(1, Math.round((e.atk * a.pow - t.def * furyDef(t) * (t.status.shield ? 0.82 : 0.55)) * rnd()));
         if (t.status.guard) dmg = Math.ceil(dmg / 2);
         await hurtHero(t, dmg);
         if (a.drainEp && t.alive) { t.ep = Math.max(0, t.ep - a.drainEp); }
@@ -356,7 +416,7 @@
         if (!alive(hs).length) { result = 'lose'; break; }
       }
       // fim da rodada
-      for (const h of hs) { if (h.status.shield) h.status.shield--; }
+      for (const h of hs) { if (h.status.shield) h.status.shield--; if (h.status.fury) { h.status.fury--; } }
       if (!result) { const evr = await checkEvents(); if (evr) result = evr; }
     }
     B.turnHero = -1;
@@ -469,8 +529,10 @@
       G.win(ctx, x0, y0, w, h, on ? { border: '#ffcf6a', inner: 'rgba(255,207,106,0.5)', bg: 'rgba(30,18,10,0.96)' } : {});
       if (B.slotFlash[i] & 2) { ctx.fillStyle = 'rgba(255,40,40,0.35)'; ctx.fillRect(x0 + 2, y0 + 2, w - 4, h - 4); }
       // retrato do herói (sprite do mapa)
-      const spr = X.sprite(hero.id === 'kravenox' && G.state.flags.prata ? 'kravenoxP' : G.data.HEROES[hero.id].sprite, 'down', on && ((G.time >> 4) & 1) ? 1 : 0);
-      const sc = Math.min(1, 26 / spr.height);
+      const furious = hero.status.fury && hero.alive && X.imgs.k_furia;
+      if (furious) { X.glow(ctx, x0 + 19, y0 + h / 2, 30, 'rgba(255,30,10,0.9)', 0.35 + 0.2 * Math.sin(G.time / 6)); }
+      const spr = furious ? X.imgs.k_furia : X.sprite(hero.id === 'kravenox' && G.state.flags.prata ? 'kravenoxP' : G.data.HEROES[hero.id].sprite, 'down', on && ((G.time >> 4) & 1) ? 1 : 0);
+      const sc = Math.min(1, (furious ? 40 : 26) / spr.height);
       ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(x0 + 5, y0 + 5, 28, h - 10);
       if (!hero.alive) ctx.globalAlpha = 0.35;
       ctx.drawImage(spr, Math.round(x0 + 19 - spr.width * sc / 2), Math.round(y0 + h - 7 - spr.height * sc), Math.round(spr.width * sc), Math.round(spr.height * sc));
@@ -478,7 +540,7 @@
       const tx = x0 + 37, bw = w - 43;
       const nameCol = !hero.alive ? '#8a4a4a' : hero.hp < hero.maxhp * 0.25 ? '#ff9a6a' : '#ffcf6a';
       G.text(ctx, hero.name, tx, y0 + 4, nameCol, 8, 'left', true);
-      let st = ''; if (!hero.alive) st = 'Caído'; else if (hero.status.sleep) st = 'Lembr.'; else if (hero.status.guard) st = 'Defesa'; else if (hero.status.shield) st = 'Barreira';
+      let st = ''; if (!hero.alive) st = 'Caído'; else if (hero.status.sleep) st = 'Lembr.'; else if (hero.status.guard) st = 'Defesa'; else if (hero.status.shield) st = 'Barreira'; else if (hero.status.fury) st = 'Fúria';
       G.text(ctx, st || 'Nv' + hero.lv, x0 + w - 6, y0 + 5, st ? '#e0c060' : '#a89a8a', 6.5, 'right');
       G.text(ctx, 'HP', tx, y0 + 16, '#a89a8a', 6.5); G.text(ctx, hero.hp + '', x0 + w - 6, y0 + 15, '#efe3cf', 8, 'right');
       bar(ctx, tx, y0 + 25, bw, hero.hp / hero.maxhp, '#d84a3a', '#3a1214');
