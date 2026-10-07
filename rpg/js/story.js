@@ -105,7 +105,22 @@
   S.cristalNegro = async () => nar(G.pick(['Cristais negros espetados no solo como túmulos.', 'O cristal está frio. Algo pulsa lá dentro, devagar.', 'Um cristal escurecido. A Essência aqui morreu há muito tempo.']));
   S.raizesBloqueio = async () => { if (F().vila) return; await nar('Raízes negras fecham a estrada para a Floresta Morta.'); await nar('A luz dourada na vila parece chamar por ele.'); };
   S.raizesBloqueio2 = async () => { if (F().guardiao1) return; await nar('Raízes antigas, vivas e cheias de espinhos, fecham a trilha. Elas recuam um pouco quando Kravenox se aproxima... mas não cedem.'); };
-  S.abismoOlhar = async () => nar('Uma fenda sem fundo. Lá embaixo, algo pulsa em vermelho.');
+  S.abismoOlhar = async (x, y) => {
+    // a grande cratera do sudeste guarda um segredo
+    if (G.Field.id === 'reino' && x >= 26 && y >= 20) return S.crateraSecreta();
+    return nar('Uma fenda sem fundo. Lá embaixo, algo pulsa em vermelho.');
+  };
+  S.crateraSecreta = async function () {
+    await nar('Uma cratera imensa. No fundo, um redemoinho violeta gira devagar, e o chão ao redor está coberto de larvas e olhos que não piscam.');
+    await say(K, '— Isso... é onde o Cisma rasgou o mundo.');
+    if (G.gfx.imgs.cratera) await G.showImage(G.gfx.imgs.cratera, 'A Cratera do Cisma');
+    const i = await G.choose('Descer até o fundo da cratera? (Abre outro jogo. Seu progresso aqui será salvo.)', ['Descer', 'Ficar']);
+    if (i !== 0) return;
+    D.save();
+    await nar('Kravenox salta. A escuridão o engole.');
+    await G.fade(1, 40, '#1a0a2a');
+    if (!G.debug.auto) location.href = '../';
+  };
   S.memoriaEstrada = async function () {
     if (F().mem1) return; F().mem1 = 1;
     await nar('A cada passo, uma memória surgia.');
