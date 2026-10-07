@@ -101,6 +101,8 @@
       case 'bump': tone(d, 90, t, 0.07, 'square', 0.15); break;
       case 'level': [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(d, f, t + i * 0.08, 0.12, 'square', 0.15)); break;
       case 'bell': [0, 0.01].forEach(o => tone(d, 196 + o * 100, t, 2.2, 'sine', 0.25, { attack: 0.005, sustain: 0.4, release: 1.8 })); tone(d, 392 * 1.5, t, 1.6, 'sine', 0.08, { release: 1.4 }); break;
+      case 'heart': tone(d, 62, t, 0.16, 'sine', 0.5, { slide: 40 }); tone(d, 58, t + 0.22, 0.2, 'sine', 0.42, { slide: 38 }); break;
+      case 'crack': noise(d, t, 0.18, 0.5, 2500); tone(d, 900, t, 0.08, 'square', 0.08, { slide: 300 }); break;
       case 'save': [784, 988, 1175, 1568].forEach((f, i) => tone(d, f, t + i * 0.09, 0.3, 'triangle', 0.13)); break;
       case 'die': tone(d, 300, t, 0.5, 'sawtooth', 0.2, { slide: 50 }); break;
       case 'boom': noise(d, t, 0.8, 0.7, 60); tone(d, 70, t, 0.8, 'sine', 0.4, { slide: 30 }); break;

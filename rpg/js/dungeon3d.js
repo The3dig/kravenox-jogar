@@ -138,6 +138,12 @@
     const gr = g.createLinearGradient(0, 0, 0, 32); gr.addColorStop(0, 'rgba(255,140,90,0.9)'); gr.addColorStop(1, 'rgba(255,90,60,0)'); g.fillStyle = gr; g.fillRect(6, 0, 20, 12);
     for (let i = 0; i < 7; i++) { const w = 28 - i * 3, y = 30 - i * 4; g.fillStyle = i % 2 ? '#5a4a48' : '#6a5856'; g.fillRect(16 - w / 2, y - 3, w, 3); g.fillStyle = '#2a2020'; g.fillRect(16 - w / 2, y, w, 1); }
   });
+  const shardsSpr = () => sprite('estilhacos', (g) => {
+    const r = X.rng(42);
+    const gr = g.createRadialGradient(16, 26, 1, 16, 26, 14); gr.addColorStop(0, 'rgba(255,40,20,0.5)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 12, 32, 20);
+    for (let i = 0; i < 9; i++) { const x = 3 + r() * 26, h = 3 + r() * 10, w = 1.5 + r() * 2.5; g.fillStyle = '#0c0812'; g.beginPath(); g.moveTo(x - w, 31); g.lineTo(x + (r() - 0.5) * 3, 31 - h); g.lineTo(x + w, 31); g.fill(); g.fillStyle = '#6a2a3a'; g.fillRect(x, 31 - h + 1, 1, Math.max(1, h - 3)); }
+    g.fillStyle = '#ff3a2a'; g.fillRect(12, 29, 1, 1); g.fillRect(20, 30, 1, 1);
+  });
   const auraSpr = (color) => sprite('aura' + color, (g) => {
     const gr = g.createRadialGradient(16, 16, 1, 16, 16, 16); gr.addColorStop(0, color); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
     g.fillStyle = '#fff'; for (const [x, y] of [[10, 12], [20, 8], [16, 20], [24, 18], [8, 22]]) g.fillRect(x, y, 1, 1);
@@ -160,10 +166,10 @@
   Dun.draw = function (ctx) {
     ensure();
     const map = this.map, set = texSet(themeOf(this.id)), T = set.T;
-    const target = (this.dir - 1) * Math.PI / 2;
+    const target = (this.dir - 1) * Math.PI / 2 + (this.look || 0);
     if (this.ra == null || this._snapId !== this.id) { this.ra = target; this._snapId = this.id; }
     let d = target - this.ra; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
-    this.ra += Math.abs(d) < 0.01 ? d : d * 0.3;
+    this.ra += Math.abs(d) < 0.01 ? d : d * (this.lookSpeed || 0.3);
     const a = this.anim;
     let px = this.x + 0.5, py = this.y + 0.5;
     if (a && a.type === 'move') { const [dx, dy] = VEC[this.dir]; px += dx * a.t; py += dy * a.t; }
@@ -233,6 +239,7 @@
     for (let yy = Math.max(0, this.y - 7); yy < Math.min(g.length, this.y + 8); yy++) for (let xx = Math.max(0, this.x - 7); xx < Math.min(g[0].length, this.x + 8); xx++) {
       const c = g[yy][xx];
       let s = null, size = 0.55, lift = 0, glow = false;
+      if (this.id === 'abismo' && ((xx === 1 && yy === 2) || (xx === 2 && yy === 1) || (xx === 1 && yy === 3))) { objs.push({ x: xx + 0.5, y: yy + 0.5, s: shardsSpr(), size: 0.3, lift: 0, glow: false, d: (xx + 0.5 - px) ** 2 + (yy + 0.5 - py) ** 2 }); }
       if (c === 'C') s = chestSpr(this.chestOpen(xx, yy));
       else if (c === 'H') { s = crystalSpr(); size = 0.36; lift = 0.28 + Math.sin(G.time / 20) * 0.04; glow = true; }
       else if (c === 'U') { s = stairSpr(); size = 0.9; }
@@ -270,7 +277,7 @@
     cg.putImageData(img, 0, 0);
     ctx.drawImage(cv, 0, 0);
     G.vignette(ctx);
-    this.drawHUD(ctx);
+    if (!this.noHud) this.drawHUD(ctx);
   };
   // reinicia o ângulo ao entrar numa masmorra
   const enter = G.enterDungeon;

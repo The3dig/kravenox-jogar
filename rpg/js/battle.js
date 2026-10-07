@@ -16,14 +16,24 @@
   function layout() {
     const live = B.enemies;
     const n = live.length;
-    // a área à direita do menu de comandos (x 88..316)
+    // inimigos do lado esquerdo do campo (x 12..214); o grupo fica à direita
     const sum = live.reduce((s, e) => s + e.w, 0);
-    const gap = n > 1 ? Math.min(10, (226 - sum) / (n - 1)) : 0;
+    const gap = n > 1 ? Math.min(8, (200 - sum) / (n - 1)) : 0;
     const total = sum + (n - 1) * gap;
-    let x = 202 - total / 2;
+    let x = 114 - total / 2;
     for (const e of live) { e.x = x + e.w / 2; x += e.w + gap; }
   }
   const party = () => G.state.party;
+  // posições dos heróis no campo, em diagonal (estilo Super Mario RPG)
+  const HOME = [[236, 140], [262, 154], [288, 168]];
+  const hs = i => (B.hs[i] || (B.hs[i] = { ox: 0, oy: 0, flash: 0, shake: 0, kb: 0, walk: false, cast: null, jump: 0 }));
+  function heroAt(h) { const i = party().indexOf(h), [x, y] = HOME[i] || HOME[0], s = hs(i); return { x: x + s.ox + s.kb, y: y + s.oy, i }; }
+  async function moveHero(i, tx, ty, frames) {
+    const s = hs(i), [hx, hy] = HOME[i], fx = s.ox, fy = s.oy, dx = tx - hx, dy = ty - hy;
+    s.walk = true;
+    for (let f = 1; f <= frames; f++) { const k = f / frames; s.ox = fx + (dx - fx) * k; s.oy = fy + (dy - fy) * k - Math.sin(k * Math.PI) * 4; await G.wait(1); }
+    s.walk = false;
+  }
   const alive = arr => arr.filter(a => a.alive);
   const rnd = () => G.rand(0.88, 1.12);
 
@@ -46,10 +56,10 @@
   function playFx(kind, targets, onParty) {
     const n0 = B.fxs.length;
     playFx2(kind, targets, onParty);
-    for (let i = n0; i < B.fxs.length; i++) B.fxs[i].ui = !!onParty;
+    for (let i = n0; i < B.fxs.length; i++) B.fxs[i].ui = false;
   }
   function playFx2(kind, targets, onParty) {
-    const pts = targets.map(t => onParty ? { x: slotX(party().indexOf(t)), y: PW_Y + 10 } : { x: t.x, y: BASE - t.h * 0.5, base: BASE, w: t.w, h: t.h });
+    const pts = targets.map(t => onParty ? { x: heroAt(t).x, y: heroAt(t).y - 16, base: heroAt(t).y, w: 26, h: 32 } : { x: t.x, y: BASE - t.h * 0.5, base: BASE, w: t.w, h: t.h });
     switch (kind) {
       case 'slash': if (X.imgs.fx_garra1) {
         G.Audio.sfx('hit');
@@ -174,8 +184,9 @@
   }
   async function hurtHero(h, dmg) {
     h.hp = Math.max(0, h.hp - dmg);
-    B.slotFlash[party().indexOf(h)] = 12; G.shake = 8;
-    numFx(slotX(party().indexOf(h)), PW_Y - 4, String(dmg), '#ff6a5a');
+    const hi = party().indexOf(h), at = heroAt(h);
+    B.slotFlash[hi] = 12; G.shake = 6; hs(hi).flash = 14; hs(hi).kb = 8;
+    numFx(at.x, at.y - 36, String(dmg), '#ff6a5a');
     G.Audio.sfx('hurt');
     if (h.hp <= 0) { h.alive = false; h.status = {}; await B.say(h.name + ' caiu!', 36); }
   }
@@ -216,7 +227,7 @@
     for (;;) {
       const cmds = ['Atacar', 'Técnica', 'Item', 'Defender', 'Fugir'];
       const items = cmds.map((c, i) => ({ label: c, disabled: (i === 1 && D.techsOf(h).length === 0) || (i === 2 && !Object.keys(G.state.inv).some(k => G.state.inv[k] > 0)) || (i === 4 && B.opt.noEscape) }));
-      let pick = G.debug.auto ? (G.debug.battlePick ? G.debug.battlePick(h, B) : 0) : await G.menu({ x: 10, y: 94, w: 78, items, title: h.name, index: h.lastCmd || 0, cancel: idx > 0 });
+      let pick = G.debug.auto ? (G.debug.battlePick ? G.debug.battlePick(h, B) : 0) : await G.menu({ x: 236, y: 30, w: 78, items, title: h.name, index: h.lastCmd || 0, cancel: idx > 0 });
       if (typeof pick === 'object' && pick) return pick;
       if (pick < 0) return null; // volta para o anterior
       h.lastCmd = pick;
@@ -251,31 +262,39 @@
     let tgt = act.target;
     if (tgt && tgt !== 'all' && tgt.maxhp && D.ENEMIES[tgt.id] && !tgt.alive) { const l = alive(B.enemies); if (!l.length) return; tgt = G.pick(l); }
     if (act.type === 'atk') {
-      await B.say(h.name + ' ataca!', 14);
-      h.lunge = 10;
+      B.msg = h.name + ' ataca!';
+      const hi = party().indexOf(h);
+      await moveHero(hi, tgt.x + tgt.w * 0.42 + 10, Math.min(BASE, HOME[hi][1] + 4), 14);
       const miss = Math.random() < 0.04 + Math.max(0, (tgt.agi - h.agi)) * 0.006;
-      if (miss) { G.Audio.sfx('miss'); await B.say('Errou!', 24); return; }
+      if (miss) { G.Audio.sfx('miss'); await moveHero(hi, HOME[hi][0], HOME[hi][1], 12); await B.say('Errou!', 24); return; }
       let dmg = physDmg(h, tgt); const crit = Math.random() < 1 / 14; if (crit) dmg = Math.round(dmg * 1.6);
+      hs(hi).jump = 10;
       playFx(h.id === 'kravenox' ? 'slash' : 'light', [tgt]);
       await G.wait(8);
       await hurtEnemy(tgt, dmg, crit);
+      await G.wait(8);
+      await moveHero(hi, HOME[hi][0], HOME[hi][1], 12);
       await B.say(crit ? 'Golpe crítico! ' + dmg + ' de dano.' : tgt.name + ' sofre ' + dmg + ' de dano.', 30);
     } else if (act.type === 'tech') {
       const T = D.TECHS[act.tech];
       if (h.ep < T.ep) { await B.say('EP insuficiente.', 24); return; }
       h.ep -= T.ep;
+      const hi2 = party().indexOf(h);
+      hs(hi2).cast = { kravenox: 'rgba(255,40,30,0.9)', thornox: 'rgba(255,214,110,0.9)', lyra: 'rgba(170,215,255,0.9)' }[h.id];
+      moveHero(hi2, HOME[hi2][0] - 14, HOME[hi2][1], 10);
       await B.say(h.name + ': ' + T.name + '!', 22);
+      (async () => { await G.wait(30); hs(hi2).cast = null; await moveHero(hi2, HOME[hi2][0], HOME[hi2][1], 10); })();
       if (T.kind === 'dano' || T.kind === 'dreno') {
         const ts = tgt === 'all' ? alive(B.enemies) : [tgt];
         playFx(T.fx, ts); await G.wait(14);
         let total = 0;
         for (const e of ts) { const d = techDmg(h, e, T); total += d; await hurtEnemy(e, d, false); await G.wait(4); }
-        if (T.kind === 'dreno') { const heal = Math.round(total * 0.5); h.hp = Math.min(h.maxhp, h.hp + heal); numFx(slotX(party().indexOf(h)), PW_Y - 4, '+' + heal, '#9aff8a'); }
+        if (T.kind === 'dreno') { const heal = Math.round(total * 0.5); h.hp = Math.min(h.maxhp, h.hp + heal); numFx(heroAt(h).x, heroAt(h).y - 36, '+' + heal, '#9aff8a'); }
         await B.say(ts.length > 1 ? 'Os espinhos atravessam todos!' : ts[0].name + ' sofre ' + total + ' de dano.', 28);
       } else if (T.kind === 'cura') {
         const ts = tgt === 'all' ? alive(party()) : [tgt];
         playFx(T.fx, ts, true); await G.wait(10);
-        for (const p of ts) { const v = Math.round((h.mag * T.pow + T.base) * rnd()); p.hp = Math.min(p.maxhp, p.hp + v); numFx(slotX(party().indexOf(p)), PW_Y - 4, '+' + v, '#9aff8a'); }
+        for (const p of ts) { const v = Math.round((h.mag * T.pow + T.base) * rnd()); p.hp = Math.min(p.maxhp, p.hp + v); numFx(heroAt(p).x, heroAt(p).y - 36, '+' + v, '#9aff8a'); }
         await B.say(ts.length > 1 ? 'O grupo se recupera.' : ts[0].name + ' se recupera.', 28);
       } else if (T.kind === 'furia') {
         playFx('fury', [h], true);
@@ -313,7 +332,7 @@
       if (it.target === 'aliados' && !p.alive) { p.alive = true; }
       if (it.heal) p.hp = Math.min(p.maxhp, p.hp + it.heal);
       if (it.ep) p.ep = Math.min(p.mep, p.ep + it.ep);
-      if (inBattle) { playFx('heal', [p], true); numFx(slotX(party().indexOf(p)), PW_Y - 4, it.ep && !it.heal ? '+' + it.ep + ' EP' : '+' + Math.min(it.heal || 0, 999), '#9aff8a'); }
+      if (inBattle) { playFx('heal', [p], true); numFx(heroAt(p).x, heroAt(p).y - 36, it.ep && !it.heal ? '+' + it.ep + ' EP' : '+' + Math.min(it.heal || 0, 999), '#9aff8a'); }
       else G.Audio.sfx('heal');
     }
     if (inBattle) await G.wait(20);
@@ -364,7 +383,7 @@
   G.battle = async function (ids, opt = {}) {
     const prev = G.scene;
     B.opt = opt; B.enemies = ids.map((id, i) => mkEnemy(id, i, ids.length)); layout();
-    B.fxs = []; B.msg = null; B.bg = opt.bg || 'planicie'; B.slotFlash = [0, 0, 0]; B.turnHero = -1;
+    B.fxs = []; B.msg = null; B.bg = opt.bg || 'planicie'; B.slotFlash = [0, 0, 0]; B.turnHero = -1; B.hs = []; B.victory = false;
     for (const h of party()) { h.status = {}; h.lunge = 0; }
     const music = opt.music || (B.enemies.some(e => e.boss) ? 'chefe' : 'batalha');
     G.Audio.sfx('enc');
@@ -442,6 +461,7 @@
   async function rewards() {
     const xp = B.enemies.reduce((s, e) => s + (e.xp || 0), 0), fr = B.enemies.reduce((s, e) => s + (e.fr || 0), 0);
     G.Audio.play('vitoria');
+    B.victory = true;
     await B.say('Vitória!', 40);
     if (xp || fr) { G.state.fr += fr; await B.say('Ganharam ' + xp + ' de experiência e ' + fr + ' fragmentos.', 60); }
     for (const h of party()) {
@@ -471,6 +491,7 @@
     if (B.fxs) B.fxs = B.fxs.filter(f => f.t < f.life);
     for (const e of (B.enemies || [])) { if (e.flash) e.flash--; if (e.shake) e.shake--; if (e.lunge) e.lunge--; if (e.dying && e.dying < 40) e.dying++; }
     for (let i = 0; i < 3; i++) if (B.slotFlash[i]) B.slotFlash[i]--;
+    for (const st of (B.hs || [])) { if (!st) continue; if (st.flash) st.flash--; if (st.kb) st.kb *= 0.8; if (Math.abs(st.kb) < 0.3) st.kb = 0; if (st.jump) st.jump--; }
   };
   // Moldura do quadro de batalha, com espinhos nos cantos
   function frame(ctx, x, y, w, h) {
@@ -503,7 +524,7 @@
       if (!e.alive && e.dying >= 40) continue;
       const img = X.enemyImg(e);
       const bob = e.dying ? 0 : Math.sin(G.time / 18 + e.idx) * (e.art === 'ghost' || e.art === 'shards' ? 3 : 1);
-      const sx = Math.round(e.x - e.w / 2 + (e.shake ? (e.shake % 4 < 2 ? 2 : -2) : 0)) - 1, sy = Math.round(BASE - e.h + bob + (e.lunge ? Math.sin(e.lunge / 12 * Math.PI) * 6 : 0)) - 1;
+      const sx = Math.round(e.x - e.w / 2 + (e.shake ? (e.shake % 4 < 2 ? 2 : -2) : 0) + (e.lunge ? Math.sin(e.lunge / 12 * Math.PI) * 18 : 0)) - 1, sy = Math.round(BASE - e.h + bob) - 1;
       ctx.fillStyle = 'rgba(0,0,0,0.45)';
       for (let k = 0; k < 3; k++) ctx.fillRect(Math.round(e.x - e.w * (0.38 - k * 0.08)), BASE - 1 + k, Math.round(e.w * (0.76 - k * 0.16)), 1);
       if (e.boss) X.glow(ctx, e.x, BASE - e.h / 2, e.h * 0.7, e.void ? 'rgba(120,0,30,0.5)' : 'rgba(200,200,255,0.3)', 0.6 + 0.2 * Math.sin(G.time / 20));
@@ -514,6 +535,7 @@
       ctx.globalAlpha = 1;
       if (e.status.sleep && e.alive) G.text(ctx, 'z', e.x + e.w * 0.3, BASE - e.h - 6 + Math.sin(G.time / 10) * 3, '#e8ecff', 9);
     }
+    drawHeroes(ctx);
     for (const f of B.fxs) if (!f.ui) f.draw(ctx);
     ctx.restore();
     frame(ctx, VX, VY, VW, VH);
@@ -521,6 +543,35 @@
     for (const f of B.fxs) if (f.ui) f.draw(ctx);
     if (B.msg) { G.win(ctx, 12, 10, G.W - 24, 20); G.text(ctx, B.msg, 20, 15, '#f1e6d2', 9); }
   };
+  // o grupo no campo de batalha
+  function drawHeroes(ctx) {
+    party().forEach((h, i) => {
+      const s = hs(i), at = heroAt(h), x = at.x, y = at.y;
+      let im, sc = 1;
+      if (h.id === 'kravenox') {
+        if (h.status.fury && h.alive && X.imgs.k_furia) { im = X.imgs.k_furia; sc = 0.85; }
+        else im = X.sprite(G.state.flags.prata ? 'kravenoxP' : 'kravenox', 'left', s.walk ? 1 : 0, s.walk ? ((G.time >> 2) & 3) : 0);
+      } else if (h.id === 'thornox') { im = X.sprite('thornox', 'down', 0); sc = 0.66; }
+      else { im = X.sprite('lyra', 'left', s.walk ? 1 + ((G.time >> 3) & 1) : 0); sc = 1.45; }
+      if (!im) return;
+      const w = Math.round(im.width * sc), hh = Math.round(im.height * sc);
+      const bob = h.alive && !s.walk ? Math.round(Math.sin(G.time / 14 + i * 2) * 0.8) : 0;
+      const jump = s.jump ? Math.sin(s.jump / 10 * Math.PI) * 6 : 0;
+      const vj = B.victory && h.alive ? Math.abs(Math.sin((G.time + i * 9) / 8)) * 9 : 0;
+      ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(x, y, w * 0.38, 3, 0, 0, 7); ctx.fill();
+      if (s.cast) X.glow(ctx, x, y - hh / 2, 28, s.cast, 0.55 + 0.3 * Math.sin(G.time / 4));
+      if (h.status.fury && h.alive) X.glow(ctx, x, y - hh / 2, 30, 'rgba(255,30,10,0.9)', 0.3 + 0.2 * Math.sin(G.time / 5));
+      const dx = Math.round(x - w / 2), dy = Math.round(y - hh - jump - vj + bob + (h.alive ? 0 : 6));
+      if (!h.alive) ctx.globalAlpha = 0.35;
+      ctx.drawImage(im, dx, dy, w, hh);
+      if (s.flash && (s.flash & 2)) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.8; ctx.drawImage(im, dx, dy, w, hh); ctx.globalCompositeOperation = 'source-over'; }
+      ctx.globalAlpha = 1;
+      if (B.turnHero === i) {
+        const ay = dy - 7 + Math.sin(G.time / 6) * 2;
+        ctx.fillStyle = '#ffcf6a'; ctx.beginPath(); ctx.moveTo(x - 4, ay); ctx.lineTo(x + 4, ay); ctx.lineTo(x, ay + 5); ctx.fill();
+      }
+    });
+  }
   function drawParty(ctx) {
     const p = party(), n = 3, gap = 4, w = Math.floor((G.W - 12 - gap * (n - 1)) / n), y0 = PW_Y - 2, h = G.H - y0 - 4;
     p.forEach((h0, i) => {
