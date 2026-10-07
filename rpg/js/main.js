@@ -98,6 +98,7 @@
     } };
     G.fadeA = 0;
     await new Promise(r => { ov.done = r; G.push(ov); });
+    if (G.gfx.imgs.desenho) await G.showImage(G.gfx.imgs.desenho, 'Kravenox nasceu de um desenho de escola, há 45 anos.');
     G.titleScreen();
   };
 
