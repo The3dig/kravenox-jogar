@@ -2,7 +2,6 @@
 // Batalha por turnos no estilo Phantasy Star.
 (function () {
   const D = G.data, X = G.gfx;
-  const BASE = 150;          // linha do chão dos inimigos
   const PW_Y = 188;          // janela do grupo
   const VIEW_H = 174;        // altura do quadro da batalha
 
@@ -16,16 +15,18 @@
   function layout() {
     const live = B.enemies;
     const n = live.length;
-    // inimigos do lado esquerdo do campo (x 12..214); o grupo fica à direita
+    // arena isométrica: inimigos numa diagonal no alto à esquerda, olhando para o grupo
     const sum = live.reduce((s, e) => s + e.w, 0);
-    const gap = n > 1 ? Math.min(8, (200 - sum) / (n - 1)) : 0;
+    const gap = n > 1 ? Math.max(-14, Math.min(10, (190 - sum) / (n - 1))) : 0;
     const total = sum + (n - 1) * gap;
-    let x = 114 - total / 2;
-    for (const e of live) { e.x = x + e.w / 2; x += e.w + gap; }
+    let d = -total / 2;
+    const big = live.some(e => e.h > 70);
+    const cx = 104, cy = big ? 118 : 108;
+    for (const e of live) { const m = d + e.w / 2; e.x = Math.round(cx + m * 0.894); e.by = Math.round(cy - m * 0.447 + (e.h > 90 ? 20 : 0)); d += e.w + gap; }
   }
   const party = () => G.state.party;
   // posições dos heróis no campo, em diagonal (estilo Super Mario RPG)
-  const HOME = [[236, 140], [262, 154], [288, 168]];
+  const HOME = [[240, 150], [208, 165], [274, 134]];
   const hs = i => (B.hs[i] || (B.hs[i] = { ox: 0, oy: 0, flash: 0, shake: 0, kb: 0, walk: false, cast: null, jump: 0 }));
   function heroAt(h) { const i = party().indexOf(h), [x, y] = HOME[i] || HOME[0], s = hs(i); return { x: x + s.ox + s.kb, y: y + s.oy, i }; }
   async function moveHero(i, tx, ty, frames) {
@@ -59,7 +60,7 @@
     for (let i = n0; i < B.fxs.length; i++) B.fxs[i].ui = false;
   }
   function playFx2(kind, targets, onParty) {
-    const pts = targets.map(t => onParty ? { x: heroAt(t).x, y: heroAt(t).y - 16, base: heroAt(t).y, w: 26, h: 32 } : { x: t.x, y: BASE - t.h * 0.5, base: BASE, w: t.w, h: t.h });
+    const pts = targets.map(t => onParty ? { x: heroAt(t).x, y: heroAt(t).y - 16, base: heroAt(t).y, w: 26, h: 32 } : { x: t.x, y: t.by - t.h * 0.5, base: t.by, w: t.w, h: t.h });
     switch (kind) {
       case 'slash': if (X.imgs.fx_garra1) {
         G.Audio.sfx('hit');
@@ -177,7 +178,7 @@
 
   async function hurtEnemy(e, dmg, crit) {
     e.hp = Math.max(0, e.hp - dmg); e.flash = 10; e.shake = 12;
-    numFx(e.x, BASE - e.h - 4, String(dmg), crit ? '#ffcf6a' : '#ffffff');
+    numFx(e.x, e.by - e.h - 4, String(dmg), crit ? '#ffcf6a' : '#ffffff');
     G.Audio.sfx(crit ? 'crit' : 'hit');
     if (e.status.sleep) e.status.sleep = 0;
     if (e.hp <= 0) { e.alive = false; e.dying = 1; G.Audio.sfx('die'); }
@@ -205,7 +206,7 @@
           else if (G.Input.pressed.b) { G.Audio.sfx('back'); G.pop(ov); res(null); }
         },
         draw(ctx) {
-          const e = live[i]; const y = BASE - e.h - 14 + Math.sin(G.time / 6) * 2;
+          const e = live[i]; const y = e.by - e.h - 14 + Math.sin(G.time / 6) * 2;
           ctx.fillStyle = '#ffcf6a'; ctx.beginPath(); ctx.moveTo(e.x - 5, y); ctx.lineTo(e.x + 5, y); ctx.lineTo(e.x, y + 6); ctx.fill();
           G.win(ctx, 6, 4, G.W - 12, 18); G.text(ctx, e.name, 14, 8, '#efe3cf', 8);
           const hpk = e.hp / e.maxhp; ctx.fillStyle = '#3a1418'; ctx.fillRect(G.W - 80, 10, 64, 4); ctx.fillStyle = hpk > 0.5 ? '#c8a050' : hpk > 0.2 ? '#d07030' : '#d03030'; ctx.fillRect(G.W - 80, 10, 64 * hpk, 4);
@@ -227,7 +228,7 @@
     for (;;) {
       const cmds = ['Atacar', 'Técnica', 'Item', 'Defender', 'Fugir'];
       const items = cmds.map((c, i) => ({ label: c, disabled: (i === 1 && D.techsOf(h).length === 0) || (i === 2 && !Object.keys(G.state.inv).some(k => G.state.inv[k] > 0)) || (i === 4 && B.opt.noEscape) }));
-      let pick = G.debug.auto ? (G.debug.battlePick ? G.debug.battlePick(h, B) : 0) : await G.menu({ x: 236, y: 30, w: 78, items, title: h.name, index: h.lastCmd || 0, cancel: idx > 0 });
+      let pick = G.debug.auto ? (G.debug.battlePick ? G.debug.battlePick(h, B) : 0) : await G.menu({ x: 238, y: 12, w: 76, items, title: h.name, index: h.lastCmd || 0, cancel: idx > 0 });
       if (typeof pick === 'object' && pick) return pick;
       if (pick < 0) return null; // volta para o anterior
       h.lastCmd = pick;
@@ -264,7 +265,7 @@
     if (act.type === 'atk') {
       B.msg = h.name + ' ataca!';
       const hi = party().indexOf(h);
-      await moveHero(hi, tgt.x + tgt.w * 0.42 + 10, Math.min(BASE, HOME[hi][1] + 4), 14);
+      await moveHero(hi, tgt.x + tgt.w * 0.36 + 10, tgt.by + 7, 14);
       const miss = Math.random() < 0.04 + Math.max(0, (tgt.agi - h.agi)) * 0.006;
       if (miss) { G.Audio.sfx('miss'); await moveHero(hi, HOME[hi][0], HOME[hi][1], 12); await B.say('Errou!', 24); return; }
       let dmg = physDmg(h, tgt); const crit = Math.random() < 1 / 14; if (crit) dmg = Math.round(dmg * 1.6);
@@ -281,7 +282,7 @@
       h.ep -= T.ep;
       const hi2 = party().indexOf(h);
       hs(hi2).cast = { kravenox: 'rgba(255,40,30,0.9)', thornox: 'rgba(255,214,110,0.9)', lyra: 'rgba(170,215,255,0.9)' }[h.id];
-      moveHero(hi2, HOME[hi2][0] - 14, HOME[hi2][1], 10);
+      moveHero(hi2, HOME[hi2][0] - 12, HOME[hi2][1] - 6, 10);
       await B.say(h.name + ': ' + T.name + '!', 22);
       (async () => { await G.wait(30); hs(hi2).cast = null; await moveHero(hi2, HOME[hi2][0], HOME[hi2][1], 10); })();
       if (T.kind === 'dano' || T.kind === 'dreno') {
@@ -510,7 +511,7 @@
     const n = Math.ceil(e.dis.width * e.dis.height / 26);
     for (let i = 0; i < n; i++) { const x = (Math.random() * e.dis.width) | 0, y = (Math.random() * e.dis.height) | 0; e.disG.clearRect(x, y, 1 + (Math.random() * 2 | 0), 1); }
     if (Math.random() < 0.9 && B.fxs) {
-      const px = e.x - e.w / 2 + Math.random() * e.w, py = BASE - e.h + Math.random() * e.h, col = e.void ? '#7a1a2a' : '#c8c0e0';
+      const px = e.x - e.w / 2 + Math.random() * e.w, py = e.by - e.h + Math.random() * e.h, col = e.void ? '#7a1a2a' : '#c8c0e0';
       B.fxs.push({ t: 0, life: 30, draw(ctx) { ctx.globalAlpha = 1 - this.t / 30; ctx.fillStyle = col; ctx.fillRect(px, py - this.t * 0.8, 1, 1); ctx.globalAlpha = 1; } });
     }
   }
@@ -519,21 +520,23 @@
     const VX = 6, VY = 6, VW = G.W - 12, VH = VIEW_H;
     ctx.save(); ctx.beginPath(); ctx.rect(VX, VY, VW, VH); ctx.clip();
     ctx.translate(0, VY - 2);
-    X.drawBG(ctx, B.bg, G.time, VIEW_H);
-    for (const e of B.enemies) {
+    X.drawArena(ctx, B.bg, G.time, VIEW_H);
+    for (const e of B.enemies.slice().sort((p, q) => p.by - q.by)) {
       if (!e.alive && e.dying >= 40) continue;
-      const img = X.enemyImg(e);
+      const img = X.enemyImg(e), BY = e.by;
       const bob = e.dying ? 0 : Math.sin(G.time / 18 + e.idx) * (e.art === 'ghost' || e.art === 'shards' ? 3 : 1);
-      const sx = Math.round(e.x - e.w / 2 + (e.shake ? (e.shake % 4 < 2 ? 2 : -2) : 0) + (e.lunge ? Math.sin(e.lunge / 12 * Math.PI) * 18 : 0)) - 1, sy = Math.round(BASE - e.h + bob) - 1;
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
-      for (let k = 0; k < 3; k++) ctx.fillRect(Math.round(e.x - e.w * (0.38 - k * 0.08)), BASE - 1 + k, Math.round(e.w * (0.76 - k * 0.16)), 1);
-      if (e.boss) X.glow(ctx, e.x, BASE - e.h / 2, e.h * 0.7, e.void ? 'rgba(120,0,30,0.5)' : 'rgba(200,200,255,0.3)', 0.6 + 0.2 * Math.sin(G.time / 20));
-      if (e.dying) { dissolve(e); ctx.drawImage(e.dis, sx, sy); continue; }
+      const lg = e.lunge ? Math.sin(e.lunge / 12 * Math.PI) : 0;
+      const sx = Math.round(e.x - e.w / 2 + (e.shake ? (e.shake % 4 < 2 ? 2 : -2) : 0) + lg * 18) - 1, sy = Math.round(BY - e.h + bob + lg * 9) - 1;
+      ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(e.x + lg * 18, BY + lg * 9, e.w * 0.4, Math.max(3, e.w * 0.12), 0, 0, 7); ctx.fill();
+      if (e.boss) X.glow(ctx, e.x, BY - e.h / 2, e.h * 0.7, e.void ? 'rgba(120,0,30,0.5)' : 'rgba(200,200,255,0.3)', 0.6 + 0.2 * Math.sin(G.time / 20));
+      // espelhado: os inimigos olham para o grupo, à direita
+      const put = (im) => { ctx.save(); ctx.translate(sx + im.width, sy); ctx.scale(-1, 1); ctx.drawImage(im, 0, 0); ctx.restore(); };
+      if (e.dying) { dissolve(e); put(e.dis); continue; }
       if (e.status.sleep) ctx.globalAlpha = 0.7;
-      ctx.drawImage(img, sx, sy);
-      if (e.flash && (e.flash & 2)) { ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(img, sx, sy); ctx.drawImage(img, sx, sy); ctx.globalCompositeOperation = 'source-over'; }
+      put(img);
+      if (e.flash && (e.flash & 2)) { ctx.globalCompositeOperation = 'lighter'; put(img); put(img); ctx.globalCompositeOperation = 'source-over'; }
       ctx.globalAlpha = 1;
-      if (e.status.sleep && e.alive) G.text(ctx, 'z', e.x + e.w * 0.3, BASE - e.h - 6 + Math.sin(G.time / 10) * 3, '#e8ecff', 9);
+      if (e.status.sleep && e.alive) G.text(ctx, 'z', e.x + e.w * 0.3, BY - e.h - 6 + Math.sin(G.time / 10) * 3, '#e8ecff', 9);
     }
     drawHeroes(ctx);
     for (const f of B.fxs) if (!f.ui) f.draw(ctx);
@@ -552,7 +555,7 @@
         if (h.status.fury && h.alive && X.imgs.k_furia) { im = X.imgs.k_furia; sc = 0.85; }
         else im = X.sprite(G.state.flags.prata ? 'kravenoxP' : 'kravenox', 'left', s.walk ? 1 : 0, s.walk ? ((G.time >> 2) & 3) : 0);
       } else if (h.id === 'thornox') { im = X.sprite('thornox', 'down', 0); sc = 0.66; }
-      else { im = X.sprite('lyra', 'left', s.walk ? 1 + ((G.time >> 3) & 1) : 0); sc = 1.45; }
+      else { im = X.sprite('lyra', 'left', s.walk ? 1 + ((G.time >> 3) & 1) : 0); sc = 1.7; }
       if (!im) return;
       const w = Math.round(im.width * sc), hh = Math.round(im.height * sc);
       const bob = h.alive && !s.walk ? Math.round(Math.sin(G.time / 14 + i * 2) * 0.8) : 0;

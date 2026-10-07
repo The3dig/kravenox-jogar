@@ -489,7 +489,7 @@
 
   // ---------- Cenários de batalha ----------
   X.BG = {
-    abismo: { sky: ['#1a0408', '#3a0a10'], ground: ['#1a0e12', '#0a0608'], deco: 'stalac', acc: '#ff3a2a' },
+    abismo: { sky: ['#141216', '#2a2630'], ground: ['#2a2830', '#121014'], deco: 'stalac', acc: '#ff3a2a' },
     planicie: { sky: ['#3a0a10', '#8a2a20'], ground: ['#3a3440', '#1e1a22'], deco: 'crystals', acc: '#c18bff' },
     vila: { sky: ['#2a0a14', '#6a1a1a'], ground: ['#3e383c', '#1e1a1e'], deco: 'houses', acc: '#ffcf6a' },
     floresta: { sky: ['#0a0a10', '#2a1a24'], ground: ['#241e24', '#0e0a0e'], deco: 'trees', acc: '#6a4a8a' },
@@ -539,6 +539,96 @@
     ctx.drawImage(cache[key], 0, 0, G.W, h);
     // animação leve: partículas
     ctx.fillStyle = B.acc;
+    for (let i = 0; i < 14; i++) {
+      const x = (i * 53 + t * (0.2 + (i % 3) * 0.1)) % G.W, y = (i * 37 + Math.sin(t / 40 + i) * 10) % (h * 0.8);
+      ctx.globalAlpha = 0.25 + 0.2 * Math.sin(t / 20 + i); ctx.fillRect(x, y, 1, 1);
+    }
+    ctx.globalAlpha = 1;
+  };
+
+  // ---------- Arena isométrica (batalha no estilo Super Mario RPG) ----------
+  // Piso em losangos visto de cima e de lado; em lugares fechados, duas paredes formam o canto da sala.
+  const ARENA = {
+    abismo: { floor: [58, 55, 62], stone: [74, 70, 78], vein: [200, 40, 40], indoor: true },
+    templo: { floor: [92, 76, 56], stone: [96, 80, 58], vein: [224, 192, 96], indoor: true },
+    caverna: { floor: [44, 36, 60], stone: [52, 40, 72], vein: [178, 107, 255], indoor: true },
+    submersa: { floor: [26, 56, 66], stone: [30, 62, 76], vein: [106, 240, 224], indoor: true },
+    fonte: { floor: [58, 48, 30], stone: [60, 50, 30], vein: [255, 224, 138], indoor: true },
+    planicie: { floor: [70, 62, 76], grass: [86, 80, 62] },
+    vila: { floor: [74, 68, 72], cob: true },
+    floresta: { floor: [42, 36, 44], grass: [60, 40, 46] },
+    vale: { floor: [62, 72, 84], grass: [84, 98, 108] },
+    ponte: { floor: [128, 110, 88], plank: true },
+  };
+  X.drawArena = function (ctx, name, t, h) {
+    const A = ARENA[name] || ARENA.planicie;
+    const key = 'arena' + name + h;
+    if (!cache[key]) {
+      const W = G.W, [c, g] = X.canvas(W, h);
+      if (!A.indoor) { // cenário ao fundo, nos cantos de cima
+        X.drawBG(g, name, 0, 118);
+        const B0 = X.BG[name] || X.BG.planicie; g.fillStyle = B0.ground[1]; g.fillRect(0, 118, W, h - 118);
+      }
+      const im = g.getImageData(0, 0, W, h), d = im.data;
+      const TX = 160, TY = 26;
+      const hh = (a, b, s) => { let v = Math.imul(a, 374761393) + Math.imul(b, 668265263) + s * 1442695041 | 0; v = Math.imul(v ^ v >>> 13, 1274126177); return ((v ^ v >>> 16) >>> 0) / 4294967296; };
+      const BY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+      const set = (i, col, k) => { d[i] = Math.min(255, col[0] * k); d[i + 1] = Math.min(255, col[1] * k); d[i + 2] = Math.min(255, col[2] * k); d[i + 3] = 255; };
+      const q = (k, x, y) => Math.round(k * 10 + (BY[(y & 3) * 4 + (x & 3)] / 16 - 0.5)) / 10; // tons em degraus com pontilhado
+      for (let y = 0; y < h; y++) for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4;
+        const edgeY = TY + Math.abs(x - TX) * 0.5;
+        if (y >= edgeY) {
+          // piso: coordenadas isométricas
+          const a = (x - TX) / 16, b = (y - TY) / 8, u = (b + a) / 2, v = (b - a) / 2;
+          const ti = Math.floor(u), tj = Math.floor(v), fu = u - ti, fv = v - tj;
+          const r = hh(ti, tj, 7);
+          const dist = Math.hypot(x - 175, (y - 130) * 1.6) / 190;
+          let k = 1.02 - dist * 0.55 + (r - 0.5) * 0.12 + ((ti + tj) & 1 ? 0.04 : -0.02);
+          let col = A.floor;
+          if (A.grass && hh(ti, tj, 9) < 0.45) col = A.grass;
+          if (A.plank) { const pl = Math.floor(u * 3); k += (hh(pl, 0, 3) - 0.5) * 0.15; if ((u * 3) % 1 < 0.1) k *= 0.55; }
+          else if (fu < 0.05 || fv < 0.05) k *= 0.62;          // rejunte
+          else if (fu > 0.95 || fv > 0.95) k *= 0.8;
+          else if (fu < 0.14 && fv > 0.1) k *= 1.12;           // aresta iluminada
+          if (A.cob) { const gx = Math.floor(u * 2), gy = Math.floor(v * 2); if ((u * 2) % 1 < 0.08 || (v * 2) % 1 < 0.08) k *= 0.7; else k += (hh(gx, gy, 5) - 0.5) * 0.2; }
+          if (hh(x, y, 11) < 0.03) k *= 0.85;
+          if (A.vein && hh(ti, tj, 13) < 0.1 && fu > 0.2 && fu < 0.85 && Math.abs(fv - 0.5 - (fu - 0.5) * (hh(ti, tj, 14) - 0.5) * 1.6 - Math.sin(fu * 9) * 0.04) < 0.035) { set(i, A.vein, 0.6); continue; }
+          if (y - edgeY < 1.5) k *= A.indoor ? 0.45 : 0.7;    // pé da parede / borda
+          set(i, col, Math.max(0.15, q(k, x, y)));
+        } else if (A.indoor) {
+          // paredes de blocos que formam o canto da sala
+          const left = x < TX, wu = Math.abs(x - TX), wv = edgeY - y;
+          const row = Math.floor(wv / 7), col = Math.floor((wu * 1.12 + (row & 1) * 9) / 18);
+          const r = hh(col, row, left ? 3 : 4);
+          let k = (left ? 0.95 : 0.7) + (r - 0.5) * 0.18 - wv * 0.004;
+          const mv = wv % 7, mu = (wu * 1.12 + (row & 1) * 9) % 18;
+          if (mv < 1 || mu < 1.2) k *= 0.45;
+          else if (mv > 5.8) k *= 0.8;
+          else if (mv < 2) k *= 1.1;
+          if (A.vein && r < 0.06 && Math.abs(mu - 9 - (mv - 3.5) * 1.3) < 0.8) { set(i, A.vein, 0.75); continue; }
+          if (x === TX || x === TX - 1) k *= 0.5;           // quina
+          set(i, A.stone, Math.max(0.12, q(k, x, y)));
+        }
+      }
+      g.putImageData(im, 0, 0);
+      if (A.indoor) { // tochas nas paredes
+        for (const [tx, ty] of [[80, 34], [240, 34]]) { g.fillStyle = '#2a1e18'; g.fillRect(tx - 1, ty, 3, 9); g.fillStyle = '#4a3a30'; g.fillRect(tx - 2, ty, 5, 2); }
+      }
+      cache[key] = c;
+    }
+    ctx.drawImage(cache[key], 0, 0);
+    if (A.indoor) {
+      const ac = A.vein;
+      for (const [tx, ty] of [[80, 34], [240, 34]]) {
+        const f = 0.75 + 0.25 * Math.sin(t / 3 + tx) * Math.sin(t / 7.1);
+        X.glow(ctx, tx + 0.5, ty - 3, 34, `rgba(${ac[0]},${Math.min(255, ac[1] + 80)},${ac[2]},0.35)`, f);
+        ctx.fillStyle = '#ffd070'; ctx.fillRect(tx - 1, ty - 4 + ((t >> 3) & 1), 3, 4); ctx.fillStyle = '#fff2c0'; ctx.fillRect(tx, ty - 3, 1, 2);
+      }
+    }
+    // poeira/brasas no ar
+    const B0 = X.BG[name] || X.BG.planicie;
+    ctx.fillStyle = B0.acc;
     for (let i = 0; i < 14; i++) {
       const x = (i * 53 + t * (0.2 + (i % 3) * 0.1)) % G.W, y = (i * 37 + Math.sin(t / 40 + i) * 10) % (h * 0.8);
       ctx.globalAlpha = 0.25 + 0.2 * Math.sin(t / 20 + i); ctx.fillRect(x, y, 1, 1);
