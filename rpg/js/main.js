@@ -56,7 +56,7 @@
   function attract() {
     const cv = G.canvas.getBoundingClientRect();
     const v = document.createElement('video');
-    v.src = 'video/abertura.mp4?v=' + (window.KRAVENOX_V || '');
+    for (const [ext, type] of [['mp4', 'video/mp4'], ['webm', 'video/webm']]) { const so = document.createElement('source'); so.src = 'video/abertura.' + ext + '?v=' + (window.KRAVENOX_V || ''); so.type = type; v.appendChild(so); }
     v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
     const sound = G.Audio.ctx && G.Audio.ctx.state === 'running';
     v.muted = !sound;
