@@ -37,6 +37,7 @@
       G.text(ctx, 'KRAVENOX', G.W / 2, 22, '#e8d8c0', 30, 'center', true);
       G.text(ctx, 'O REINO QUEBRADO', G.W / 2, 56, '#c9a24a', 12, 'center', true);
       G.text(ctx, 'Parte 1 — A Fonte', G.W / 2, 71, '#a07a6a', 8, 'center');
+      const v = +window.KRAVENOX_V; if (v > 1e9) { const d = new Date(v * 1000), z = n => String(n).padStart(2, '0'); G.text(ctx, 'versão ' + z(d.getDate()) + '/' + z(d.getMonth() + 1) + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()), G.W - 4, G.H - 22, '#8a7078', 6, 'right'); }
       G.text(ctx, 'baseado no romance "Reino Quebrado — A Lenda dos Irmãos Espinhos"', G.W / 2, G.H - 11, '#5a3a40', 6.5, 'center');
     },
   };
@@ -123,6 +124,25 @@
     G.titleScreen();
   };
 
+  // Atualização automática: de tempos em tempos (e ao voltar para o jogo) confere se saiu versão nova.
+  // Só recarrega num momento seguro — título, ou andando pelo mapa/masmorra sem diálogo — e salva antes.
+  let newV = null;
+  async function checkVersion() {
+    if (newV || location.search.includes('debug')) return;
+    try { const j = await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json(); if (window.KRAVENOX_V && j.v !== window.KRAVENOX_V) newV = j.v; } catch (e) {}
+  }
+  setInterval(checkVersion, 90000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
+  setInterval(() => {
+    if (!newV) return;
+    const onTitle = G.scene === Title;
+    const safe = onTitle || (G.state && G.lock === 0 && !G.overlays.length && (G.scene === G.Field || G.scene === G.Dungeon) && !(G.scene.mv || G.scene.anim));
+    if (!safe) return;
+    if (!onTitle) D.save();
+    G.toast('Nova versão do jogo! Atualizando...');
+    const v = newV; newV = null;
+    setTimeout(() => location.replace(location.pathname + '?v=' + v), 1200);
+  }, 1000);
   // contador de tempo de jogo
   setInterval(() => { if (G.state && G.scene !== Title) G.state.time += 60; }, 1000);
   // salva ao fechar/ocultar (só se já houver jogo em andamento fora de roteiros)

@@ -48,21 +48,18 @@
   <div class="btns"><div class="btn" id="btnB">B</div><div class="btn" id="btnA">A</div></div>
 </div>
 <div id="hint">Setas/WASD: andar · Z/Enter: confirmar (A) · X/Esc: voltar e menu (B)</div>
-<script src="js/engine.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/gfx.js"></script>
-<script src="js/enemies.js"></script>
-<script src="js/data.js"></script>
-<script src="js/mapdata.js"></script>
-<script src="js/maps.js"></script>
-<script src="js/world.js"></script>
-<script src="js/field.js"></script>
-<script src="js/dungeon.js"></script>
-<script src="js/dungeon3d.js"></script>
-<script src="js/battle.js"></script>
-<script src="js/menus.js"></script>
-<script src="js/cinema.js"></script>
-<script src="js/story.js"></script>
-<script src="js/main.js"></script>
+<script>
+// Carrega sempre a versão mais nova: pergunta ao servidor qual é a versão atual (sem cache)
+// e baixa os arquivos com esse número, para o navegador não reaproveitar os antigos.
+(function () {
+  const files = ["js/engine.js", "js/audio.js", "js/gfx.js", "js/enemies.js", "js/data.js", "js/mapdata.js", "js/maps.js", "js/world.js", "js/field.js", "js/dungeon.js", "js/dungeon3d.js", "js/battle.js", "js/menus.js", "js/cinema.js", "js/story.js", "js/main.js"];
+  function go(v) {
+    window.KRAVENOX_V = v;
+    let i = 0;
+    (function next() { if (i >= files.length) return; const sc = document.createElement('script'); sc.src = files[i++] + '?v=' + v; sc.onload = next; document.body.appendChild(sc); })();
+  }
+  fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()).then(j => go(j.v)).catch(() => go(String(Date.now())));
+})();
+</script>
 </body>
 </html>
