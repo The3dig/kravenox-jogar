@@ -714,6 +714,126 @@
       } }] });
     await S.final();
   };
+  // Cena cinematográfica: a despedida da mãe (Cap. 13), fiel ao texto do livro
+  S.despedidaMae = async function () {
+    const C = G.Cine, X = G.gfx, M = 'A Mãe', P = 'A Primeira Consciência';
+    const cap = (t, n = 50) => C.caption(t, n);
+    await C.begin('fonte', 'despedida');
+    const mae = C.actor('mae', { img: () => X.enemyImg(D.ENEMIES.primeira), x: 160, y: 158, z: 1, glow: 'rgba(160,10,40,0.9)', glowA: 0.5, bob: 1.5, alpha: 1 });
+    const ouro = C.actor('ouro', { img: () => X.enemyImg(D.ENEMIES.primeira2), x: 160, y: 158, z: 2, glow: 'rgba(255,230,150,0.95)', glowA: 0.9, bob: 1, alpha: 0 });
+    // os três irmãos, de costas para a câmera, contornados pela própria Essência
+    const tI = C.actor('thornox', { img: () => X.sprite('thornox', 'down', 0), x: 92, y: 206, z: 5, scale: 0.8, silhouette: '#ffd36a', glow: 'rgba(255,211,106,0.9)', glowA: 0.45 });
+    const kI = C.actor('kravenox', { img: () => X.sprite('kravenoxP', 'up', 0), x: 160, y: 208, z: 6, scale: 1.25, silhouette: '#dfe8ff', glow: 'rgba(223,232,255,0.9)', glowA: 0.45 });
+    const lI = C.actor('lyra', { img: () => X.sprite('lyra', 'up', 0), x: 228, y: 206, z: 5, scale: 1.4, silhouette: '#bfe0ff', glow: 'rgba(160,215,255,0.9)', glowA: 0.45 });
+    const R = [[-14, -96, 0, 40, -30], [14, -96, G.W, 50, 30], [-24, -60, 0, 120, -20], [24, -60, G.W, 130, 20], [-20, -30, 20, G.H, -40], [20, -30, 300, G.H, 40], [-6, -110, 70, 0, -20], [6, -110, 250, 0, 20]];
+    C.roots = R.map(([ox, oy, ex, ey, bend]) => ({ on: 'mae', ox, oy, ex, ey, bend, w: 3, broken: 0 }));
+
+    await say(K, '— Você não pode me controlar.');
+    await say(P, '— Eu sou sua mãe.');
+    await say(K, '— Talvez. Mas isso não dá a você o direito de decidir quem eu sou.');
+    await say(K, '— E não vou destruir você.');
+    await say(T, '— O quê?');
+    await say(K, '— Ela também está presa.');
+    await cap('Kravenox percebeu algo. As raízes que cobriam seu corpo não eram parte dela. Eram correntes.');
+    await say(K, '— Lyra.');
+    await say(L, '— O cristal.');
+    // três forças convergindo
+    const tgt = [160, 92];
+    C.beams = [
+      { x1: 92, y1: 182, x2: tgt[0], y2: tgt[1], color: '#ffd36a', a: 0, len: 0, w: 3, ph: 0 },
+      { x1: 228, y1: 182, x2: tgt[0], y2: tgt[1], color: '#9fd8ff', a: 0, len: 0, w: 3, ph: 4 },
+      { x1: 160, y1: 176, x2: tgt[0], y2: tgt[1], color: '#e8f0ff', a: 0, len: 0, w: 4, ph: 2 },
+    ];
+    for (const [i, sfx] of [[1, 'memory'], [0, 'light'], [2, 'dark']]) {
+      G.Audio.sfx(sfx); C.beams[i].a = 1; await C.tween(C.beams[i], { len: 1 }, 24);
+      C.burst(tgt[0], tgt[1], 24, C.beams[i].color, { speed: 2, life: 40 });
+    }
+    mae.shake = 3;
+    await cap('Os três concentraram suas forças. A luz branca atravessou a criatura.', 30);
+    // as raízes se rompem: uma, duas, dez, centenas
+    const breakRoot = (i) => { const rt = C.roots[i]; const a = C.actors.mae; G.Audio.sfx('hit'); G.shake = 6;
+      C.burst((a.x + rt.ox + rt.ex) / 2, (a.y + rt.oy + rt.ey) / 2, 18, i % 2 ? '#ffe08a' : '#ff6a3a', { speed: 2.5, life: 35, grav: 0.05 }); C.tween(rt, { broken: 1 }, 30); };
+    breakRoot(0); C.cap = { text: 'Uma.', t: 0 }; await C.wait(40);
+    breakRoot(1); C.cap = { text: 'Duas.', t: 0 }; await C.wait(40);
+    for (let i = 2; i < 5; i++) { breakRoot(i); await C.wait(8); } C.cap = { text: 'Dez.', t: 0 }; await C.wait(30);
+    for (let k = 0; k < 40; k++) { C.burst(60 + Math.random() * 200, 30 + Math.random() * 170, 3, k % 2 ? '#ffe08a' : '#ff6a3a', { speed: 2, life: 30 }); if (k % 6 === 0) G.Audio.sfx('hit'); await C.wait(2); }
+    C.cap = { text: 'Centenas.', t: 0 }; await C.wait(40);
+    G.Audio.sfx('die'); mae.shake = 7; G.shake = 16;
+    await cap('A criatura gritou. Não de raiva. De dor.');
+    await say(K, '— Aguente.');
+    await say(P, '— Não consigo.');
+    await say(K, '— Consegue.');
+    await say(P, '— Eu estou cansada.');
+    mae.shake = 1;
+    await cap('Por trás dos espinhos, ainda havia a mulher da floresta. A mãe. A primeira pessoa que ele havia esquecido.');
+    await C.tween(kI, { y: 196 }, 40);
+    await say(K, '— Então descanse.');
+    breakRoot(5); breakRoot(6); breakRoot(7);
+    G.Audio.sfx('boom'); G.shake = 20; mae.shake = 8;
+    C.whiteColor = '#ffffff'; C.holdWhite = true; await C.tween(C, { white: 1.2 }, 18);
+    mae.alpha = 0; ouro.alpha = 1; ouro.y = 170; C.beams.forEach(b => (b.a = 0)); C.roots = [];
+    C.holdWhite = false; await C.wait(70);
+    await cap('A última raiz se rompeu. Mas não havia mais monstro. Havia uma mulher. Frágil. Humana.');
+    // Lyra corre primeiro
+    await C.tween(lI, { x: 196, y: 196 }, 30);
+    await say(L, '— Mãe.');
+    await say(M, '— Minha pequena.');
+    await C.tween(tI, { x: 126, y: 198 }, 30);
+    await say(M, '— Você tentou protegê-los.');
+    await say(T, '— Eu falhei.');
+    await say(M, '— Não. Você tentou.');
+    await cap('Por fim, olhou para Kravenox. Ele não conseguiu se aproximar.');
+    await say(M, '— Venha.');
+    await C.tween(kI, { y: 186 }, 50);
+    await say(M, '— Você ficou muito parecido com seu pai.');
+    await say(K, '— Meu pai?');
+    await say(M, '— Você não se lembra dele.');
+    await say(K, '— Quem era ele?');
+    await say(M, '— O homem que iniciou o Cisma.');
+    await say(T, '— Não.');
+    await say(M, '— Sim.');
+    await say(K, '— Por quê?');
+    await say(M, '— Porque ele descobriu a verdade antes de todos nós.');
+    await say(K, '— Qual verdade?');
+    await say(M, '— A Essência não foi criada para dar vida.');
+    await cap('Silêncio.', 40);
+    await say(M, '— Ela foi criada para escolher quem merecia continuar existindo.');
+    await say(K, '— E quem decide isso?');
+    await say(M, '— A própria Fonte.');
+    G.Audio.sfx('dark'); G.shake = 14;
+    await cap('Atrás deles, a árvore começou a rachar.', 30);
+    await say(M, '— Vocês precisam ir.');
+    await say(L, '— Não.');
+    await say(M, '— Minha filha...');
+    await say(L, '— Eu não vou deixar você.');
+    await say(M, '— Você já me libertou.');
+    await say(M, '— Agora precisam libertar o Reino.');
+    // ela se desfaz em partículas douradas
+    G.Audio.sfx('memory');
+    C.tween(ouro, { alpha: 0 }, 300);
+    let k = 0;
+    const dissolve = async (n) => { for (let i = 0; i < n; i++, k++) { C.burst(160, 110, 7, k % 3 ? '#ffe08a' : '#fff4c8', { w: 60, h: 110, up: true, spread: 0.9, speed: 0.9, life: 110, drag: 0.995 }); await C.wait(4); } };
+    C.cap = { text: 'O corpo dela começou a desaparecer em pequenas partículas douradas.', t: 0 };
+    await dissolve(24);
+    C.tween(kI, { y: 178 }, 20);
+    await say(K, '— Não!');
+    await dissolve(10);
+    await say(M, '— Desta vez eu estou escolhendo partir.');
+    await dissolve(36);
+    C.cap = { text: 'E desapareceu.', t: 0 }; await C.wait(90);
+    await cap('Lyra chorava. Thornox estava ajoelhado. Kravenox permaneceu parado.', 60);
+    // a Fonte pulsa três vezes
+    C.cap = null;
+    for (const [w, txt] of [[0.35, 'Uma vez.'], [0.6, 'Duas.'], [0.9, 'Três.']]) {
+      G.Audio.sfx('boom'); G.shake = 12; C.whiteColor = '#ffe8b0'; C.white = w; C.cap = { text: txt, t: 0 };
+      C.burst(160, 90, 40, '#ffe08a', { speed: 3, life: 50 });
+      await C.wait(55);
+    }
+    C.whiteColor = '#ffffff'; C.holdWhite = true; await C.tween(C, { white: 1 }, 60);
+    G.fadeColor = '#ffffff'; G.fadeA = 1; C.holdWhite = false;
+    await C.end();
+  };
+
   S.final = async function () {
     F().fim = 1;
     G.Audio.play('memoria');
@@ -723,19 +843,18 @@
       'Então a mulher estava diante da Fonte. Os antigos sacerdotes ao seu redor.\n— Você precisa se tornar uma com a Essência.',
       'E, pouco a pouco, eles esqueceram a mulher que havia dado tudo.',
     ]);
-    await say(L, '— Ela não queria destruir o mundo. Ela queria que alguém lembrasse dela.');
-    await say(K, '— Mas a dor transformou o desejo.');
-    await say(K, '— Você não pode me controlar. E não vou destruir você.');
-    await nar('A luz branca atravessou a criatura. As raízes começaram a se romper. Por trás dos espinhos, ainda havia a mulher da floresta.');
-    await say('A Mãe', '— Você ficou muito parecido com seu pai.');
-    await say(K, '— Eu não me lembro dele.');
-    await say('A Mãe', '— O homem que iniciou o Cisma. Porque ele descobriu a verdade antes de todos nós.');
-    await say('A Mãe', '— A Essência não foi criada para dar vida. Ela foi criada para escolher quem merecia continuar existindo.');
-    await say('A Mãe', '— Agora precisam libertar o Reino. Desta vez eu estou escolhendo partir.');
-    await nar('O corpo dela começou a desaparecer em pequenas partículas douradas.');
-    await nar('Dentro da Fonte surgiu uma passagem. Do outro lado havia o Reino Quebrado. As nuvens haviam se tornado negras. E milhares de criaturas marchavam em direção às ruínas.');
-    await nar('No centro do exército, uma figura. Aquela que observava os três através do cristal. Mesmo a quilômetros de distância, Kravenox sabia que ela conseguia vê-lo.');
+    await S.despedidaMae();
+    await G.fade(0.85, 60, '#000');
+    await nar('A árvore se abriu. Dentro dela surgiu uma passagem. Do outro lado, havia o Reino Quebrado. Mas estava diferente.');
+    await nar('As nuvens haviam se tornado negras. As montanhas estavam cobertas por sombras. E milhares de criaturas marchavam em direção às ruínas.');
+    await say(L, '— O que está acontecendo?');
+    await say(T, '— A guerra começou.');
+    await nar('No centro do exército havia uma figura. A mulher da fortaleza. Aquela que observava os três através do cristal. Ela levantou a mão, e todas as criaturas pararam.');
+    await nar('Então olhou diretamente para Kravenox. Mesmo a quilômetros de distância, ele sabia que ela conseguia vê-lo. Ela abriu um sorriso.');
+    await say(K, '— Quem é ela?');
+    await say(T, '— A pessoa que estava esperando pela nossa mãe.');
     await say(L, '— Então ela sabia que nós chegaríamos aqui.');
+    await say(T, '— Sim.');
     await say(K, '— Então vamos descobrir por quê.');
     await nar('E, pela primeira vez desde o Grande Cisma, o Reino Quebrado recebeu de volta seus três herdeiros.');
     await nar('Eles não voltaram para terminar uma guerra. Voltaram para descobrir quem havia começado.');

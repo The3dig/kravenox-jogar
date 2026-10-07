@@ -166,6 +166,13 @@ G.TRACKS = {
     { w: 'triangle', vol: 0.22, n: 'A2:1 E3:1 A3:1 E3:1 A2:1 E3:1 A3:1 E3:1 F2:1 C3:1 F3:1 C3:1 F2:1 C3:1 F3:1 C3:1 D2:1 A2:1 D3:1 A2:1 E2:1 B2:1 E3:1 B2:1 A2:1 E3:1 A3:1 E3:1 A2:1 E3:1 A3:1 E3:1 D2:1 A2:1 D3:1 A2:1 D2:1 A2:1 D3:1 A2:1 F2:1 C3:1 F3:1 C3:1 G2:1 D3:1 G3:1 D3:1 E2:1 B2:1 E3:1 B2:1 E2:1 G#2:1 B2:1 E3:1 A2:1 E3:1 A3:1 E3:1 A2:4' },
     { w: 'drum', vol: 0.3, n: 'k:1 h:1 s:1 h:1 k:1 h:1 s:1 k:1' },
   ] },
+  // Despedida da mãe: lenta, em si menor, com coro sintético
+  despedida: { bpm: 54, v: [
+    { w: 'sine', vol: 0.16, vib: true, att: 0.08, sus: 0.85, n: 'F#5:3 E5:1 D5:2 C#5:2 B4:4 A4:2 B4:2 D5:3 C#5:1 B4:2 A4:2 F#4:6 r:2 G4:3 A4:1 B4:2 D5:2 C#5:4 E5:4 F#5:3 E5:1 D5:2 C#5:2 B4:8' },
+    { w: 'triangle', vol: 0.12, gate: 0.7, n: 'B2:1 F#3:1 B3:1 D4:1 B3:1 F#3:1 G2:1 D3:1 G3:1 B3:1 G3:1 D3:1 D3:1 A3:1 D4:1 F#4:1 D4:1 A3:1 A2:1 E3:1 A3:1 C#4:1 A3:1 E3:1' },
+    { w: 'sine', vol: 0.22, n: 'B1:6 G1:6 D2:6 A1:6' },
+    { w: 'square', vol: 0.022, vib: true, att: 0.9, sus: 0.95, rel: 0.9, n: 'D5:6 B4:6 F#4:6 E4:6' },
+  ] },
   memoria: { bpm: 60, v: [
     { w: 'sine', vol: 0.15, vib: true, att: 0.05, n: 'E5:2 B4:2 G4:2 B4:2 D5:2 A4:2 F#4:2 A4:2 C5:2 G4:2 E4:2 G4:2 B4:2 F#4:2 D#4:2 F#4:2' },
     { w: 'triangle', vol: 0.15, n: 'E3:8 D3:8 C3:8 B2:8' },
