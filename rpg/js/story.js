@@ -188,6 +188,7 @@
   S.abismoOlhar = async (x, y) => {
     // a grande cratera do sudeste guarda um segredo
     if (G.Field.id === 'reino' && x >= 26 && y >= 20) return S.crateraSecreta();
+    if (G.Field.id === 'reino' && x >= 11 && x <= 12 && y >= 8 && y <= 9) return S.reflexoFuturo();
     return nar('Uma fenda sem fundo. Lá embaixo, algo pulsa em vermelho.');
   };
   S.crateraSecreta = async function () {
@@ -200,6 +201,22 @@
     await nar('Kravenox salta. A escuridão o engole.');
     await G.fade(1, 40, '#1a0a2a');
     if (!G.debug.auto) location.href = '../';
+  };
+  // Easter egg: o Kravenox de outro tempo, que um dia ele será
+  S.reflexoFuturo = async function () {
+    if (F().futuro) return nar('A fenda mostra apenas escuridão agora. Mas Kravenox sabe o que viu.');
+    await nar('Kravenox se inclina sobre a fenda. Lá no fundo, a escuridão é tão lisa que parece um espelho.');
+    await nar('O reflexo pisca.\nEle não piscou.');
+    const prev = G.Audio.cur; G.Audio.play('abismo');
+    G.Audio.sfx('heart'); G.shake = 6; G.flash('#ff2020', 0.6);
+    await G.wait(30); G.Audio.sfx('heart');
+    if (G.gfx.imgs.k_futuro) await G.showImage(G.gfx.imgs.k_futuro, 'Armadura negra. Garras de fogo. Olhos que já viram o fim.');
+    await say(K, '— ...Quem é você?');
+    await nar('O reflexo não responde. Só sorri, como quem já sabe como tudo termina.');
+    await nar('Então a superfície se quebra, e a fenda volta a ser só uma fenda.');
+    await say(K, '— (Aquilo... era eu?)');
+    F().futuro = 1;
+    G.Audio.cur = null; G.Audio.play(prev);
   };
   S.memoriaEstrada = async function () {
     if (F().mem1) return; F().mem1 = 1;
@@ -235,6 +252,7 @@
   };
   S.portaVazia = async (x, y) => {
     if (x === 4 && y === 3) return S.desenhoAntigo();
+    if (x === 18 && y === 11) return S.estatuetaAzul();
     return nar(G.pick(['Portas abertas. Casas vazias. Nenhuma fumaça. Nenhuma voz.', 'Marcas profundas na madeira, como se tivessem sido feitas por garras.', 'Símbolos apagados da Ordem da Essência cobrem a parede.']));
   };
   S.desenhoAntigo = async function () {
@@ -247,9 +265,26 @@
       await nar('Kravenox não sabe por quê, mas guarda a imagem na memória.');
     }
   };
+  // Easter egg: a estatueta azul do irmão
+  S.estatuetaAzul = async function () {
+    await nar('A porta está emperrada, mas cede. Numa prateleira coberta de pó há uma estatueta azul, pequena, de um menino cheio de espinhos sorrindo.');
+    if (G.gfx.imgs.thornox_fig) await G.showImage(G.gfx.imgs.thornox_fig, 'Na base, letras gastas: THORNOX.');
+    if (!F().estatueta) {
+      F().estatueta = 1;
+      await say(K, '— Ele nunca sorriu assim pra mim.');
+      await nar('Kravenox fica olhando por muito tempo. Depois fecha a porta com cuidado, como se alguém ainda dormisse lá dentro.');
+    }
+  };
   S.poco = async () => nar('Um poço seco.');
   S.fogueira = async () => nar('O fogo estala. É a única coisa quente nesta vila.');
   S.mascate = async function () {
+    F().mascateN = (F().mascateN || 0) + 1;
+    if (F().mascate && F().mascateN === 7) {
+      await say('Mascate de Cinzas', '— Você de novo. Sabe... dizem que você não nasceu do Cisma.');
+      await say('Mascate de Cinzas', '— Dizem que, num outro mundo, uma criança te desenhou num caderno. Com caneta azul. Há quarenta e cinco anos.');
+      await say(K, '— Isso é absurdo.');
+      await say('Mascate de Cinzas', '— É. Mas explica por que você não morre. Desenhos não morrem. Só mudam de mundo.');
+    }
     if (!F().mascate) {
       F().mascate = 1;
       await say('Mascate de Cinzas', '— Não olhe para mim assim. Eu só vendo.');
@@ -591,7 +626,13 @@
 
   // ===================== VALE DOS MORTOS =====================
   S.valeCaverna = async () => { await nar('As pedras desabaram atrás de vocês. Não há volta.'); G.Field.py -= 1; G.Field.dir = 'up'; };
-  S.tumulo = async () => nar(G.pick(['Um túmulo sem nome.', 'Mais do que o Reino consegue lembrar.', 'Algo toca sua perna sob a névoa. Depois some.']));
+  S.tumulo = async (x, y) => (x === 4 && y === 10) ? S.tumuloLapis() : nar(G.pick(['Um túmulo sem nome.', 'Mais do que o Reino consegue lembrar.', 'Algo toca sua perna sob a névoa. Depois some.']));
+  // Easter egg: o túmulo do primeiro rascunho
+  S.tumuloLapis = async function () {
+    await nar('Uma lápide pequena, mais nova que as outras. Alguém escreveu nela com tinta azul, numa letra de criança:');
+    await nar('"AQUI JAZ O KRAVENOX DE LÁPIS.\nELE NUNCA MORRE.\nSÓ MUDA DE MUNDO."');
+    if (!F().lapis) { F().lapis = 1; await say(K, '— ...'); await nar('Debaixo da inscrição, um desenho tosco: um bichinho redondo, cheio de espinhos, com dois olhos de brasa.'); }
+  };
   S.santuario = async function () {
     const i = await G.choose('Um círculo de pedra ainda guarda luz. Descansar e registrar?', ['Sim', 'Não']);
     if (i === 0) { await G.rest(); D.save(); G.Audio.sfx('save'); G.toast('Jogo salvo.'); }
