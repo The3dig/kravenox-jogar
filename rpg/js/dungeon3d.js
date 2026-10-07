@@ -8,7 +8,7 @@
 
   // ---------- Texturas procedurais (pixel art 64x64) ----------
   const THEMES = {
-    abismo: { stone: [74, 32, 36], stoneVar: 0.22, mortar: [18, 6, 8], floor: [46, 24, 26], ceil: [28, 12, 14], acc: [255, 70, 40], kind: 'veias', light: [255, 150, 110] },
+    abismo: { stone: [72, 68, 74], stoneVar: 0.22, mortar: [16, 14, 18], floor: [48, 45, 50], ceil: [26, 24, 28], acc: [255, 70, 40], kind: 'veias', light: [225, 215, 210] },
     templo: { stone: [116, 90, 60], stoneVar: 0.2, mortar: [40, 28, 16], floor: [84, 66, 44], ceil: [54, 40, 26], acc: [235, 200, 100], kind: 'raizes', light: [255, 200, 130] },
     caverna: { stone: [64, 46, 92], stoneVar: 0.25, mortar: [16, 10, 26], floor: [42, 32, 58], ceil: [26, 18, 38], acc: [190, 120, 255], kind: 'cristais', light: [210, 170, 255] },
     submersa: { stone: [44, 84, 92], stoneVar: 0.2, mortar: [8, 24, 28], floor: [30, 58, 64], ceil: [14, 34, 40], acc: [110, 240, 224], kind: 'algas', light: [150, 240, 230] },
