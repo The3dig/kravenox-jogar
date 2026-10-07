@@ -138,7 +138,20 @@
     await say(K, '— Que porta?');
     await nar('A luz dourada dentro de uma das casas aumentou.');
   };
-  S.portaVazia = async () => nar(G.pick(['Portas abertas. Casas vazias. Nenhuma fumaça. Nenhuma voz.', 'Marcas profundas na madeira, como se tivessem sido feitas por garras.', 'Símbolos apagados da Ordem da Essência cobrem a parede.']));
+  S.portaVazia = async (x, y) => {
+    if (x === 4 && y === 3) return S.desenhoAntigo();
+    return nar(G.pick(['Portas abertas. Casas vazias. Nenhuma fumaça. Nenhuma voz.', 'Marcas profundas na madeira, como se tivessem sido feitas por garras.', 'Símbolos apagados da Ordem da Essência cobrem a parede.']));
+  };
+  S.desenhoAntigo = async function () {
+    await nar('A porta range. Lá dentro, a casa está vazia. Na parede, preso por um espinho, um papel amarelado.');
+    const img = G.gfx.imgs.desenho;
+    if (img) await G.showImage(img, 'Um desenho antigo, feito à mão por uma criança, muito antes do Cisma.');
+    if (!F().desenho) {
+      F().desenho = 1;
+      await say(K, '— ...');
+      await nar('Kravenox não sabe por quê, mas guarda a imagem na memória.');
+    }
+  };
   S.poco = async () => nar('Um poço seco.');
   S.fogueira = async () => nar('O fogo estala. É a única coisa quente nesta vila.');
   S.mascate = async function () {

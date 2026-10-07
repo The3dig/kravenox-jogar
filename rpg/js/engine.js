@@ -181,6 +181,26 @@ G.narrate = function (lines, opt = {}) {
   });
 };
 
+// Mostra uma imagem emoldurada com legenda e espera A
+G.showImage = function (img, caption) {
+  return new Promise(resolve => {
+    let t = 0;
+    const ov = {
+      update() { t++; if (G.debug.auto || (t > 20 && (Input.pressed.a || Input.pressed.b))) { G.pop(ov); resolve(); } },
+      draw(ctx) {
+        ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, G.W, G.H);
+        const a = Math.min(1, t / 20); ctx.globalAlpha = a;
+        const s = Math.min(170 / img.height, 280 / img.width), w = img.width * s, h = img.height * s, x = (G.W - w) / 2, y = 12;
+        ctx.fillStyle = '#c9a24a'; ctx.fillRect(x - 3, y - 3, w + 6, h + 6); ctx.fillStyle = '#000'; ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+        ctx.imageSmoothingEnabled = true; ctx.drawImage(img, x, y, w, h); ctx.imageSmoothingEnabled = false;
+        if (caption) { const ls = G.wrap(ctx, caption, G.W - 30, 9); let yy = y + h + 10; for (const l of ls) { G.text(ctx, l, G.W / 2, yy, '#e7d9c4', 9, 'center'); yy += 11; } }
+        ctx.globalAlpha = 1;
+      },
+    };
+    G.push(ov);
+  });
+};
+
 // ---------- Menu genérico ----------
 // items: string | {label, right, disabled, color}
 G.menu = function (o) {
