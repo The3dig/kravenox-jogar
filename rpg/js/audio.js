@@ -38,8 +38,12 @@
   const V = () => window.KRAVENOX_V || '';
   A.idxP = fetch('music/index.json?v=' + V()).then(r => r.json()).then(j => { A.idx = j; }).catch(() => { A.idx = {}; });
   function loadBuf(name) {
-    if (!A.bufs[name]) A.bufs[name] = fetch('music/' + name + '.m4a?v=' + V()).then(r => { if (!r.ok) throw new Error('404'); return r.arrayBuffer(); })
-      .then(ab => new Promise((res, rej) => A.ctx.decodeAudioData(ab, res, rej))).catch(e => { delete A.bufs[name]; throw e; });
+    // m4a (Safari/Chrome); se o navegador não decodificar AAC, tenta ogg
+    const get = ext => fetch('music/' + name + '.' + ext + '?v=' + V()).then(r => { if (!r.ok) throw new Error('404'); return r.arrayBuffer(); })
+      .then(ab => new Promise((res, rej) => A.ctx.decodeAudioData(ab, res, rej)));
+    let ogg = false; try { ogg = new Audio().canPlayType('audio/ogg; codecs="vorbis"') === 'probably'; } catch (e) {}
+    const [x, y] = ogg ? ['ogg', 'm4a'] : ['m4a', 'ogg'];
+    if (!A.bufs[name]) A.bufs[name] = get(x).catch(() => get(y)).catch(e => { delete A.bufs[name]; throw e; });
     return A.bufs[name];
   }
   A.preload = names => { if (!A.ctx) return; A.idxP.then(() => names.forEach(n => A.idx[n] && loadBuf(n).catch(() => {}))); };
