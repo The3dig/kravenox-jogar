@@ -41,13 +41,93 @@
       'Séculos se passaram.\nAté que, nas profundezas do Abismo Carmesim, um cristal negro começou a pulsar.',
     ], { hold: 220 });
   };
+  // Despertar (Cap. 1): o cristal pulsa, racha e explode; os olhos se abrem na masmorra
+  async function anim(obj, key, to, frames) {
+    const from = obj[key]; if (G.debug.fast) { obj[key] = to; return; }
+    for (let f = 1; f <= frames; f++) { const k = f / frames; obj[key] = from + (to - from) * (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2); await G.wait(1); }
+  }
+  function wakeFx(W) {
+    const cracks = [[[160, 66], [156, 84], [163, 98], [158, 118], [164, 140]], [[158, 100], [146, 110], [140, 126]], [[162, 92], [176, 104], [181, 122]], [[157, 124], [148, 146]], [[164, 76], [172, 70]]];
+    return {
+      upd() { W.t++; for (const p of W.parts) { p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.t++; } W.parts = W.parts.filter(p => p.t < p.life); return W.phase !== 'fim'; },
+      draw(ctx) {
+        const cx = 160, cy = 110;
+        if (W.phase === 'cristal' || W.phase === 'escuro') {
+          ctx.fillStyle = '#000'; ctx.fillRect(0, 0, G.W, G.H);
+          if (W.phase === 'cristal') {
+            const beat = Math.max(0, Math.sin(W.t / 12)) ** 8;
+            G.gfx.glow(ctx, cx, cy, 90, 'rgba(200,20,30,0.8)', 0.15 + 0.35 * beat + W.crack * 0.3);
+            ctx.fillStyle = '#07040a'; ctx.beginPath(); ctx.moveTo(cx, cy - 62); ctx.lineTo(cx + 26, cy - 8); ctx.lineTo(cx + 14, cy + 48); ctx.lineTo(cx, cy + 58); ctx.lineTo(cx - 16, cy + 46); ctx.lineTo(cx - 25, cy - 6); ctx.fill();
+            ctx.strokeStyle = 'rgba(120,30,60,' + (0.4 + 0.4 * beat) + ')'; ctx.lineWidth = 1; ctx.stroke();
+            ctx.fillStyle = 'rgba(80,40,90,0.5)'; ctx.beginPath(); ctx.moveTo(cx, cy - 62); ctx.lineTo(cx - 25, cy - 6); ctx.lineTo(cx - 6, cy - 4); ctx.fill();
+            // rachaduras vermelhas
+            const n = W.crack * cracks.length;
+            cracks.forEach((pl, i) => {
+              const k = Math.max(0, Math.min(1, n - i)); if (!k) return;
+              ctx.strokeStyle = '#ff3a1e'; ctx.lineWidth = 1.3; ctx.shadowColor = '#ff2a10'; ctx.shadowBlur = 6;
+              ctx.beginPath(); ctx.moveTo(pl[0][0], pl[0][1]);
+              const segs = (pl.length - 1) * k;
+              for (let s = 1; s <= Math.ceil(segs); s++) { const a = pl[s - 1], b = pl[s], kk = Math.min(1, segs - (s - 1)); ctx.lineTo(a[0] + (b[0] - a[0]) * kk, a[1] + (b[1] - a[1]) * kk); }
+              ctx.stroke(); ctx.shadowBlur = 0;
+            });
+          }
+          for (const p of W.parts) { ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.c; ctx.fillRect(p.x, p.y, p.s, p.s); }
+          ctx.globalAlpha = 1;
+          return;
+        }
+        if (W.phase === 'olhos') {
+          // visão turva e avermelhada, pálpebras que se abrem
+          const k = W.open;
+          ctx.fillStyle = 'rgba(110,0,0,' + (0.5 * (1 - Math.min(1, k * 1.2))) + ')'; ctx.fillRect(0, 0, G.W, G.H);
+          const g = k * G.H * 0.75;
+          ctx.fillStyle = '#000'; ctx.shadowColor = '#000'; ctx.shadowBlur = 14;
+          ctx.beginPath(); ctx.moveTo(-20, -20); ctx.lineTo(G.W + 20, -20); ctx.lineTo(G.W + 20, cy - g * 0.35); ctx.quadraticCurveTo(cx, cy - g * 1.25, -20, cy - g * 0.35); ctx.closePath(); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(-20, G.H + 20); ctx.lineTo(G.W + 20, G.H + 20); ctx.lineTo(G.W + 20, cy + g * 0.35); ctx.quadraticCurveTo(cx, cy + g * 1.25, -20, cy + g * 0.35); ctx.closePath(); ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+      },
+    };
+  }
   S.despertar = async function () {
     G.fadeA = 1; G.fadeAboveUI = false;
     G.Audio.play('abismo');
     await G.narrate(['Capítulo 1\nO Despertar no Reino Quebrado'], { hold: 120, color: '#ffcf6a' });
-    await G.narrate(['O cristal estremeceu.\nEntão explodiu.', 'Do interior, uma silhueta espinhosa caiu de joelhos.\nEntão dois olhos se abriram.\nBrasa.'], { hold: 160, color: '#ff9a7a', bg: '#0a0000' });
-    G.Audio.sfx('boom'); G.flash('#ff3a2a', 0.8); G.shake = 20;
-    await G.fade(0, 40);
+    const W = { phase: 'cristal', t: 0, crack: 0, open: 0, parts: [] };
+    G.Dungeon.noHud = true; G.Dungeon.dialogTop = false;
+    G.fx.push(wakeFx(W));
+    G.fadeA = 0;
+    let beating = true;
+    (async () => { while (beating) { G.Audio.sfx('heart'); await G.wait(G.debug.fast ? 1 : 75); } })();
+    await nar('Nas profundezas do Abismo Carmesim, um cristal negro pulsava.');
+    await nar('Devagar...');
+    beating = false;
+    G.Audio.sfx('crack'); G.shake = 6;
+    const crk = anim(W, 'crack', 1, 150);
+    (async () => { for (let i = 0; i < 4 && !G.debug.fast; i++) { await G.wait(36); G.Audio.sfx('crack'); G.shake = 4; } })();
+    await nar('Ele rachou. Uma linha vermelha atravessou sua superfície. Depois outra.');
+    await crk;
+    await nar('O som parecia pequeno, mas ecoou pelas cavernas como o primeiro sino de uma cerimônia esquecida.');
+    // explosão
+    G.Audio.sfx('boom'); G.flash('#ff3a2a', 0.9); G.shake = 24;
+    for (let i = 0; i < 90; i++) { const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 4; W.parts.push({ x: 160, y: 110, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, t: 0, life: 50 + Math.random() * 40, s: 1 + (Math.random() * 3 | 0), c: Math.random() < 0.25 ? '#ff3a1e' : '#2a1838' }); }
+    W.phase = 'escuro';
+    await nar('O cristal estremeceu. Então explodiu.');
+    await nar('Do interior, uma silhueta espinhosa caiu de joelhos. Por alguns segundos, não houve movimento.');
+    // os olhos se abrem: estamos dentro da masmorra, vendo pelos olhos dele
+    W.phase = 'olhos'; W.open = 0;
+    await G.wait(30);
+    await anim(W, 'open', 0.22, 45); await anim(W, 'open', 0, 14); await G.wait(20);
+    await anim(W, 'open', 0.45, 40); await anim(W, 'open', 0.12, 10);
+    await nar('Então dois olhos se abriram. Brasa.');
+    await anim(W, 'open', 1, 60);
+    // olha em volta, sem reconhecer nada
+    const D2 = G.Dungeon; D2.lookSpeed = 0.035;
+    D2.look = -1.1; await G.wait(80);
+    D2.look = 1.0; await G.wait(110);
+    D2.look = 0; await G.wait(60); D2.lookSpeed = 0;
+    W.phase = 'fim'; G.Dungeon.noHud = false; G.Dungeon.dialogTop = true; G.Dungeon.banner = 150;
+    await nar('Ele levantou a cabeça. Não reconhecia o lugar. Não reconhecia o próprio corpo. Mas reconhecia uma sensação.');
+    await nar('Fome.');
     await nar('Kravenox respirou. O ar entrou em seus pulmões como se o próprio Abismo tivesse esperado séculos por aquele momento.');
     await nar('Ao redor dele, os fungos que cresciam nas fendas da rocha se apagaram, um a um, como se a própria vida recuasse diante de sua presença.');
     await say(K, '— A Essência... ainda vive...');
