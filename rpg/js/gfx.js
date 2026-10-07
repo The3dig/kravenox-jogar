@@ -311,7 +311,7 @@
   // Imagens desenhadas à mão (Kravenox)
   X.imgs = {};
   X.loadImages = function () {
-    const names = ['titulo', 'k_portrait', 'kp_portrait', 't_portrait', 't_down_0', 't_down_1', 'desenho', 'k_furia', 'fx_garra1', 'fx_garra2', 'fx_orbe', 'fx_raio', 'fx_explosao', 'fx_espinhos', 'fx_espinhos2', 't_px', 'e_sentinela', 'e_sentinela1', 'cratera'];
+    const names = ['titulo', 'k_portrait', 'kp_portrait', 't_portrait', 't_down_0', 't_down_1', 'desenho', 'k_furia', 'fx_garra1', 'fx_garra2', 'fx_orbe', 'fx_raio', 'fx_explosao', 'fx_espinhos', 'fx_espinhos2', 't_px', 'e_sentinela', 'e_sentinela1', 'cratera', 'k_futuro', 'thornox_fig'];
     for (const d of ['left', 'right']) for (let i = 0; i < 4; i++) names.push('k_' + d + '_w' + i);
     for (const p of ['k', 'kp']) for (const d of ['down', 'up', 'left', 'right']) for (const f of [0, 1]) names.push(p + '_' + d + '_' + f);
     return Promise.all(names.map(n => new Promise(res => { const im = new Image(); im.onload = () => { X.imgs[n] = im; res(); }; im.onerror = () => res(); im.src = 'img/' + n + '.png'; })));

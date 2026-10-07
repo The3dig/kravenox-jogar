@@ -41,6 +41,27 @@
     },
   };
 
+  // Easter egg: ↑↑↓↓←→←→ B na tela título liga o "Modo Caderno" — o jogo vira caneta azul em papel,
+  // como o primeiro desenho do Kravenox, há 45 anos.
+  const CODE = ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right', 'b'];
+  let codeI = 0;
+  G.applyCaderno = function () {
+    let on = false; try { on = localStorage.getItem('kravenox_caderno') === '1'; } catch (e) {}
+    G.canvas.style.filter = on ? 'invert(1) grayscale(1) sepia(0.6) hue-rotate(180deg) saturate(3) contrast(1.1)' : '';
+    return on;
+  };
+  Title.tick = function () {
+    const I = G.Input;
+    for (const k of ['up', 'down', 'left', 'right', 'a', 'b']) if (I.pressed[k]) {
+      if (k === CODE[codeI]) codeI++; else codeI = k === CODE[0] ? 1 : 0;
+      if (codeI === CODE.length) {
+        codeI = 0;
+        let on = false; try { on = localStorage.getItem('kravenox_caderno') !== '1'; localStorage.setItem('kravenox_caderno', on ? '1' : '0'); } catch (e) {}
+        G.applyCaderno(); G.Audio.sfx('memory');
+        G.toast(on ? 'Modo Caderno: como era há 45 anos.' : 'Modo Caderno desligado.');
+      }
+    }
+  };
   G.titleScreen = async function () {
     G.overlays.length = 0; G.lock = 0;
     G.scene = Title; G.fadeA = 0; G.Audio.play('title');
@@ -112,6 +133,7 @@
     G.start();
     G.setupTouch();
     if (location.search.includes('debug')) { window.__G = G; G.debug.showPos = true; }
+    G.applyCaderno();
     G.titleScreen();
   }
   const ready = document.fonts && document.fonts.load ? Promise.race([document.fonts.load('10px "Pixelify Sans"'), new Promise(r => setTimeout(r, 1500))]) : Promise.resolve();

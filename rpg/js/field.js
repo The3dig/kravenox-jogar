@@ -95,9 +95,15 @@
     const x0 = Math.floor(cx / T), y0 = Math.floor(cy / T);
     const frame = (G.time >> 5) & 1;
     const talls = [];
+    const Wd = G.World, L = m.theme !== 'casa' ? Wd.layer(this) : null;
+    if (L) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, G.W, G.H); ctx.drawImage(L.canvas, -cx, -cy); }
     for (let y = y0 - 1; y <= y0 + 16; y++) for (let x = x0 - 1; x <= x0 + 21; x++) {
       const c = this.tile(x, y);
       if (c == null) continue;
+      if (L) {
+        if (Wd.TALL[c]) talls.push({ y, draw: () => Wd.drawTall(ctx, c, x * T - cx, y * T - cy, x, y, m.theme) });
+        continue;
+      }
       ctx.drawImage(X.tileImg(c, m.theme, x, y, frame), x * T - cx, y * T - cy);
       if (X.TILE[c] && X.TILE[c].tall) talls.push({ y, draw: () => X.drawTall(ctx, c, x * T - cx, y * T - cy, x, y, m.theme) });
     }
@@ -112,6 +118,7 @@
     const wf = this.mv ? [1, 0, 2, 0][this.walkF & 3] : 0;
     talls.push({ y: fy + 0.2, draw: () => { const sx = Math.round(fx * T - cx), sy = Math.round(fy * T - cy); X.drawShadow(ctx, sx, sy); const im = X.sprite(spr, this.dir, wf, this.mv ? (this.walkF & 3) : -1); ctx.drawImage(im, sx + 8 - (im.width >> 1), sy + 15 - im.height); } });
     talls.sort((a, b) => a.y - b.y).forEach(t => t.draw());
+    if (L) Wd.drawFx(ctx, L, cx, cy);
     // atmosfera
     if (m.theme === 'vale') {
       for (let i = 0; i < 5; i++) { ctx.fillStyle = 'rgba(210,220,235,0.07)'; const yy = ((i * 53 + G.time * 0.15) % (G.H + 40)) - 20; ctx.fillRect(0, yy, G.W, 14 + i * 3); }
