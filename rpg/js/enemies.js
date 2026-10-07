@@ -230,6 +230,11 @@
   X.enemyImg = function (e) {
     const key = e.id;
     if (cache[key]) return cache[key];
+    // arte pronta do autor (pixel art), usada como está, com contorno de 1 px
+    if (e.o && e.o.img && X.imgs[e.o.img]) {
+      const im = X.imgs[e.o.img]; const [c, g] = X.canvas(im.width + 2, im.height + 2); g.drawImage(im, 1, 1);
+      return (cache[key] = c);
+    }
     const [c, g] = X.canvas(e.w, e.h);
     ART[e.art](g, e.w, e.h, e.o || {});
     return (cache[key] = X.pixelize(c, { step: e.o && e.o.step || 18 }));
