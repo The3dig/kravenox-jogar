@@ -1,3 +1,9 @@
+# ▶ [JOGAR KRAVENOX — clique aqui](https://the3dig.github.io/kravenox-jogar/rpg/)
+
+O link é sempre o mesmo e o jogo se atualiza sozinho: **https://the3dig.github.io/kravenox-jogar/rpg/**
+
+---
+
 # Kravenox
 
 ## Kravenox: O Reino Quebrado (RPG) — Parte 1
