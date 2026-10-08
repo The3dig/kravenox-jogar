@@ -70,6 +70,41 @@
     const flame = [[2, [255, 250, 210]], [3, [255, 236, 150]], [4, [255, 200, 80]], [5, [255, 160, 50]], [4, [255, 120, 40]], [3, [240, 90, 30]], [2, [210, 60, 20]], [1, [170, 40, 16]]];
     flame.forEach(([w, c], i) => { const y = 27 - i, cx = 32 + (i > 3 ? sh * ((i - 3) >> 1) : 0); for (let x = -w + 1; x < w; x++) accent(cx + x, y, c); });
   };
+  // ---------- decorações de parede ----------
+  const DECO = {
+    correntes: T => (t, accent, r) => {               // correntes penduradas com argola
+      for (const cx of [20, 44]) { const len = 26 + ((r() * 14) | 0);
+        for (let y = 0; y < len; y++) { const lk = (y >> 2) & 1; accent(cx + (lk ? 0 : -1), y, [70, 66, 72]); accent(cx + (lk ? 1 : 0), y, lk ? [120, 116, 124] : [40, 38, 44]); }
+        for (let a = 0; a < 6.28; a += 0.3) accent(cx + Math.round(Math.cos(a) * 4), len + 3 + Math.round(Math.sin(a) * 4), [96, 92, 100]); }
+    },
+    ossos: T => (t, accent, r) => {                   // nicho com crânio e ossos
+      for (let y = 30; y < 52; y++) for (let x = 18; x < 46; x++) { const top = 30 + Math.round(6 - Math.sqrt(Math.max(0, 36 - ((x - 32) / 2.3) ** 2))); if (y >= top) accent(x, y, [10, 8, 10]); }
+      for (let y = 38; y < 47; y++) for (let x = 27; x < 37; x++) if (((x - 32) / 5) ** 2 + ((y - 42) / 4.5) ** 2 < 1) accent(x, y, [200, 190, 170]);
+      accent(29, 42, [20, 14, 14]); accent(30, 42, [20, 14, 14]); accent(34, 42, [20, 14, 14]); accent(35, 42, [20, 14, 14]); accent(32, 45, [40, 30, 30]);
+      for (let x = 29; x < 36; x += 2) accent(x, 47, [190, 180, 160]);
+      for (let k = 0; k < 2; k++) for (let i = 0; i < 12; i++) accent(20 + i + k * 2, 50 - (k ? 12 - i : i) / 4, [176, 168, 150]);
+    },
+    porta: T => (t) => {                              // porta de ferro trancada
+      for (let y = 10; y < TS; y++) for (let x = 16; x < 48; x++) {
+        const arch = y < 22 && ((x - 32) / 16) ** 2 + ((y - 22) / 12) ** 2 > 1; if (arch) continue;
+        let c = [52, 50, 58]; if (x === 16 || x === 47 || y === 10) c = [24, 22, 28];
+        if (x % 8 === 0) c = [36, 34, 42]; if (y === 30 || y === 50) c = [70, 68, 78]; if ((y === 30 || y === 50) && x % 8 === 4) c = [140, 136, 150];
+        if (x >= 40 && x <= 42 && y >= 38 && y <= 41) c = [180, 150, 70];
+        t[y * TS + x] = rgba(...mul(c, 0.9 + ((x * 7 + y * 3) % 5) / 25));
+      }
+    },
+    runas: T => (t, accent, r) => {                   // inscrição que brilha
+      const g = [[0, 0, 0, 4], [0, 0, 3, 0], [3, 0, 3, 4], [0, 2, 3, 2], [0, 4, 3, 0], [1, 0, 1, 4]];
+      for (let i = 0; i < 6; i++) { const ox = 12 + i * 7, oy = 26 + (i % 2) * 2; const [x0, y0, x1, y1] = g[(r() * g.length) | 0];
+        const n = 6; for (let k = 0; k <= n; k++) accent(ox + Math.round(x0 + (x1 - x0) * k / n), oy + Math.round(y0 + (y1 - y0) * k / n) * 2, T.acc);
+        accent(ox + 1, oy + 4, T.acc); }
+    },
+    estandarte: T => (t, accent, r) => {              // estandarte rasgado
+      for (let x = 20; x < 45; x++) accent(x, 8, [90, 70, 40]);
+      for (let y = 9; y < 50; y++) for (let x = 22; x < 43; x++) { const torn = y > 40 && ((x * 7) % 5) * 3 + 40 < y; if (torn) continue; const c = mul([110, 24, 34], 0.8 + ((x + y) % 3) * 0.08); accent(x, y, c); }
+      for (let y = 18; y < 32; y++) { accent(32, y, [200, 160, 70]); } for (let x = 26; x < 39; x++) accent(x, 24, [200, 160, 70]);
+    },
+  };
   function crystalWall(T) { return (t, accent) => { for (let y = 14; y < 50; y++) for (let x = -7; x <= 7; x++) if (Math.abs(x) * 2.6 < 18 - Math.abs(y - 32)) accent(32 + x, y, x < -2 ? [255, 255, 255] : x < 2 ? T.acc : mul(T.acc, 0.6)); }; }
   function gateTex(T) {
     const t = newTex();
@@ -105,11 +140,18 @@
     }
     return t;
   }
+  function puddleFloor(T, seed) { const t = floorTex(T, seed), r = X.rng(seed);   // poça de água escura
+    for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) { const d = ((x - 30) / 22) ** 2 + ((y - 34) / 16) ** 2 + (r() - 0.5) * 0.08; if (d < 1) t[y * TS + x] = rgba(...(d > 0.85 ? mul(T.floor, 0.5) : [10 + T.floor[0] * 0.2, 12 + T.floor[1] * 0.25, 18 + T.floor[2] * 0.35])); }
+    return t; }
+  function debrisFloor(T, seed) { const t = floorTex(T, seed), r = X.rng(seed);    // entulho e ossos
+    for (let k = 0; k < 7; k++) { const x0 = 6 + r() * 50, y0 = 6 + r() * 50, s = 2 + r() * 4; for (let y = -s; y < s; y++) for (let x = -s; x < s; x++) if (x * x + y * y < s * s) { const px = (x0 + x) | 0, py = (y0 + y) | 0; if (px >= 0 && px < TS && py >= 0 && py < TS) t[py * TS + px] = rgba(...mul(T.stone, 0.7 + (y < 0 ? 0.3 : 0))); } }
+    for (let i = 0; i < 10; i++) { const px = 20 + i, py = 44 - (i >> 1); t[py * TS + px] = rgba(190, 180, 160); }
+    return t; }
   const TEX = {};
   function texSet(theme) {
     if (TEX[theme]) return TEX[theme];
     const T = THEMES[theme];
-    const set = { walls: [0, 1, 2, 3].map(i => wallTex(T, i * 101 + theme.length)), torches: [wallTex(T, 777, torch(0)), wallTex(T, 777, torch(1))], voice: wallTex(T, 555, crystalWall(T)), gate: gateTex(T), floor: floorTex(T, 3), ceil: floorTex(T, 9, true), T };
+    const set = { deco: Object.keys(DECO).map((k, i) => wallTex(T, 300 + i * 17, DECO[k](T))), floors: [floorTex(T, 3), puddleFloor(T, 21), debrisFloor(T, 33)], walls: [0, 1, 2, 3].map(i => wallTex(T, i * 101 + theme.length)), torches: [wallTex(T, 777, torch(0)), wallTex(T, 777, torch(1))], voice: wallTex(T, 555, crystalWall(T)), gate: gateTex(T), floor: floorTex(T, 3), ceil: floorTex(T, 9, true), T };
     return (TEX[theme] = set);
   }
 
@@ -188,8 +230,12 @@
       const f = fog(rowDist), fc = f * 0.95;
       const yF = H - 1 - y, oC = y * W, oF = yF * W;
       for (let x = 0; x < W; x++) {
-        const tx = ((fx - Math.floor(fx)) * TS) | 0, ty = ((fy - Math.floor(fy)) * TS) | 0, k = (ty & 63) * TS + (tx & 63);
-        buf[oF + x] = f > 0.01 ? shadePix(set.floor[k], f, tint) : 0xff000000;
+        const cxF = Math.floor(fx), cyF = Math.floor(fy);
+        const tx = ((fx - cxF) * TS) | 0, ty = ((fy - cyF) * TS) | 0, k = (ty & 63) * TS + (tx & 63);
+        const hv = X.hash(cxF * 5 + 1, cyF * 11 + 3) % 11, ft = hv === 0 ? set.floors[1] : hv === 5 ? set.floors[2] : set.floor;
+        let fp = f > 0.01 ? shadePix(ft[k], f, tint) : 0xff000000;
+        if (hv === 0 && f > 0.05 && ((ft[k] >> 16) & 255) < T.floor[2] * 0.5 + 22 && ((tx * 7 + ty * 3 + (G.time >> 2)) % 23) === 0) fp = shadePix(0xffb0d8f0, f * 0.9, tint);   // reflexo da tocha na água
+        buf[oF + x] = fp;
         buf[oC + x] = fc > 0.01 ? shadePix(set.ceil[k], fc, tint) : 0xff000000;
         fx += stepX; fy += stepY;
       }
@@ -218,7 +264,7 @@
       let tex;
       if (c >= '1' && c <= '9') tex = set.voice;
       else if (c === 'G') tex = set.gate;
-      else { const hsh = X.hash(mx * 3 + side, my * 7); tex = (hsh % 9 === 0) ? set.torches[(G.time >> 3) & 1] : set.walls[hsh % 4]; }
+      else { const hsh = X.hash(mx * 3 + side, my * 7); tex = (hsh % 9 === 0) ? set.torches[(G.time >> 3) & 1] : (hsh % 7 === 3) ? set.deco[(hsh >>> 3) % set.deco.length] : set.walls[hsh % 4]; }
       const isTorch = tex === set.torches[0] || tex === set.torches[1];
       let f = fog(dist) * (side === 1 ? 0.78 : 1);
       if (isTorch) f = Math.min(1.35, f * 1.3 + 0.25);
@@ -276,6 +322,17 @@
     }
     cg.putImageData(img, 0, 0);
     ctx.drawImage(cv, 0, 0);
+    // olhos no fundo dos corredores escuros (só atmosfera)
+    if (zbuf[W >> 1] > 4.5 && (X.hash(this.x * 13, this.y * 17) % 5) === 0) {
+      const blink = ((G.time + this.x * 40) % 260) < 8; if (!blink) { const ex = W / 2 + Math.sin(G.time / 90) * 6, ey = half - 2; ctx.fillStyle = 'rgba(255,40,40,0.75)'; ctx.fillRect(ex - 4, ey, 2, 1); ctx.fillRect(ex + 2, ey, 2, 1); }
+    }
+    // gotas d'água caindo do teto e poeira no ar
+    for (let i = 0; i < 6; i++) {
+      const per = 70 + i * 13, ph = (G.time + i * 41) % per, gx = (X.hash(i, (G.time / per) | 0) % (W - 20)) + 10;
+      if (ph < 40) { ctx.fillStyle = 'rgba(170,200,220,0.55)'; ctx.fillRect(gx, ph * 4.5, 1, 3); }
+      else if (ph < 46) { ctx.fillStyle = 'rgba(170,200,220,0.4)'; ctx.fillRect(gx - (ph - 40), 182, 1, 1); ctx.fillRect(gx + (ph - 40), 182, 1, 1); }
+    }
+    for (let i = 0; i < 14; i++) { const x = (i * 71 + G.time * 0.13 * (1 + i % 3)) % W, y = (i * 37 + Math.sin(G.time / 60 + i) * 12 + 40) % H; ctx.fillStyle = 'rgba(255,230,190,0.18)'; ctx.fillRect(x | 0, y | 0, 1, 1); }
     G.vignette(ctx);
     if (!this.noHud) this.drawHUD(ctx);
   };
