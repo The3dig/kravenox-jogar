@@ -566,6 +566,81 @@
     ctx.globalAlpha = 1;
   };
 
+  // ---------- Cenários pintados para as batalhas ao ar livre ----------
+  // Céu com degradê pontilhado, camadas de silhueta (da mais clara/distante à mais escura/próxima),
+  // e elementos de cada lugar. A arena isométrica cobre o centro; o cenário aparece nos cantos.
+  const BAY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  function sky(g, W, H, stops) {
+    const cols = stops.map(c => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]);
+    const im = g.createImageData(W, H), d = im.data;
+    for (let y = 0; y < H; y++) {
+      const t = y / (H - 1) * (cols.length - 1), i = Math.min(cols.length - 2, Math.floor(t)), f = t - i;
+      for (let x = 0; x < W; x++) {
+        const q = f + (BAY[(y & 3) * 4 + (x & 3)] / 16 - 0.5) * 0.35, k = Math.round(q * 4) / 4, c0 = cols[i], c1 = cols[i + 1], o = (y * W + x) * 4;
+        d[o] = c0[0] + (c1[0] - c0[0]) * k; d[o + 1] = c0[1] + (c1[1] - c0[1]) * k; d[o + 2] = c0[2] + (c1[2] - c0[2]) * k; d[o + 3] = 255;
+      }
+    }
+    g.putImageData(im, 0, 0);
+  }
+  function ridge(g, W, base, amp, col, seed, rough = 0.5) {
+    const r = X.rng(seed); g.fillStyle = col; g.beginPath(); g.moveTo(0, base + 40);
+    let y = base; for (let x = 0; x <= W + 8; x += 6) { y = base - amp * (0.5 + 0.5 * Math.sin(x * 0.02 + seed)) - (r() - 0.5) * amp * rough; g.lineTo(x, Math.round(y)); }
+    g.lineTo(W, base + 60); g.lineTo(0, base + 60); g.fill();
+  }
+  function deadTree(g, x, y, hgt, col, seed) {
+    const r = X.rng(seed); g.strokeStyle = col; g.lineCap = 'round';
+    const br = (x0, y0, a, len, w, d) => { const x1 = x0 + Math.cos(a) * len, y1 = y0 + Math.sin(a) * len; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      if (d > 0) { br(x1, y1, a - 0.4 - r() * 0.3, len * 0.7, w * 0.65, d - 1); br(x1, y1, a + 0.35 + r() * 0.3, len * 0.65, w * 0.6, d - 1); } };
+    br(x, y, -Math.PI / 2 + (r() - 0.5) * 0.2, hgt * 0.45, Math.max(2, hgt / 14), 4);
+  }
+  function stars(g, W, H, n, col, seed) { const r = X.rng(seed); g.fillStyle = col; for (let i = 0; i < n; i++) g.fillRect(Math.round(r() * W), Math.round(r() * H), 1, 1); }
+  X.paintBackdrop = {
+    planicie(g, W, H) {
+      sky(g, W, H, ['#12030a', '#3a0a12', '#7a1a1a', '#a8402a']);
+      g.fillStyle = 'rgba(0,0,0,0.35)'; for (let i = 0; i < 6; i++) { const y = 14 + i * 13; g.fillRect(0, y, W, 3 + (i % 2)); }   // faixas de nuvem
+      g.fillStyle = '#1a0408'; g.beginPath(); g.arc(250, 34, 17, 0, 7); g.fill(); g.strokeStyle = '#ff5030'; g.lineWidth = 1.5; g.beginPath(); g.arc(250, 34, 17, 0, 7); g.stroke(); // eclipse
+      X.glow(g, 250, 34, 34, 'rgba(255,80,40,0.35)');
+      ridge(g, W, 92, 26, '#3a1418', 3, 0.6); ridge(g, W, 104, 18, '#24090e', 7, 0.8);
+      g.fillStyle = '#12050a'; g.fillRect(286, 52, 14, 60); g.beginPath(); g.moveTo(286, 52); g.lineTo(289, 42); g.lineTo(293, 49); g.lineTo(297, 40); g.lineTo(300, 52); g.fill();   // torre partida
+      g.fillStyle = '#ffcf6a'; g.fillRect(292, 66, 2, 2);
+      for (const [x, hh] of [[14, 34], [28, 22], [40, 28], [6, 18]]) { g.fillStyle = '#12080e'; g.beginPath(); g.moveTo(x - 5, 118); g.lineTo(x, 118 - hh); g.lineTo(x + 5, 118); g.fill(); g.fillStyle = '#6b3f9c'; g.fillRect(x, 120 - hh, 1, hh - 6); }
+      ridge(g, W, 118, 8, '#100508', 11, 1);
+    },
+    vila(g, W, H) {
+      sky(g, W, H, ['#0a0410', '#2a0a18', '#5a1a20', '#7a2a24']);
+      stars(g, W, 50, 30, 'rgba(255,220,200,0.5)', 4);
+      ridge(g, W, 96, 14, '#2a0e14', 5, 0.5);
+      const house = (x, w, hh, lit) => { const y = 112 - hh; g.fillStyle = '#140a0c'; g.fillRect(x, y, w, hh); g.beginPath(); g.moveTo(x - 4, y); g.lineTo(x + w / 2, y - w * 0.45); g.lineTo(x + w + 4, y); g.fill();
+        g.fillRect(x + w - 8, y - w * 0.35, 5, 10); if (lit) { g.fillStyle = '#ffcf6a'; g.fillRect(x + 5, y + 6, 4, 5); X.glow(g, x + 7, y + 8, 12, 'rgba(255,190,90,0.35)'); } };
+      house(2, 30, 26, true); house(36, 24, 20, false); house(66, 28, 24, false); house(232, 30, 28, true); house(266, 24, 22, false); house(292, 28, 25, true);
+      g.fillStyle = '#0c0608'; for (let x = 0; x < W; x += 5) g.fillRect(x, 106 + (x % 3), 2, 12);   // paliçada
+      g.fillStyle = 'rgba(160,150,160,0.25)'; for (const [x, y] of [[24, 74], [260, 70], [312, 72]]) for (let k = 0; k < 4; k++) g.fillRect(x + k * 2, y - k * 6, 4 + k, 3);  // fumaça
+    },
+    floresta(g, W, H) {
+      sky(g, W, H, ['#05040a', '#120a18', '#22122a', '#2e1a30']);
+      for (let i = 0; i < 9; i++) deadTree(g, 8 + i * 38 + (i % 2) * 9, 130, 120 + (i % 3) * 20, '#1a1020', 30 + i);
+      for (let i = 0; i < 12; i++) deadTree(g, i * 29 - 6, 130, 90 + (i % 4) * 14, '#0c0810', 70 + i);
+      g.strokeStyle = '#0a0608'; g.lineWidth = 1; for (let i = 0; i < 16; i++) { const x = (i * 23) % W; g.beginPath(); g.moveTo(x, 0); g.quadraticCurveTo(x + 6, 18, x - 2, 26 + (i % 5) * 6); g.stroke(); }   // raízes penduradas
+      g.fillStyle = 'rgba(106,74,138,0.25)'; g.fillRect(0, 100, W, 10);
+    },
+    vale(g, W, H) {
+      sky(g, W, H, ['#1a2030', '#2e3a4c', '#4a5a6e', '#6a7a8c']);
+      g.fillStyle = '#d8e4f0'; g.beginPath(); g.arc(70, 30, 12, 0, 7); g.fill(); g.fillStyle = '#4a5a6e'; g.beginPath(); g.arc(75, 27, 11, 0, 7); g.fill();   // lua minguante
+      X.glow(g, 66, 32, 30, 'rgba(220,235,255,0.25)');
+      ridge(g, W, 94, 16, '#3a4656', 9, 0.5); ridge(g, W, 106, 10, '#2a3442', 13, 0.7);
+      for (let i = 0; i < 6; i++) deadTree(g, 20 + i * 58, 118, 60 + (i % 3) * 16, '#1a2028', 90 + i);
+      g.fillStyle = '#3a4250'; for (let i = 0; i < 14; i++) { const x = 6 + i * 23 + (i % 3) * 4, y = 112 + (i % 2) * 4; g.fillRect(x, y - 8, 5, 9); g.fillRect(x - 1, y - 6, 7, 2); }
+      g.fillStyle = 'rgba(210,220,235,0.18)'; for (let i = 0; i < 4; i++) g.fillRect(0, 82 + i * 10, W, 5);
+    },
+    ponte(g, W, H) {
+      sky(g, W, H, ['#000000', '#03050a', '#0a1020', '#141c30']);
+      stars(g, W, H, 70, 'rgba(220,230,255,0.7)', 8);
+      const rock = (x, y, s) => { g.fillStyle = '#1a2030'; g.beginPath(); g.moveTo(x - s, y); g.lineTo(x - s * 0.6, y - s * 0.5); g.lineTo(x + s * 0.7, y - s * 0.4); g.lineTo(x + s, y); g.lineTo(x, y + s * 1.3); g.fill(); g.fillStyle = '#2e3850'; g.fillRect(x - s * 0.6, y - s * 0.5, s * 1.2, 2); };
+      rock(30, 60, 14); rock(290, 46, 18); rock(250, 96, 9); rock(60, 100, 8);
+      g.fillStyle = 'rgba(200,220,255,0.08)'; for (let i = 0; i < 5; i++) g.fillRect(0, 70 + i * 12, W, 3);
+    },
+  };
+
   // ---------- Arena isométrica (batalha no estilo Super Mario RPG) ----------
   // Piso em losangos visto de cima e de lado; em lugares fechados, duas paredes formam o canto da sala.
   const ARENA = {
@@ -586,11 +661,11 @@
     if (!cache[key]) {
       const W = G.W, [c, g] = X.canvas(W, h);
       if (!A.indoor) { // cenário ao fundo, nos cantos de cima
-        X.drawBG(g, name, 0, 118);
-        const B0 = X.BG[name] || X.BG.planicie; g.fillStyle = B0.ground[1]; g.fillRect(0, 118, W, h - 118);
+        if (X.paintBackdrop[name]) X.paintBackdrop[name](g, W, 130); else X.drawBG(g, name, 0, 118);
+        const B0 = X.BG[name] || X.BG.planicie; g.fillStyle = B0.ground[1]; g.fillRect(0, 130, W, h - 130);
       }
       const im = g.getImageData(0, 0, W, h), d = im.data;
-      const TX = 160, TY = 26;
+      const TX = 160, TY = A.indoor ? 26 : 44;
       const hh = (a, b, s) => { let v = Math.imul(a, 374761393) + Math.imul(b, 668265263) + s * 1442695041 | 0; v = Math.imul(v ^ v >>> 13, 1274126177); return ((v ^ v >>> 16) >>> 0) / 4294967296; };
       const BY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
       const set = (i, col, k) => { d[i] = Math.min(255, col[0] * k); d[i + 1] = Math.min(255, col[1] * k); d[i + 2] = Math.min(255, col[2] * k); d[i + 3] = 255; };
