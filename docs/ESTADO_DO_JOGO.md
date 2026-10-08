@@ -2,12 +2,18 @@
 
 > A tabela de capítulos é aproximada: alguns capítulos se espalham por mais de um lugar.
 >
-> Documento para análise externa. Retrato fiel de como o jogo está hoje (08/10/2026), o que já existe,
+> Documento para análise externa. Retrato fiel de como o jogo está hoje (08/10/2026, depois da rodada de beleza), o que já existe,
 > o que ainda é simples e o que está planejado. O objetivo é receber sugestões de **inovações,
 > pontos cegos e novidades**.
 
-**Jogar agora (navegador, celular ou PC, grátis):** https://the3dig.github.io/kravenox-jogar/rpg/
-**Código:** https://github.com/The3dig/kravenox-jogar
+## Links
+| O quê | Link |
+|---|---|
+| ▶ **Jogar o RPG** (celular ou PC) | https://the3dig.github.io/kravenox-jogar/rpg/ |
+| Cratera do Cisma (o outro jogo) | https://the3dig.github.io/kravenox-jogar/ |
+| Vídeo de abertura (85 s) | https://the3dig.github.io/kravenox-jogar/rpg/video/abertura.mp4 |
+| Este documento, com fotos | https://github.com/The3dig/kravenox-jogar/blob/main/docs/ESTADO_DO_JOGO.md |
+| Código do projeto | https://github.com/The3dig/kravenox-jogar |
 
 ![Tela título](estado/01-titulo.jpg)
 
@@ -68,9 +74,14 @@ da masmorra, e então vem o primeiro pensamento: *"Fome."*
   tochas que tremulam, névoa de distância e giro suave.
 - 4 masmorras: **Abismo Carmesim** (pedra cinza com veias vermelhas), **Templo da Primeira Raiz**,
   **Câmara dos Cristais** e **Cidade Submersa**. Cada uma com tema, música, baús, eventos e encontros próprios.
+- Paredes com **detalhes que aparecem de vez em quando**: correntes, nichos com crânio, portas de ferro
+  trancadas, runas que brilham e estandartes rasgados. No chão, **poças que refletem a tocha** e entulho.
+- Atmosfera: gotas caindo do teto, poeira no ar e **olhos vermelhos piscando no fundo de corredores longos**.
 - Sem mapa automático, de propósito.
 
 ![Masmorra](estado/04-masmorra.jpg)
+![Correntes na parede](estado/27-masmorra-correntes.jpg)
+![Nicho com crânio](estado/28-masmorra-cranio.jpg)
 
 ### 3.3 Exploração vista de cima
 - Mapas: **Reino Quebrado** (mundo), **Vila Sem Nome**, **Casa da Luz Dourada** e **Vale dos Mortos**.
@@ -78,6 +89,8 @@ da masmorra, e então vem o primeiro pensamento: *"Fome."*
   brasas subindo, estradas de bordas irregulares, calçamento de pedra, casas de enxaimel com chaminé e fumaça,
   árvores retorcidas, cristais que pulsam, lápides variadas.
 - Camada viva: cinzas caindo, sombras de nuvens, luzes que tremulam, vagalumes e espíritos.
+- **Clima por região:** tempestade de cinzas perto do Abismo, névoa escura na Floresta, névoa roxa perto da
+  Cratera, **relâmpagos com trovão** nas planícies e neblina mais densa perto da Ponte dos Mortos.
 - Encontros aleatórios por tipo de terreno.
 
 ![Mapa: antes e agora](estado/05-mapa-antes-depois.jpg)
@@ -85,6 +98,8 @@ da masmorra, e então vem o primeiro pensamento: *"Fome."*
 ![Fenda no Reino](estado/07-mapa-fenda.jpg)
 ![Vila Sem Nome](estado/08-vila.jpg)
 ![Vale dos Mortos](estado/09-vale.jpg)
+![Clima: tempestade de cinzas perto do Abismo](estado/31-clima-abismo.jpg)
+![Clima: neblina perto da Ponte](estado/32-clima-vale.jpg)
 
 ### 3.4 Batalha
 - **Por turnos**, com menu Atacar / Técnica / Item / Defender / Fugir.
@@ -95,11 +110,19 @@ da masmorra, e então vem o primeiro pensamento: *"Fome."*
   ao levar dano são empurrados para trás e piscam; os números de dano e cura aparecem sobre cada um; na
   vitória o grupo pula.
 - Os inimigos morrem se **desfazendo em pixels**. Efeitos de técnica usam as artes desenhadas pelo autor.
+- **Entrada da batalha:** a tela **racha e se parte em cacos de vidro** que voam girando.
+- **Cenários pintados** em cada lugar ao ar livre: eclipse e torre partida na planície, casas acesas na Vila,
+  árvores mortas na Floresta, lua e lápides no Vale, vazio estrelado na Ponte.
+- Os inimigos **respiram**; os chefes têm aura pulsante e partículas subindo.
 - **Velocidade:** 1x (padrão, mais calma) ou **2x** (rápida), escolhida no menu.
 
 ![Batalha no Abismo](estado/10-batalha-abismo.jpg)
 ![Batalha na planície](estado/11-batalha-planicie.jpg)
 ![Chefe: A Coisa que Dormia](estado/12-chefe.jpg)
+![Batalha na Vila](estado/26-batalha-vila.jpg)
+![Batalha na Floresta](estado/25-batalha-floresta.jpg)
+![Batalha no Vale](estado/24-batalha-vale.jpg)
+![Entrada da batalha: vidro quebrado](estado/29-vidro-quebrado.jpg)
 
 ### 3.5 Personagens jogáveis
 
@@ -114,13 +137,19 @@ No **Modo Fúria**, o Kravenox vira a arte "em chamas" desenhada pelo autor.
 
 ![Os irmãos: Kravenox e Thornox](estado/15-irmaos.jpg)
 
+A **Lyra** e os personagens secundários (Mulher das Raízes, Mascate, Espírito, Lira) foram redesenhados no
+mesmo estilo chibi dos irmãos, e todos os personagens que falam têm **retrato próprio**.
+
+![Retratos dos personagens](estado/22-retratos.jpg)
+![Mulher das Raízes](estado/23-mulher-raizes.jpg)
+
 ### 3.6 Progressão e economia
 - **Níveis** com curva de experiência; atributos HP, EP, Ataque, Defesa, Magia e Agilidade.
 - **Moeda:** fragmentos de cristal deixados pelos inimigos.
 - **Itens (6):** Seiva Viva, Néctar Dourado, Cristal de Essência, Raiz da Vida, Lágrima da Fonte e Véu de Névoa.
 - **Equipamentos (14):** armas próprias de cada herói e armaduras compartilhadas, compradas do **Mascate de
   Cinzas** ou achadas em baús.
-- **Inimigos:** 27, entre eles **10 chefes**. A dificuldade foi equilibrada por simulação de batalhas.
+- **Inimigos:** 27, entre eles **10 chefes**, todos com arte própria em pixel art. A dificuldade foi equilibrada por simulação de batalhas.
 - **Salvar:** no menu ou nos santuários (que também curam). O jogo salva sozinho ao fechar o navegador.
   É um único espaço de save, guardado no próprio navegador.
 
@@ -130,6 +159,10 @@ No **Modo Fúria**, o Kravenox vira a arte "em chamas" desenhada pelo autor.
 ---
 
 ## 4. Cenas cinematográficas
+Os **títulos de capítulo** aparecem numa página de pergaminho queimado que abre como uma página virando.
+
+![Página de capítulo](estado/30-pagina-capitulo.jpg)
+
 Há um sistema de "cinema" dentro do jogo, com faixas pretas, atores, silhuetas com brilho, raios de luz,
 raízes, partículas e legendas.
 - **Cap. 1:** o despertar.
@@ -186,8 +219,9 @@ raízes, partículas e legendas.
 - **Do autor:** sprites do Kravenox (4 direções, passos de lado vindos da Cratera do Cisma, Modo Fúria,
   versão prateada), retratos, a pintura da tela título, efeitos de golpe (garras, orbe, raio, explosão,
   espinhos), a Sentinela, o desenho original de escola, a estatueta do Thornox e o Kravenox de armadura.
-- **Gerada por código:** terreno, construções, árvores, cristais, tiles de masmorra, a maioria dos inimigos
-  (com filtro de pixel art), os NPCs (Lyra, Mascate, Mulher das Raízes, espírito…) e os cenários de batalha.
+- **Desenhada por código, no estilo da arte do autor:** Lyra e NPCs (sprites e retratos), o Thornox gêmeo em
+  azul e dourado (a partir dos sprites do Kravenox), os inimigos, o terreno, as construções, as masmorras e os
+  cenários de batalha. As janelas têm espinhos dourados nos cantos.
 
 ---
 
@@ -203,8 +237,8 @@ raízes, partículas e legendas.
 - **Ninguém além do autor e do filho jogou de verdade.** A história inteira é testada por um robô que joga
   do começo ao fim a cada mudança (sem erros), mas isso não mede diversão, ritmo nem dificuldade sentida.
   **Não temos medida do tempo de jogo de uma pessoa.**
-- **Lyra e os NPCs** ainda são sprites simples gerados por código, sem arte própria como o Kravenox e o Thornox.
-- A maioria dos **inimigos** é gerada por código; só a Sentinela usa arte do autor.
+- **Lyra, os NPCs e os inimigos** foram desenhados por código no estilo do autor; o autor ainda pode querer
+  substituí-los por arte própria (como já existe para o Kravenox).
 - O mapa do mundo é **um só** (40×30 tiles), mais Vila, Casa e Vale. Não há mundo aberto grande.
 - **Não há missões paralelas**, colecionáveis com recompensa, bestiário, diário ou mapa.
 - Um único espaço de save, guardado no navegador (trocar de aparelho perde o progresso).
