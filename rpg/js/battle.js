@@ -556,7 +556,7 @@
         if (h.status.fury && h.alive && X.imgs.k_furia) { im = X.imgs.k_furia; sc = 0.85; }
         else im = X.sprite(G.state.flags.prata ? 'kravenoxP' : 'kravenox', 'left', s.walk ? 1 : 0, s.walk ? ((G.time >> 2) & 3) : 0);
       } else if (h.id === 'thornox') { if (s.cast && h.alive && X.imgs.t_furia) { im = X.imgs.t_furia; sc = 0.85; } else im = X.sprite('thornox', 'left', s.walk ? 1 : 0, s.walk ? ((G.time >> 2) & 3) : 0); }
-      else { im = X.sprite('lyra', 'left', s.walk ? 1 + ((G.time >> 3) & 1) : 0); sc = 1.7; }
+      else { im = X.sprite('lyra', 'left', s.walk ? (G.time >> 3) & 1 : 0); }
       if (!im) return;
       const w = Math.round(im.width * sc), hh = Math.round(im.height * sc);
       const bob = h.alive && !s.walk ? Math.round(Math.sin(G.time / 14 + i * 2) * 0.8) : 0;

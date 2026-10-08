@@ -845,7 +845,7 @@
     // os três irmãos, de costas para a câmera, contornados pela própria Essência
     const tI = C.actor('thornox', { img: () => X.sprite('thornox', 'up', 0), x: 92, y: 206, z: 5, scale: 1.25, silhouette: '#ffd36a', glow: 'rgba(255,211,106,0.9)', glowA: 0.45 });
     const kI = C.actor('kravenox', { img: () => X.sprite('kravenoxP', 'up', 0), x: 160, y: 208, z: 6, scale: 1.25, silhouette: '#dfe8ff', glow: 'rgba(223,232,255,0.9)', glowA: 0.45 });
-    const lI = C.actor('lyra', { img: () => X.sprite('lyra', 'up', 0), x: 228, y: 206, z: 5, scale: 1.4, silhouette: '#bfe0ff', glow: 'rgba(160,215,255,0.9)', glowA: 0.45 });
+    const lI = C.actor('lyra', { img: () => X.sprite('lyra', 'up', 0), x: 228, y: 206, z: 5, scale: 1.2, silhouette: '#bfe0ff', glow: 'rgba(160,215,255,0.9)', glowA: 0.45 });
     const R = [[-14, -96, 0, 40, -30], [14, -96, G.W, 50, 30], [-24, -60, 0, 120, -20], [24, -60, G.W, 130, 20], [-20, -30, 20, G.H, -40], [20, -30, 300, G.H, 40], [-6, -110, 70, 0, -20], [6, -110, 250, 0, 20]];
     C.roots = R.map(([ox, oy, ex, ey, bend]) => ({ on: 'mae', ox, oy, ex, ey, bend, w: 3, broken: 0 }));
 

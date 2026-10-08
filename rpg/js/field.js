@@ -111,7 +111,7 @@
       talls.push({ y: n.y + 0.1, draw: () => { const sx = n.x * T - cx, sy = n.y * T - cy; X.drawShadow(ctx, sx, sy);
         const sp = X.SPEC[n.sprite];
         if (sp && sp.ghost) ctx.globalAlpha = 0.7 + 0.2 * Math.sin(G.time / 15);
-        ctx.drawImage(X.sprite(n.sprite, n.face || n.dir, 0), sx - 1, sy - 7 + (sp && sp.ghost ? Math.sin(G.time / 20) * 1.5 : 0)); ctx.globalAlpha = 1; } });
+        const im = X.sprite(n.sprite, n.face || n.dir, (G.time >> 5) & 1 && sp && sp.ghost ? 1 : 0); ctx.drawImage(im, sx + 8 - (im.width >> 1), sy + 15 - im.height + (sp && sp.ghost ? Math.sin(G.time / 20) * 1.5 - 2 : 0)); ctx.globalAlpha = 1; } });
     }
     const lead = G.state.party[0];
     const spr = G.state.flags.prata ? 'kravenoxP' : (lead ? G.data.HEROES[lead.id].sprite : 'kravenox');

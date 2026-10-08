@@ -313,6 +313,8 @@
   X.loadImages = function () {
     const names = ['titulo', 'k_portrait', 'kp_portrait', 't_portrait', 'desenho', 'k_furia', 't_furia', 'fx_garra1', 'fx_garra2', 'fx_orbe', 'fx_raio', 'fx_explosao', 'fx_espinhos', 'fx_espinhos2', 'e_sentinela', 'e_sentinela1', 'cratera', 'k_futuro', 'thornox_fig'];
     for (const p of ['k', 't']) for (const d of ['left', 'right']) for (let i = 0; i < 4; i++) names.push(p + '_' + d + '_w' + i);
+    for (const n of ['lyra', 'ancia', 'mascate', 'espirito', 'lira', 'lira2']) for (const d of ['down', 'up', 'left', 'right']) for (const f of [0, 1]) names.push('s_' + n + '_' + d + '_' + f);
+    for (const n of ['lyra', 'lira', 'lira2', 'ancia', 'guardiao', 'guardiao2', 'sentinela', 'semrosto', 'mascate', 'espirito', 'figura', 'arauto', 'mae', 'primeira', 'guerreiro']) names.push('p_' + n);
     for (const p of ['k', 'kp', 't']) for (const d of ['down', 'up', 'left', 'right']) for (const f of [0, 1]) names.push(p + '_' + d + '_' + f);
     return Promise.all(names.map(n => new Promise(res => { const im = new Image(); im.onload = () => { X.imgs[n] = im; res(); }; im.onerror = () => res(); im.src = 'img/' + n + '.png?v=' + (window.KRAVENOX_V || ''); })));
   };
@@ -327,6 +329,7 @@
       const im = X.imgs[(name === 'kravenoxP' ? 'kp_' : name === 'thornox' ? 't_' : 'k_') + dir + '_' + (frame ? 1 : 0)];
       if (im) return im;
     }
+    { const im = X.imgs['s_' + name + '_' + dir + '_' + (frame ? 1 : 0)]; if (im) return im; }   // personagens desenhados no estilo dos irmãos
     const key = 'spr' + name + dir + frame;
     if (cache[key]) return cache[key];
     const s = X.SPEC[name] || X.SPEC.mascate;
@@ -475,6 +478,22 @@
       ctx.fillStyle = gr; ctx.fillRect(x, y, 48, 48);
       X.glow(ctx, x + 24, y + 22, 24, k === 'kravenox' ? 'rgba(255,60,30,0.35)' : k === 'thornox' ? 'rgba(255,224,138,0.4)' : 'rgba(200,220,255,0.3)', 0.6 + 0.25 * Math.sin(t / 25));
       ctx.drawImage(im, x, y);
+    };
+  }
+  // retratos desenhados (img/p_*.png): fundo em degradê e brilho, como nos irmãos
+  const PBG = { lyra: ['#2a2a3a', '#c8d8ff'], lira: ['#10202a', '#6af0e0'], lira2: ['#4a3a10', '#ffe080'], ancia: ['#2a2010', '#ffd890'], guardiao: ['#2a2a30', '#ffffff'],
+    guardiao2: ['#2a2a30', '#c0d8ff'], sentinela: ['#1a0a2a', '#b26bff'], semrosto: ['#1a0a2a', '#b26bff'], mascate: ['#2a1a0a', '#ffcf6a'], espirito: ['#0a1a2a', '#bfe4ff'],
+    figura: ['#1a1a2a', '#c0c8ff'], arauto: ['#2a0a1a', '#ff3a5a'], mae: ['#3a3020', '#fff0c0'], primeira: ['#1a0408', '#a01030'], guerreiro: ['#1a1030', '#c8a8ff'] };
+  for (const k of Object.keys(PBG)) {
+    const base = P[k];
+    P[k] = function (ctx, x, y, t) {
+      const im = X.imgs['p_' + k]; if (!im) return base && base(ctx, x, y, t);
+      const [b0, gl] = PBG[k];
+      const gr = ctx.createLinearGradient(0, y, 0, y + 48); gr.addColorStop(0, b0); gr.addColorStop(1, '#050204'); ctx.fillStyle = gr; ctx.fillRect(x, y, 48, 48);
+      const r = parseInt(gl.slice(1, 3), 16), g2 = parseInt(gl.slice(3, 5), 16), b2 = parseInt(gl.slice(5, 7), 16);
+      X.glow(ctx, x + 24, y + 22, 24, `rgba(${r},${g2},${b2},0.3)`, 0.6 + 0.25 * Math.sin(t / 25));
+      ctx.drawImage(im, x, y);
+      if (base && base.anim) base.anim(ctx, x, y, t);
     };
   }
   X.P = P;
