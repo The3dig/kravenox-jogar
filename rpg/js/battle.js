@@ -545,6 +545,7 @@
     drawParty(ctx);
     for (const f of B.fxs) if (f.ui) f.draw(ctx);
     if (B.msg) { G.win(ctx, 12, 10, G.W - 24, 20); G.text(ctx, B.msg, 20, 15, '#f1e6d2', 9); }
+    if (G.fastBattle) G.text(ctx, '» 2x', G.W - 10, PW_Y - 12, '#ffcf6a', 7, 'right');
   };
   // o grupo no campo de batalha
   function drawHeroes(ctx) {

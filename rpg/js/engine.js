@@ -318,7 +318,10 @@ G.start = function () {
   }
   requestAnimationFrame(frame);
 };
+// Velocidade da batalha: em 1x a batalha anda na metade do ritmo; 2x é o ritmo rápido.
+G.fastBattle = false; try { G.fastBattle = localStorage.getItem('kravenox_vel') === '2'; } catch (e) {}
 G.update = function () {
+  if (G.scene === G.Battle && !G.fastBattle && !G.debug.auto && !G.debug.fast) { G._half = !G._half; if (G._half) return; }
   G.time++;
   Input.update();
   if (G.scene && G.scene.tick) G.scene.tick();

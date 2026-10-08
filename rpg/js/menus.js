@@ -34,14 +34,15 @@
     const panel = partyPanel(); G.overlays.push(panel);
     let idx = 0;
     for (;;) {
-      const i = await G.menu({ x: 6, y: 6, w: 92, index: idx, items: ['Itens', 'Técnicas', 'Status', 'Equipar', 'Salvar', G.Audio.muted ? 'Som: não' : 'Som: sim', 'Fechar'] });
+      const i = await G.menu({ x: 6, y: 6, w: 100, index: idx, items: ['Itens', 'Técnicas', 'Status', 'Equipar', 'Salvar', G.Audio.muted ? 'Som: não' : 'Som: sim', G.fastBattle ? 'Batalha: 2x' : 'Batalha: 1x', 'Fechar'] });
       idx = Math.max(0, i);
-      if (i < 0 || i === 6) break;
+      if (i < 0 || i === 7) break;
       if (i === 0) await itemsMenu();
       if (i === 1) await techMenu();
       if (i === 2) await statusMenu();
       if (i === 3) await equipMenu();
       if (i === 4) { if (D.save()) { G.Audio.sfx('save'); await G.say(null, 'O Reino lembrará deste momento. (Jogo salvo)'); } else await G.say(null, 'Não foi possível salvar neste navegador.'); }
+      if (i === 6) { G.fastBattle = !G.fastBattle; try { localStorage.setItem('kravenox_vel', G.fastBattle ? '2' : '1'); } catch (e) {} G.toast(G.fastBattle ? 'Batalhas na velocidade rápida (2x).' : 'Batalhas na velocidade normal (1x).'); }
       if (i === 5) { G.Audio.muted = !G.Audio.muted; if (G.Audio.musicGain) G.Audio.musicGain.gain.value = G.Audio.muted ? 0 : 0.55; }
     }
     G.pop(panel);
