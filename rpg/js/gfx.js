@@ -311,22 +311,22 @@
   // Imagens desenhadas à mão (Kravenox)
   X.imgs = {};
   X.loadImages = function () {
-    const names = ['titulo', 'k_portrait', 'kp_portrait', 't_portrait', 't_down_0', 't_down_1', 'desenho', 'k_furia', 'fx_garra1', 'fx_garra2', 'fx_orbe', 'fx_raio', 'fx_explosao', 'fx_espinhos', 'fx_espinhos2', 't_px', 'e_sentinela', 'e_sentinela1', 'cratera', 'k_futuro', 'thornox_fig'];
-    for (const d of ['left', 'right']) for (let i = 0; i < 4; i++) names.push('k_' + d + '_w' + i);
-    for (const p of ['k', 'kp']) for (const d of ['down', 'up', 'left', 'right']) for (const f of [0, 1]) names.push(p + '_' + d + '_' + f);
+    const names = ['titulo', 'k_portrait', 'kp_portrait', 't_portrait', 'desenho', 'k_furia', 't_furia', 'fx_garra1', 'fx_garra2', 'fx_orbe', 'fx_raio', 'fx_explosao', 'fx_espinhos', 'fx_espinhos2', 'e_sentinela', 'e_sentinela1', 'cratera', 'k_futuro', 'thornox_fig'];
+    for (const p of ['k', 't']) for (const d of ['left', 'right']) for (let i = 0; i < 4; i++) names.push(p + '_' + d + '_w' + i);
+    for (const p of ['k', 'kp', 't']) for (const d of ['down', 'up', 'left', 'right']) for (const f of [0, 1]) names.push(p + '_' + d + '_' + f);
     return Promise.all(names.map(n => new Promise(res => { const im = new Image(); im.onload = () => { X.imgs[n] = im; res(); }; im.onerror = () => res(); im.src = 'img/' + n + '.png?v=' + (window.KRAVENOX_V || ''); })));
   };
   X.sprite = function (name, dir, frame, step) {
     // Kravenox de lado: 4 quadros de passo vindos da Cratera do Cisma
-    if (name === 'kravenox' && (dir === 'left' || dir === 'right') && step != null) {
-      const im = X.imgs['k_' + dir + '_w' + (step < 0 ? 0 : step)];
+    // Thornox é o gêmeo: o mesmo corpo do Kravenox, em azul e dourado
+    if ((name === 'kravenox' || name === 'thornox') && (dir === 'left' || dir === 'right') && step != null) {
+      const im = X.imgs[(name === 'thornox' ? 't_' : 'k_') + dir + '_w' + (step < 0 ? 0 : step)];
       if (im) return im;
     }
-    if (name === 'kravenox' || name === 'kravenoxP') {
-      const im = X.imgs[(name === 'kravenoxP' ? 'kp_' : 'k_') + dir + '_' + (frame ? 1 : 0)];
+    if (name === 'kravenox' || name === 'kravenoxP' || name === 'thornox') {
+      const im = X.imgs[(name === 'kravenoxP' ? 'kp_' : name === 'thornox' ? 't_' : 'k_') + dir + '_' + (frame ? 1 : 0)];
       if (im) return im;
     }
-    if (name === 'thornox') { const im = X.imgs.t_px || X.imgs['t_down_' + (frame ? 1 : 0)]; if (im) return im; }
     const key = 'spr' + name + dir + frame;
     if (cache[key]) return cache[key];
     const s = X.SPEC[name] || X.SPEC.mascate;
