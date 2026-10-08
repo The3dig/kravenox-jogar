@@ -454,10 +454,44 @@
     return result;
   };
   async function transition() {
-    // efeito de "quebra" antes da batalha
+    // o mundo se parte como vidro: rachaduras brancas e depois os cacos voam para longe
+    const [snap, sg] = G.gfx.canvas(G.W, G.H); sg.drawImage(G.canvas, 0, 0, G.W, G.H);
+    const r = G.gfx.rng((Math.random() * 1e9) | 0), CX = 8, CY = 6, P = [];
+    for (let j = 0; j <= CY; j++) for (let i = 0; i <= CX; i++) {
+      const edge = i === 0 || j === 0 || i === CX || j === CY;
+      P.push([i * G.W / CX + (edge ? 0 : (r() - 0.5) * 30), j * G.H / CY + (edge ? 0 : (r() - 0.5) * 30)]);
+    }
+    const shards = [];
+    for (let j = 0; j < CY; j++) for (let i = 0; i < CX; i++) {
+      const a = P[j * (CX + 1) + i], b = P[j * (CX + 1) + i + 1], c = P[(j + 1) * (CX + 1) + i + 1], d = P[(j + 1) * (CX + 1) + i];
+      for (const tri of (r() < 0.5 ? [[a, b, c], [a, c, d]] : [[a, b, d], [b, c, d]])) {
+        const mx = (tri[0][0] + tri[1][0] + tri[2][0]) / 3, my = (tri[0][1] + tri[1][1] + tri[2][1]) / 3, ang = Math.atan2(my - G.H / 2, mx - G.W / 2), sp = 2 + r() * 3;
+        shards.push({ tri, mx, my, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 1, rot: (r() - 0.5) * 0.25, delay: Math.hypot(mx - G.W / 2, my - G.H / 2) / 40 });
+      }
+    }
+    G.Audio.sfx('crack');
     let t = 0;
-    const f = { layer: 'top', upd() { return ++t < 24; }, draw(ctx) { ctx.fillStyle = '#000'; for (let i = 0; i < 12; i++) { const w = G.W * Math.min(1, t / 20) * ((i % 2) ? 1 : 0.8); ctx.fillRect(i % 2 ? 0 : G.W - w, i * 20, w, 20); } } };
-    G.fx.push(f); await G.wait(24); G.fadeA = 1;
+    const f = { layer: 'top', upd() { if (t === 12) G.Audio.sfx('hit'); return ++t < 44; }, draw(ctx) {
+      if (t < 12) {
+        ctx.drawImage(snap, 0, 0);
+        ctx.strokeStyle = `rgba(255,255,255,${Math.min(1, t / 8)})`; ctx.lineWidth = 1;
+        const lim = shards.length * Math.min(1, t / 10);
+        for (let k = 0; k < lim; k++) { const s = shards[k]; ctx.beginPath(); ctx.moveTo(s.tri[0][0], s.tri[0][1]); ctx.lineTo(s.tri[1][0], s.tri[1][1]); ctx.lineTo(s.tri[2][0], s.tri[2][1]); ctx.closePath(); ctx.stroke(); }
+        return;
+      }
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, G.W, G.H);
+      const T = t - 12;
+      for (const s of shards) {
+        const k = Math.max(0, T - s.delay), ox = s.vx * k * (1 + k * 0.08), oy = s.vy * k + 0.25 * k * k;
+        ctx.save(); ctx.translate(s.mx + ox, s.my + oy); ctx.rotate(s.rot * k); ctx.globalAlpha = Math.max(0, 1 - k / 26);
+        ctx.beginPath(); ctx.moveTo(s.tri[0][0] - s.mx, s.tri[0][1] - s.my); ctx.lineTo(s.tri[1][0] - s.mx, s.tri[1][1] - s.my); ctx.lineTo(s.tri[2][0] - s.mx, s.tri[2][1] - s.my); ctx.closePath();
+        ctx.save(); ctx.clip(); ctx.drawImage(snap, -s.mx, -s.my); ctx.restore();
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    } };
+    G.fx.push(f); await G.wait(44); G.fadeA = 1;
   }
   async function rewards() {
     const xp = B.enemies.reduce((s, e) => s + (e.xp || 0), 0), fr = B.enemies.reduce((s, e) => s + (e.fr || 0), 0);
