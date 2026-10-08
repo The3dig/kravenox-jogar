@@ -77,6 +77,15 @@ G.win = function (ctx, x, y, w, h, opt = {}) {
   ctx.fillRect(x + 1, y + h - 2, 1, 1); ctx.fillRect(x + w - 2, y + h - 2, 1, 1);
   ctx.fillStyle = opt.inner || 'rgba(140,40,50,0.55)';
   ctx.fillRect(x + 3, y + 2, w - 6, 1);
+  // espinhos dourados nos cantos
+  if (w > 40 && h > 18 && !opt.plain) {
+    const c1 = opt.border || '#c9a24a', c2 = '#fff0b0';
+    for (const [cx, cy, sx, sy] of [[x, y, 1, 1], [x + w - 1, y, -1, 1], [x, y + h - 1, 1, -1], [x + w - 1, y + h - 1, -1, -1]]) {
+      ctx.fillStyle = c1; ctx.fillRect(cx - sx, cy - sy, 1, 1); ctx.fillRect(cx - 2 * sx, cy - 2 * sy, 1, 1);   // ponta diagonal
+      ctx.fillRect(cx + sx * 3, cy - sy, 1, 1); ctx.fillRect(cx - sx, cy + sy * 3, 1, 1);                        // espinhos laterais
+      ctx.fillStyle = c2; ctx.fillRect(cx, cy, 1, 1);
+    }
+  }
   ctx.restore();
 };
 G.text = function (ctx, s, x, y, color = '#efe3cf', size = 8, align = 'left', bold = false) {
@@ -169,6 +178,7 @@ G.narrate = function (lines, opt = {}) {
         ctx.fillStyle = opt.bg || '#000'; ctx.fillRect(0, 0, G.W, G.H);
         if (opt.backdrop) opt.backdrop(ctx, G.time);
         if (i >= lines.length) return;
+        if (/^Capítulo \d+\n/.test(lines[i])) { chapterPage(ctx, lines[i], a); return; }
         ctx.globalAlpha = a;
         const ls = G.wrap(ctx, lines[i], G.W - 50, 10);
         let y = G.H / 2 - ls.length * 7;
@@ -180,6 +190,35 @@ G.narrate = function (lines, opt = {}) {
     G.push(ov);
   });
 };
+
+// Título de capítulo como uma página de livro (pergaminho com bordas queimadas)
+let pageCache = null;
+function chapterPage(ctx, text, a) {
+  const [num, ...rest] = text.split('\n'), title = rest.join(' ');
+  const PW = 200, PH = 120;
+  if (!pageCache) {
+    const [c, g] = G.gfx.canvas(PW, PH), r = G.gfx.rng(77), im = g.createImageData(PW, PH), d = im.data;
+    for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) {
+      const e = Math.min(x, y, PW - 1 - x, PH - 1 - y) + (r() - 0.5) * 3, burn = Math.max(0, 1 - e / 7), o = (y * PW + x) * 4;
+      if (e < 0.5) continue;
+      const n = 0.92 + r() * 0.1 - burn * 0.6 + 0.05 * Math.sin(x / 9 + y / 13);
+      d[o] = 216 * n; d[o + 1] = 196 * n; d[o + 2] = 150 * n * (1 - burn * 0.3); d[o + 3] = 255;
+    }
+    g.putImageData(im, 0, 0); pageCache = c;
+  }
+  const k = Math.min(1, a * 1.2), sx = Math.max(0.02, Math.sin(k * Math.PI / 2));   // a página "vira" ao abrir
+  const x = G.W / 2 - PW / 2, y = G.H / 2 - PH / 2;
+  ctx.save(); ctx.globalAlpha = a; ctx.translate(G.W / 2, 0); ctx.scale(sx, 1); ctx.translate(-G.W / 2, 0);
+  ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(x + 4, y + 5, PW, PH);
+  ctx.drawImage(pageCache, x, y);
+  const ink = '#3a2214';
+  G.text(ctx, num.toUpperCase(), G.W / 2, y + 22, '#7a1a1a', 9, 'center', true);
+  ctx.fillStyle = ink; ctx.fillRect(G.W / 2 - 40, y + 37, 80, 1); ctx.fillRect(G.W / 2 - 2, y + 35, 4, 4);
+  const ls = G.wrap(ctx, title, PW - 30, 12); let yy = y + 50;
+  for (const l of ls) { ctx.font = G.font(12, true); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = ink; ctx.fillText(l, G.W / 2, yy); yy += 16; }
+  ctx.fillStyle = ink; for (let i = -1; i <= 1; i++) ctx.fillRect(G.W / 2 + i * 8 - 1, y + PH - 18, 2, 2);
+  ctx.restore();
+}
 
 // Mostra uma imagem emoldurada com legenda e espera A
 G.showImage = function (img, caption) {
