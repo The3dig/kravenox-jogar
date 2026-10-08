@@ -528,9 +528,16 @@
       const lg = e.lunge ? Math.sin(e.lunge / 12 * Math.PI) : 0;
       const sx = Math.round(e.x - e.w / 2 + (e.shake ? (e.shake % 4 < 2 ? 2 : -2) : 0) + lg * 18) - 1, sy = Math.round(BY - e.h + bob + lg * 9) - 1;
       ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(e.x + lg * 18, BY + lg * 9, e.w * 0.4, Math.max(3, e.w * 0.12), 0, 0, 7); ctx.fill();
-      if (e.boss) X.glow(ctx, e.x, BY - e.h / 2, e.h * 0.7, e.void ? 'rgba(120,0,30,0.5)' : 'rgba(200,200,255,0.3)', 0.6 + 0.2 * Math.sin(G.time / 20));
+      if (e.boss && !e.dying) {
+        X.glow(ctx, e.x, BY - e.h / 2, e.h * 0.85, e.void ? 'rgba(140,0,30,0.55)' : 'rgba(200,200,255,0.32)', 0.55 + 0.25 * Math.sin(G.time / 20));
+        for (let k = 0; k < 10; k++) { const ph = ((G.time * 0.6 + k * 37) % 120) / 120; ctx.globalAlpha = 0.7 * (1 - ph); ctx.fillStyle = e.void ? '#ff3a4a' : '#e8e4ff';
+          ctx.fillRect(Math.round(e.x - e.w * 0.45 + ((k * 53) % 100) / 100 * e.w * 0.9), Math.round(BY - ph * e.h * 1.1), 1, 2); }
+        ctx.globalAlpha = 1;
+      }
       // espelhado: os inimigos olham para o grupo, à direita
-      const put = (im) => { ctx.save(); ctx.translate(sx + im.width, sy); ctx.scale(-1, 1); ctx.drawImage(im, 0, 0); ctx.restore(); };
+      // respiração: o corpo sobe e desce de leve (chefes mais devagar e mais fundo)
+      const br = e.dying ? 1 : 1 + (e.boss ? 0.035 : 0.025) * Math.sin(G.time / (e.boss ? 30 : 20) + e.idx * 1.7);
+      const put = (im) => { ctx.save(); ctx.translate(sx + im.width, sy + im.height); ctx.scale(-1, br); ctx.drawImage(im, 0, -im.height); ctx.restore(); };
       if (e.dying) { dissolve(e); put(e.dis); continue; }
       if (e.status.sleep) ctx.globalAlpha = 0.7;
       put(img);
