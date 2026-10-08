@@ -313,6 +313,7 @@
   X.loadImages = function () {
     const names = ['titulo', 'k_portrait', 'kp_portrait', 't_portrait', 'desenho', 'k_furia', 't_furia', 'fx_garra1', 'fx_garra2', 'fx_orbe', 'fx_raio', 'fx_explosao', 'fx_espinhos', 'fx_espinhos2', 'e_sentinela', 'e_sentinela1', 'cratera', 'k_futuro', 'thornox_fig'];
     for (const p of ['k', 't']) for (const d of ['left', 'right']) for (let i = 0; i < 4; i++) names.push(p + '_' + d + '_w' + i);
+    for (const n of ['afogado', 'coisa', 'cristalizado', 'eco', 'ecoGrande', 'fragmento', 'lembranca', 'maoNevoa', 'raizPetra', 'raizRast', 'raizVazio', 'sentinelaN', 'sombra', 'voz']) names.push('e_' + n);
     for (const n of ['lyra', 'ancia', 'mascate', 'espirito', 'lira', 'lira2']) for (const d of ['down', 'up', 'left', 'right']) for (const f of [0, 1]) names.push('s_' + n + '_' + d + '_' + f);
     for (const n of ['lyra', 'lira', 'lira2', 'ancia', 'guardiao', 'guardiao2', 'sentinela', 'semrosto', 'mascate', 'espirito', 'figura', 'arauto', 'mae', 'primeira', 'guerreiro']) names.push('p_' + n);
     for (const p of ['k', 'kp', 't']) for (const d of ['down', 'up', 'left', 'right']) for (const f of [0, 1]) names.push(p + '_' + d + '_' + f);
