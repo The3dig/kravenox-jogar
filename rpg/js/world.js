@@ -617,6 +617,28 @@
     else X.drawTall(ctx, ch, sx, sy, x, y, theme);
   };
 
+  // ---------- clima por região ----------
+  Wd.weather = function (F) {
+    const id = F && F.id, x = F ? F.px : 0, y = F ? F.py : 0, w = { ash: 1, fog: null, haze: null, storm: false };
+    if (id === 'reino') {
+      if (y >= 19 && x <= 12) { w.ash = 3; w.haze = 'rgba(140,30,20,0.12)'; }                       // perto do Abismo: tempestade de cinzas
+      else if (x >= 22 && y <= 17) { w.ash = 0.4; w.fog = 'rgba(90,70,120,0.08)'; w.haze = 'rgba(0,0,0,0.12)'; }   // floresta morta
+      else if (x >= 24 && y >= 19) { w.ash = 0.8; w.fog = 'rgba(150,80,200,0.07)'; }                 // perto da grande cratera
+      else { w.ash = 1.4; w.storm = true; }                                                          // planícies: relâmpagos
+    } else if (id === 'vale') {
+      w.fog = y <= 12 ? 'rgba(220,230,245,0.1)' : 'rgba(210,220,235,0.05)';
+    } else if (id === 'vila') { w.ash = 0.6; }
+    return w;
+  };
+  // relâmpago no céu vermelho (clarão duplo e trovão abafado)
+  let boltT = 900, boltF = 0;
+  Wd.lightning = function (ctx, F) {
+    const w = Wd.weather(F);
+    if (!w.storm || G.lock) { boltF = 0; return; }
+    if (--boltT <= 0) { boltT = 1300 + ((Math.random() * 1500) | 0); boltF = 22; setTimeout(() => G.Audio.sfx('thunder'), 300); }
+    if (boltF > 0) { boltF--; const a = boltF > 18 ? 0.35 : boltF > 14 ? 0 : boltF > 10 ? 0.25 * (boltF - 10) / 4 : 0; if (a) { ctx.fillStyle = `rgba(255,235,225,${a})`; ctx.fillRect(0, 0, G.W, G.H); } }
+  };
+
   // ---------- camada viva (luz, fumaça, cinzas, nuvens) ----------
   let clouds = null;
   function cloudTex() {
@@ -669,14 +691,20 @@
       for (let k = 0; k < 3; k++) { const p = ((t * 0.8 + k * 33) % 60) / 60; ctx.fillStyle = `rgba(255,${150 + k * 30},60,${1 - p})`; ctx.fillRect(x + Math.sin(p * 9 + k) * 4, y - 6 - p * 22, 1, 1); }
     }
     // partículas
+    // clima por região
+    const WX = Wd.weather(G.Field);
     if (L.th.ash) {
-      for (let k = 0; k < 46; k++) {
+      for (let k = 0; k < 46 * WX.ash; k++) {
         const sx = h2(k, 1, 7) * (W + 40), sy = h2(k, 2, 7) * (H + 40), sp = 0.15 + h2(k, 3, 7) * 0.25;
         const x = ((sx - cx * 1.05 + t * sp * 0.6 + Math.sin(t / 50 + k) * 6) % (W + 40) + W + 40) % (W + 40) - 20;
         const y = ((sy - cy * 1.05 + t * sp) % (H + 40) + H + 40) % (H + 40) - 20;
         ctx.fillStyle = k % 7 === 0 ? 'rgba(255,90,50,0.7)' : 'rgba(170,160,170,0.45)';
         ctx.fillRect(x | 0, y | 0, 1, 1);
       }
+    }
+    if (WX.haze) { ctx.fillStyle = WX.haze; ctx.fillRect(0, 0, W, H); }
+    if (WX.fog) {   // faixas de névoa que passam devagar
+      for (let i = 0; i < 6; i++) { const yy = ((i * 47 + t * (0.12 + i * 0.03) - cy * 0.3) % (H + 60) + H + 60) % (H + 60) - 30; ctx.fillStyle = WX.fog; ctx.fillRect(0, yy | 0, W, 10 + (i % 3) * 6); }
     }
     // brasas subindo das fendas
     if (L.pits.length) {

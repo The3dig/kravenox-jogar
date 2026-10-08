@@ -161,6 +161,7 @@
       case 'crack': noise(d, t, 0.18, 0.5, 2500); tone(d, 900, t, 0.08, 'square', 0.08, { slide: 300 }); break;
       case 'save': [784, 988, 1175, 1568].forEach((f, i) => tone(d, f, t + i * 0.09, 0.3, 'triangle', 0.13)); break;
       case 'die': tone(d, 300, t, 0.5, 'sawtooth', 0.2, { slide: 50 }); break;
+      case 'thunder': noise(d, t, 2.4, 0.35, 40); tone(d, 48, t, 2.2, 'sine', 0.25, { slide: 30, attack: 0.15, release: 1.8 }); noise(d, t + 0.4, 1.6, 0.2, 80); break;
       case 'boom': noise(d, t, 0.8, 0.7, 60); tone(d, 70, t, 0.8, 'sine', 0.4, { slide: 30 }); break;
     }
   };

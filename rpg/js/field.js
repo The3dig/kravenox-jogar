@@ -128,6 +128,7 @@
       ctx.fillStyle = 'rgba(120,20,20,0.08)'; ctx.fillRect(0, 0, G.W, G.H);
       if (here === 'f' || here === '2' || here === '3') { ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(0, 0, G.W, G.H); }
     }
+    if (L) Wd.lightning(ctx, this);
     vignette(ctx);
     if (G.debug.showPos) G.text(ctx, this.px + ',' + this.py, 4, 4, '#fff', 7);
   };
