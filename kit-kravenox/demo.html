@@ -1,0 +1,31 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kravenox andando</title>
+<style>body{margin:0;background:#1b1f14;color:#ddd;font:14px sans-serif;text-align:center}canvas{image-rendering:pixelated;width:100%;max-width:640px;background:#3d5a2a;touch-action:none}</style></head>
+<body><canvas id="c" width="640" height="420"></canvas>
+<p>Setas/WASD ou toque e arraste para andar. Sem tocar, ele segue a rota sozinho (como no GPS).</p>
+<script src="kravenox.js"></script><script>
+const c = document.getElementById('c'), ctx = c.getContext('2d'), k = new Kravenox('img/'), keys = {};
+let x = 320, y = 220, touch = null, last = performance.now(), idle = 0;
+const route = [[120, 120], [520, 120], [520, 340], [120, 340]]; let ri = 0;
+onkeydown = e => { keys[e.key] = 1; idle = 0; }; onkeyup = e => { keys[e.key] = 0; };
+c.onpointerdown = c.onpointermove = e => { if (e.buttons || e.type === 'pointerdown') { const r = c.getBoundingClientRect(); touch = [(e.clientX - r.left) * c.width / r.width, (e.clientY - r.top) * c.height / r.height]; idle = 0; } };
+c.onpointerup = () => touch = null;
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; idle += dt;
+  let dx = (keys.ArrowRight || keys.d ? 1 : 0) - (keys.ArrowLeft || keys.a ? 1 : 0), dy = (keys.ArrowDown || keys.s ? 1 : 0) - (keys.ArrowUp || keys.w ? 1 : 0);
+  if (touch) { dx = touch[0] - x; dy = touch[1] - y; if (Math.hypot(dx, dy) < 4) dx = dy = 0; }
+  if (!dx && !dy && idle > 2) { const [tx, ty] = route[ri]; dx = tx - x; dy = ty - y; if (Math.hypot(dx, dy) < 3) ri = (ri + 1) % route.length; }
+  const moving = !!(dx || dy);
+  if (moving) {
+    const L = Math.hypot(dx, dy), sp = 60 * 3;   // 1 px/quadro do jogo × escala 3
+    x += dx / L * sp * dt; y += dy / L * sp * dt;
+    const heading = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+    k.update(dt, true, Kravenox.dirFromHeading(heading));
+  } else k.update(dt, false);
+  ctx.fillStyle = '#3d5a2a'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.strokeStyle = '#6b5a3a'; ctx.lineWidth = 18; ctx.beginPath(); route.forEach(([a, b], i) => i ? ctx.lineTo(a, b) : ctx.moveTo(a, b)); ctx.closePath(); ctx.stroke();
+  k.draw(ctx, x, y, 3);
+  requestAnimationFrame(loop);
+}
+k.load().then(() => requestAnimationFrame(loop));
+</script></body></html>
