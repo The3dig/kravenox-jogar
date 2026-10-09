@@ -26,7 +26,9 @@
   }
   const party = () => G.state.party;
   // posições dos heróis no campo, em diagonal (estilo Super Mario RPG)
-  const HOME = [[240, 150], [208, 165], [274, 134]];
+  const HOME3 = [[240, 150], [208, 165], [274, 134]];
+  const HOME4 = [[232, 154], [204, 168], [262, 140], [292, 126]];   // com Seraphyne, o grupo se aperta na diagonal
+  let HOME = HOME3;
   const hs = i => (B.hs[i] || (B.hs[i] = { ox: 0, oy: 0, flash: 0, shake: 0, kb: 0, walk: false, cast: null, jump: 0 }));
   function heroAt(h) { const i = party().indexOf(h), [x, y] = HOME[i] || HOME[0], s = hs(i); return { x: x + s.ox + s.kb, y: y + s.oy, i }; }
   async function moveHero(i, tx, ty, frames) {
@@ -384,7 +386,8 @@
   G.battle = async function (ids, opt = {}) {
     const prev = G.scene;
     B.opt = opt; B.enemies = ids.map((id, i) => mkEnemy(id, i, ids.length)); layout();
-    B.fxs = []; B.msg = null; B.bg = opt.bg || 'planicie'; B.slotFlash = [0, 0, 0]; B.turnHero = -1; B.hs = []; B.victory = false;
+    HOME = party().length > 3 ? HOME4 : HOME3; B.noRegen = false;
+    B.fxs = []; B.msg = null; B.bg = opt.bg || 'planicie'; B.slotFlash = [0, 0, 0, 0]; B.turnHero = -1; B.hs = []; B.victory = false;
     for (const h of party()) { h.status = {}; h.lunge = 0; }
     const music = opt.music || (B.enemies.some(e => e.boss) ? 'chefe' : 'batalha');
     G.Audio.sfx('enc');
@@ -437,6 +440,9 @@
       }
       // fim da rodada
       for (const h of hs) { if (h.status.shield) h.status.shield--; if (h.status.fury) { h.status.fury--; } }
+      if (!result && !B.noRegen) for (const e of alive(B.enemies)) if (e.regen && e.hp < e.maxhp) {   // pensamentos do Primeiro: o corpo se refaz
+        const v = Math.round(e.maxhp * e.regen); e.hp = Math.min(e.maxhp, e.hp + v); numFx(e.x, e.by - e.h * 0.6, '+' + v, '#9aff8a'); G.Audio.sfx('heal'); await G.wait(10);
+      }
       if (!result) { const evr = await checkEvents(); if (evr) result = evr; }
     }
     B.turnHero = -1;
@@ -525,7 +531,7 @@
     for (const f of (B.fxs || [])) f.t++;
     if (B.fxs) B.fxs = B.fxs.filter(f => f.t < f.life);
     for (const e of (B.enemies || [])) { if (e.flash) e.flash--; if (e.shake) e.shake--; if (e.lunge) e.lunge--; if (e.dying && e.dying < 40) e.dying++; }
-    for (let i = 0; i < 3; i++) if (B.slotFlash[i]) B.slotFlash[i]--;
+    for (let i = 0; i < 4; i++) if (B.slotFlash[i]) B.slotFlash[i]--;
     for (const st of (B.hs || [])) { if (!st) continue; if (st.flash) st.flash--; if (st.kb) st.kb *= 0.8; if (Math.abs(st.kb) < 0.3) st.kb = 0; if (st.jump) st.jump--; }
   };
   // Moldura do quadro de batalha, com espinhos nos cantos
@@ -595,9 +601,10 @@
       let im, sc = 1;
       if (h.id === 'kravenox') {
         if (h.status.fury && h.alive && X.imgs.k_furia) { im = X.imgs.k_furia; sc = 0.85; }
+        else if (G.state.flags.desperto && h.alive && X.imgs.k_desperto) { im = X.imgs.k_desperto; sc = 0.62; }
         else im = X.sprite(G.state.flags.prata ? 'kravenoxP' : 'kravenox', 'left', s.walk ? 1 : 0, s.walk ? ((G.time >> 2) & 3) : 0);
       } else if (h.id === 'thornox') { if (s.cast && h.alive && X.imgs.t_furia) { im = X.imgs.t_furia; sc = 0.85; } else im = X.sprite('thornox', 'left', s.walk ? 1 : 0, s.walk ? ((G.time >> 2) & 3) : 0); }
-      else { im = X.sprite('lyra', 'left', s.walk ? (G.time >> 3) & 1 : 0); }
+      else { im = X.sprite(D.HEROES[h.id].sprite, 'left', s.walk ? (G.time >> 3) & 1 : 0); }
       if (!im) return;
       const w = Math.round(im.width * sc), hh = Math.round(im.height * sc);
       const bob = h.alive && !s.walk ? Math.round(Math.sin(G.time / 14 + i * 2) * 0.8) : 0;
@@ -606,6 +613,7 @@
       ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(x, y, w * 0.38, 3, 0, 0, 7); ctx.fill();
       if (s.cast) X.glow(ctx, x, y - hh / 2, 28, s.cast, 0.55 + 0.3 * Math.sin(G.time / 4));
       if (h.status.fury && h.alive) X.glow(ctx, x, y - hh / 2, 30, 'rgba(255,30,10,0.9)', 0.3 + 0.2 * Math.sin(G.time / 5));
+      if (h.id === 'kravenox' && G.state.flags.desperto && h.alive) X.glow(ctx, x, y - hh / 2, 40, 'rgba(200,225,255,0.9)', 0.3 + 0.15 * Math.sin(G.time / 7));
       const dx = Math.round(x - w / 2), dy = Math.round(y - hh - jump - vj + bob + (h.alive ? 0 : 6));
       if (!h.alive) ctx.globalAlpha = 0.35;
       ctx.drawImage(im, dx, dy, w, hh);
@@ -618,7 +626,7 @@
     });
   }
   function drawParty(ctx) {
-    const p = party(), n = 3, gap = 4, w = Math.floor((G.W - 12 - gap * (n - 1)) / n), y0 = PW_Y - 2, h = G.H - y0 - 4;
+    const p = party(), n = Math.max(3, p.length), gap = n > 3 ? 3 : 4, w = Math.floor((G.W - 12 - gap * (n - 1)) / n), y0 = PW_Y - 2, h = G.H - y0 - 4, four = n > 3;
     p.forEach((h0, i) => {
       const hero = h0, x0 = 6 + i * (w + gap);
       const on = B.turnHero === i;
@@ -627,17 +635,20 @@
       // retrato do herói (sprite do mapa)
       const furious = hero.status.fury && hero.alive && X.imgs.k_furia;
       if (furious) { X.glow(ctx, x0 + 19, y0 + h / 2, 30, 'rgba(255,30,10,0.9)', 0.35 + 0.2 * Math.sin(G.time / 6)); }
-      const spr = furious ? X.imgs.k_furia : X.sprite(hero.id === 'kravenox' && G.state.flags.prata ? 'kravenoxP' : G.data.HEROES[hero.id].sprite, 'down', on && ((G.time >> 4) & 1) ? 1 : 0);
-      const sc = Math.min(1, (furious ? 40 : 26) / spr.height);
-      ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(x0 + 5, y0 + 5, 28, h - 10);
+      const desp = hero.id === 'kravenox' && G.state.flags.desperto && X.imgs.k_desperto;
+      const spr = furious ? X.imgs.k_furia : desp ? X.imgs.k_desperto : X.sprite(hero.id === 'kravenox' && G.state.flags.prata ? 'kravenoxP' : G.data.HEROES[hero.id].sprite, 'down', on && ((G.time >> 4) & 1) ? 1 : 0);
+      const pw = four ? 22 : 28, pcx = x0 + 5 + pw / 2;
+      const sc = Math.min(1, (furious ? 40 : desp ? 30 : four ? 22 : 26) / spr.height);
+      ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(x0 + 5, y0 + 5, pw, h - 10);
       if (!hero.alive) ctx.globalAlpha = 0.35;
-      ctx.drawImage(spr, Math.round(x0 + 19 - spr.width * sc / 2), Math.round(y0 + h - 7 - spr.height * sc), Math.round(spr.width * sc), Math.round(spr.height * sc));
+      ctx.drawImage(spr, Math.round(pcx - spr.width * sc / 2), Math.round(y0 + h - 7 - spr.height * sc), Math.round(spr.width * sc), Math.round(spr.height * sc));
       ctx.globalAlpha = 1;
-      const tx = x0 + 37, bw = w - 43;
+      const tx = x0 + pw + 9, bw = w - pw - 15;
       const nameCol = !hero.alive ? '#8a4a4a' : hero.hp < hero.maxhp * 0.25 ? '#ff9a6a' : '#ffcf6a';
-      G.text(ctx, hero.name, tx, y0 + 4, nameCol, 8, 'left', true);
+      G.text(ctx, hero.name, tx, y0 + 4, nameCol, four ? 7 : 8, 'left', true);
       let st = ''; if (!hero.alive) st = 'Caído'; else if (hero.status.sleep) st = 'Lembr.'; else if (hero.status.guard) st = 'Defesa'; else if (hero.status.shield) st = 'Barreira'; else if (hero.status.fury) st = 'Fúria';
-      G.text(ctx, st || 'Nv' + hero.lv, x0 + w - 6, y0 + 5, st ? '#e0c060' : '#a89a8a', 6.5, 'right');
+      if (!four) G.text(ctx, st || 'Nv' + hero.lv, x0 + w - 6, y0 + 5, st ? '#e0c060' : '#a89a8a', 6.5, 'right');
+      else if (st && hero.alive) { ctx.fillStyle = hero.status.sleep ? '#c8a8ff' : hero.status.fury ? '#ff6a5a' : '#ffe08a'; ctx.fillRect(x0 + w - 8, y0 + 5, 3, 3); }
       G.text(ctx, 'HP', tx, y0 + 16, '#a89a8a', 6.5); G.text(ctx, hero.hp + '', x0 + w - 6, y0 + 15, '#efe3cf', 8, 'right');
       bar(ctx, tx, y0 + 25, bw, hero.hp / hero.maxhp, '#d84a3a', '#3a1214');
       G.text(ctx, 'EP', tx, y0 + 31, '#a89a8a', 6.5); G.text(ctx, hero.ep + '', x0 + w - 6, y0 + 30, '#c8d4f0', 8, 'right');

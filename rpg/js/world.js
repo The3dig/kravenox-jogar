@@ -83,6 +83,32 @@
     },
   };
 
+  // Parte 2: temas novos herdam o desenho de um tema-base, com outras cores
+  TH.guerra = Object.assign({}, TH.reino, {
+    base: 'reino',
+    ground: ramp(['#1e1a20', '#262128', '#2e2830', '#373039', '#403843']),
+    grass: ramp(['#2a2820', '#333026', '#3e3a2e', '#4a4536', '#57513f']),
+    leaves: ramp(['#2a1418', '#3a1a20', '#4a2228', '#2a1a34', '#3a2a20']),
+    road: ramp(['#2a2018', '#33281e', '#3e3126', '#4a3a2e', '#56443a']),
+  });
+  TH.valdora = Object.assign({}, TH.vila, {
+    base: 'vila',
+    ground: ramp(['#2a2224', '#33292b', '#3d3133', '#473a3b', '#524445']),
+    stone: ramp(['#3a3236', '#443a3e', '#4e4448', '#5a4e52', '#665a5e', '#72666a']),
+    road: ramp(['#3a2a26', '#45322d', '#513c36', '#5e4740']),
+    ash: true,
+  });
+  TH.ceus = Object.assign({}, TH.vale, {
+    base: 'vale',
+    ground: ramp(['#3a3842', '#45424e', '#504c5a', '#5c5866', '#686472']),
+    grass: ramp(['#4a4856', '#565464', '#626072', '#6e6c80']),
+    rock: ramp(['#2a2834', '#363442', '#444252', '#545262', '#666474', '#7a788a', '#9290a2', '#aaa8ba']),
+    pitWall: ramp(['#8a96aa', '#a2acbe', '#bac2d2', '#d0d6e2']),
+    pitDeep: ramp(['#b8c4d6', '#c8d2e2', '#d6deea', '#e2e8f2', '#eef2f8', '#ffffff']),
+    rim: rgb('#e8ecf4'), vein: rgb('#9aa8c0'),
+    pit: 'rio', mist: true,
+  });
+
   function material(c, theme) {
     if (c === '^' || c === 'A') return 'mtn';
     if (c === '~' || c === 'B') return 'pit';
@@ -104,7 +130,7 @@
   };
 
   function build(F, sig) {
-    const m = F.map, th = TH[m.theme] || TH.reino, theme = m.theme;
+    const m = F.map, th = TH[m.theme] || TH.reino, theme = th.base || m.theme;
     const cols = m.tiles[0].length, rows = m.tiles.length, w = cols * T, h = rows * T;
     const tl = (x, y) => sig[clamp(y, 0, rows - 1) * cols + clamp(x, 0, cols - 1)];
     const seed = theme.length * 31 + cols;
@@ -318,7 +344,7 @@
     }
     // casas da vila
     const pits = [];
-    if (house) houses(g, tl, cols, rows, lights);
+    if (house) houses(g, tl, cols, rows, lights, m.theme === 'valdora');
     if (pit) {
       for (let ty = 0; ty < rows; ty++) for (let tx = 0; tx < cols; tx++) if (tl(tx, ty) === '~' && h2(tx, ty, 61) < 0.12) pits.push({ x: tx * T + 8, y: ty * T + 10 });
     }
@@ -372,7 +398,7 @@
     g.fillStyle = '#2a3038'; g.beginPath(); g.ellipse(x + 8, y + 8, 5, 3, 0, 0, 7); g.fill();
     for (let a = 0; a < 6.28; a += 1.05) { const sx = x + 8 + Math.cos(a) * 8 | 0, sy = y + 8 + Math.sin(a) * 5 | 0; g.fillStyle = '#7a8290'; g.fillRect(sx - 1, sy - 4, 2, 4); g.fillStyle = '#4a5260'; g.fillRect(sx, sy - 4, 1, 4); }
   }
-  function houses(g, tl, cols, rows, lights) {
+  function houses(g, tl, cols, rows, lights, burnt) {
     const seen = new Set();
     const isH = (x, y) => 'ohdD'.includes(tl(x, y)) && x >= 0 && y >= 0 && x < cols && y < rows;
     for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
@@ -396,9 +422,9 @@
           if (c === 'd') { g.fillStyle = '#2a1a10'; g.fillRect(dx + 8, WY + 4, 1, 12); g.fillStyle = '#c9a24a'; g.fillRect(dx + 10, WY + 10, 1, 1); }
           else lights.push({ x: dx + 8, y: WY + 10, r: 30, col: 'rgba(255,210,110,0.45)', fl: 0.6 });
         } else if (h2(xx, wallY, 81) < 0.7) {
-          const lit = h2(xx, wallY, 82) < 0.35;
+          const lit = h2(xx, wallY, 82) < (burnt ? 0.6 : 0.35);
           g.fillStyle = '#1a120c'; g.fillRect(dx + 4, WY + 4, 8, 7);
-          g.fillStyle = lit ? '#e8b050' : '#0a0808'; g.fillRect(dx + 5, WY + 5, 6, 5);
+          g.fillStyle = lit ? (burnt ? '#ff7a2a' : '#e8b050') : '#0a0808'; g.fillRect(dx + 5, WY + 5, 6, 5);
           g.fillStyle = '#1a120c'; g.fillRect(dx + 7, WY + 5, 1, 5); g.fillRect(dx + 5, WY + 7, 6, 1);
           g.fillStyle = '#3a2a1e'; g.fillRect(dx + 3, WY + 11, 10, 1);
           if (lit) lights.push({ x: dx + 8, y: WY + 8, r: 16, col: 'rgba(255,190,90,0.3)', fl: 0.5 });
@@ -417,11 +443,12 @@
           if (bottom) col = back ? '#2a1016' : '#401a22';
           else if (seam) col = back ? '#2e1218' : '#4a1e28';
           else if (!back && (yy - RY0) % 3 === 0) col = '#6e3038';
-          if (h2(xx, yy, 83) < 0.03) col = '#2a2a2a'; // telha faltando
+          if (burnt) { col = bottom ? '#140c0c' : back ? '#22181a' : seam ? '#1a1214' : (yy - RY0) % 3 === 0 ? '#3a2a28' : '#2c2022'; if (h2(xx >> 1, yy >> 1, 85) < 0.13) col = '#070404'; else if (h2(xx, yy, 86) < 0.02) col = '#ff6a20'; }   // telhado queimado
+          else if (h2(xx, yy, 83) < 0.03) col = '#2a2a2a'; // telha faltando
           g.fillStyle = col; g.fillRect(xx, yy, 1, 1);
         }
       }
-      g.fillStyle = '#8a4048'; g.fillRect(X0 - 2, ridge, X1 - X0 + 4, 1);
+      g.fillStyle = burnt ? '#3a2422' : '#8a4048'; g.fillRect(X0 - 2, ridge, X1 - X0 + 4, 1);
       g.fillStyle = '#1a0a0e'; g.fillRect(X0 - 2, RY1, X1 - X0 + 4, 2); // beiral
       g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(X0, RY1 + 2, X1 - X0, 3);
       // chaminé
@@ -628,6 +655,9 @@
     } else if (id === 'vale') {
       w.fog = y <= 12 ? 'rgba(220,230,245,0.1)' : 'rgba(210,220,235,0.05)';
     } else if (id === 'vila') { w.ash = 0.6; }
+    else if (id === 'guerra') { w.ash = 1.8; w.fog = 'rgba(8,6,10,0.12)'; w.haze = 'rgba(0,0,0,0.14)'; w.storm = x >= 20; }   // névoa negra; trovões perto de Valdora
+    else if (id === 'valdora') { w.ash = 3.2; w.haze = 'rgba(160,40,10,0.13)'; }                                         // a cidade em chamas
+    else if (id === 'ceus') { w.ash = 0; w.fog = 'rgba(255,255,255,0.14)'; w.haze = 'rgba(200,215,240,0.08)'; }
     return w;
   };
   // relâmpago no céu vermelho (clarão duplo e trovão abafado)

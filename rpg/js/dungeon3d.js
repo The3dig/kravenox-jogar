@@ -12,8 +12,13 @@
     templo: { stone: [116, 90, 60], stoneVar: 0.2, mortar: [40, 28, 16], floor: [84, 66, 44], ceil: [54, 40, 26], acc: [235, 200, 100], kind: 'raizes', light: [255, 200, 130] },
     caverna: { stone: [64, 46, 92], stoneVar: 0.25, mortar: [16, 10, 26], floor: [42, 32, 58], ceil: [26, 18, 38], acc: [190, 120, 255], kind: 'cristais', light: [210, 170, 255] },
     submersa: { stone: [44, 84, 92], stoneVar: 0.2, mortar: [8, 24, 28], floor: [30, 58, 64], ceil: [14, 34, 40], acc: [110, 240, 224], kind: 'algas', light: [150, 240, 230] },
+    // Parte 2
+    escadaria: { stone: [104, 92, 78], stoneVar: 0.18, mortar: [30, 22, 16], floor: [76, 64, 52], ceil: [40, 30, 22], acc: [255, 196, 90], kind: 'veias', light: [255, 190, 120] },
+    passagem: { stone: [46, 44, 52], stoneVar: 0.16, mortar: [8, 8, 12], floor: [30, 28, 34], ceil: [12, 12, 16], acc: [235, 235, 255], kind: 'veias', light: [200, 205, 225] },
+    fortaleza: { stone: [40, 46, 62], stoneVar: 0.2, mortar: [10, 12, 20], floor: [30, 34, 46], ceil: [14, 16, 24], acc: [110, 180, 255], kind: 'cristais', light: [150, 190, 255] },
+    raizes: { stone: [150, 146, 136], stoneVar: 0.14, mortar: [60, 54, 44], floor: [64, 54, 40], ceil: [30, 26, 20], acc: [255, 236, 170], kind: 'raizes', light: [255, 240, 200] },
   };
-  const themeOf = id => ({ abismo: 'abismo', templo: 'templo', caverna: 'caverna', submersa: 'submersa' })[id] || 'abismo';
+  const themeOf = id => (THEMES[id] ? id : 'abismo');
   const rgba = (r, g, b) => (255 << 24) | (Math.max(0, Math.min(255, b | 0)) << 16) | (Math.max(0, Math.min(255, g | 0)) << 8) | Math.max(0, Math.min(255, r | 0));
   const mul = (c, f) => [c[0] * f, c[1] * f, c[2] * f];
 

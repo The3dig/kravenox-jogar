@@ -128,6 +128,8 @@
       ctx.fillStyle = 'rgba(120,20,20,0.08)'; ctx.fillRect(0, 0, G.W, G.H);
       if (here === 'f' || here === '2' || here === '3') { ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(0, 0, G.W, G.H); }
     }
+    if (m.theme === 'guerra') { ctx.fillStyle = 'rgba(30,10,20,0.1)'; ctx.fillRect(0, 0, G.W, G.H); }
+    if (m.theme === 'valdora') { ctx.fillStyle = `rgba(255,80,20,${0.06 + 0.03 * Math.sin(G.time / 9)})`; ctx.fillRect(0, 0, G.W, G.H); }
     if (L) Wd.lightning(ctx, this);
     vignette(ctx);
     if (G.debug.showPos) G.text(ctx, this.px + ',' + this.py, 4, 4, '#fff', 7);

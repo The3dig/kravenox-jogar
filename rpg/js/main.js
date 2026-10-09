@@ -120,11 +120,25 @@
     G.overlays.length = 0;
     const l = st.loc;
     G.fadeA = 1;
+    // quem terminou a Parte 1 continua direto na Parte 2
+    if (st.flags.fim && !st.flags.p2) { G.run(() => G.story.parte2()); return; }
     if (l.mode === 'dungeon') G.enterDungeon(l.map, l.x, l.y, l.dir); else G.enterField(l.map, l.x, l.y, l.dir);
     G.run(() => G.fade(0, 30));
   };
-  G.credits = async function () {
-    const lines = [
+  G.credits = async function (part = 1) {
+    const lines = part === 2 ? [
+      ['FIM DA PARTE 2', '#ffcf6a', 16],
+      ['Kravenox: O Reino Quebrado', '#e8d8c0', 11],
+      ['', '', 8],
+      ['Capítulos 14 a 25 de', '#a89a8a', 8],
+      ['"Reino Quebrado"', '#e8d8c0', 9],
+      ['', '', 8],
+      ['A história continua na Parte 3:', '#a89a8a', 8],
+      ['Além do Reino', '#c9a24a', 12],
+      ['A Primeira Cidade · O Rei dos Espinhos · O Rei do Vazio', '#8a7a8a', 8],
+      ['', '', 8],
+      ['"O Primeiro era apenas o guardião da porta."', '#c9bfd8', 8],
+    ] : [
       ['FIM DA PARTE 1', '#ffcf6a', 16],
       ['Kravenox: O Reino Quebrado', '#e8d8c0', 11],
       ['', '', 8],
@@ -133,7 +147,7 @@
       ['', '', 8],
       ['A história continua na Parte 2:', '#a89a8a', 8],
       ['O Reino em Guerra', '#c9a24a', 12],
-      ['Valdora · Seraphyne · A Primeira Cidade · O Rei do Vazio', '#8a7a8a', 8],
+      ['Valdora · Seraphyne · O Kravenox do Futuro · O Primeiro', '#8a7a8a', 8],
       ['', '', 8],
       ['"Algumas verdades serão reveladas.', '#c9bfd8', 8],
       ['Outras permanecerão escondidas até que seja tarde demais."', '#c9bfd8', 8],
@@ -144,11 +158,15 @@
       let y = 28;
       lines.forEach(([s, c, sz], i) => { ctx.globalAlpha = G.clamp((this.t - i * 14) / 30, 0, 1); if (s) G.text(ctx, s, G.W / 2, y, c, sz, 'center', i === 0); y += sz + 7; });
       ctx.globalAlpha = 1;
-      if (this.t > 200) G.text(ctx, 'A: voltar ao título', G.W / 2, G.H - 14, '#5a4a5a', 7, 'center');
+      if (this.t > 200) G.text(ctx, part === 1 ? 'A: continuar' : 'A: voltar ao título', G.W / 2, G.H - 14, '#5a4a5a', 7, 'center');
     } };
     G.fadeA = 0;
     await new Promise(r => { ov.done = r; G.push(ov); });
     if (G.gfx.imgs.desenho) await G.showImage(G.gfx.imgs.desenho, 'Kravenox nasceu de um desenho de escola, há 45 anos.');
+    if (part === 1) {
+      const i = await G.choose('A história continua. Começar a Parte 2 agora?', ['Começar a Parte 2', 'Voltar ao título']);
+      if (i === 0) { await G.story.parte2(); return; }
+    }
     G.titleScreen();
   };
 
