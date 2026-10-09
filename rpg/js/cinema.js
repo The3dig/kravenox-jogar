@@ -92,6 +92,8 @@
     },
   };
 
+  C.BGS = BGS; C.cache = cache;
+
   // ---------- desenho ----------
   C.draw = function (ctx) {
     const t = C.t;

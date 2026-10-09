@@ -57,6 +57,30 @@
 
 São **55 roteiros de cena** no total (diálogos, visões de memória, cenas de chefe, eventos de mapa).
 
+## 2b. História coberta (Parte 2 — O Reino em Guerra)
+
+Base: **Reino Quebrado (Livro I, versão de publicação)**, capítulos 14 a 25. Ao terminar a Parte 1, o jogo
+oferece começar a Parte 2 direto (e quem já tinha terminado a Parte 1 entra nela ao carregar o jogo).
+
+| Cap. | Título | Onde acontece | Destaques |
+|---|---|---|---|
+| 14 | O Reino em Guerra | O Reino em Guerra (campo novo) | Família de refugiados, acampamento com o Mascate; da colina, Valdora em chamas e **Seraphyne** no alto da torre (cena) |
+| 15 | A Cidade das Cinzas | Valdora / Escadaria sob Valdora | Estátua do pai; a porta das três mãos; ⭐ **encontro com o pai** acorrentado, metade cristal (cena longa) |
+| 16 | O Sangue da Essência | Escadaria | Olhos prateados; exército de Sentinelas; o **olho dourado no céu** (cena) |
+| 17 | O Gigante do Vazio | Valdora | Chuva de cristais negros e a **cúpula prateada** (cena) |
+| 18 | O que Existia Antes | A Última Passagem | A criatura de ossos; chefe: **Seraphyne**; ela entra no grupo |
+| 19 | O Coração do Primeiro | A Última Passagem | O homem que Kravenox seria (visão); chefe: **Coração do Primeiro**; marca dos quatro espinhos |
+| 20 | A Queda de Valdora | Valdora | As crianças no beco (Kravenox sozinho); a esfera negra e as **quatro forças** (cena); Valdora vira cratera |
+| 21 | A Sala da Fonte | Ponte dos Céus / Fortaleza | Servos do Primeiro; a ponte desaba; memórias nas paredes |
+| 22 | O Homem que Kravenox Seria | Fortaleza dos Guardiões | Chefe: **Kravenox do Futuro** (armadura negra, olhos brancos) — duelo solo |
+| 23 | As Ruínas do Passado | O Coração do Reino | ⭐ **a mãe dentro da árvore de cristal branco** (cena) |
+| 24 | O Último Caminho | O Coração do Reino | Porta que só o Vazio abre; Sentinelas Escolhidos que se regeneram |
+| 25 | A Última Batalha | A Fonte | Chefe final: **O Primeiro**, em fases; no meio da luta Kravenox desperta a **Forma Desperta** (armadura prateada); o céu fica azul; "Agora começa a Era" |
+
+Novidades da Parte 2: **Seraphyne** jogável (grupo de 4), 8 músicas novas, 3 campos e 4 masmorras novas,
+18 inimigos e 5 chefes novos, técnicas novas (Cúpula Prateada, Quatro Espinhos, Quarta Essência, Onda de Luz,
+Muralha de Luz, Mil Memórias e as da Seraphyne), inimigos que se regeneram e duelo solo.
+
 ---
 
 ## 3. Como se joga
@@ -249,10 +273,10 @@ raízes, partículas e legendas.
 ---
 
 ## 11. Planos já combinados
-- **Parte 2** (capítulos 14 em diante) quando o livro completo chegar:
-  - **encontro com o pai** como cena cinematográfica forte (caps. 15 e 28–29);
-  - **Kravenox evoluído de armadura** perto do final;
-  - mais cinematográficas a cada momento marcante.
+- ✅ **Parte 2** (capítulos 14–25) pronta, com o encontro com o pai e o Kravenox de armadura.
+- **Parte 3** (capítulos 26–35, fecha o Livro I): Além do Reino — A Primeira Cidade, o pai na torre,
+  o Rei dos Espinhos, o Rei do Vazio, a Nova Essência.
+- **Livro II — O Reino da Escolha** depois, como jogo seguinte.
 - **Mundo expandido:** existe uma planilha do autor com o universo do jogo, com a ideia de mundo aberto e
   masmorras opcionais, possivelmente em **Godot**.
 - **Filme medieval de ~2h30** ao final de tudo, para publicar em plataforma de vídeo.

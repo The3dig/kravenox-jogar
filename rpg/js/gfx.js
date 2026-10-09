@@ -314,8 +314,10 @@
     const names = ['titulo', 'k_portrait', 'kp_portrait', 't_portrait', 'desenho', 'k_furia', 't_furia', 'fx_garra1', 'fx_garra2', 'fx_orbe', 'fx_raio', 'fx_explosao', 'fx_espinhos', 'fx_espinhos2', 'e_sentinela', 'e_sentinela1', 'cratera', 'k_futuro', 'thornox_fig'];
     for (const p of ['k', 't']) for (const d of ['left', 'right']) for (let i = 0; i < 4; i++) names.push(p + '_' + d + '_w' + i);
     for (const n of ['afogado', 'coisa', 'cristalizado', 'eco', 'ecoGrande', 'fragmento', 'lembranca', 'maoNevoa', 'raizPetra', 'raizRast', 'raizVazio', 'sentinelaN', 'sombra', 'voz']) names.push('e_' + n);
-    for (const n of ['lyra', 'ancia', 'mascate', 'espirito', 'lira', 'lira2']) for (const d of ['down', 'up', 'left', 'right']) for (const f of [0, 1]) names.push('s_' + n + '_' + d + '_' + f);
-    for (const n of ['lyra', 'lira', 'lira2', 'ancia', 'guardiao', 'guardiao2', 'sentinela', 'semrosto', 'mascate', 'espirito', 'figura', 'arauto', 'mae', 'primeira', 'guerreiro']) names.push('p_' + n);
+    for (const n of ['lyra', 'ancia', 'mascate', 'espirito', 'lira', 'lira2', 'seraphyne', 'refugiado', 'refugiada', 'menino']) for (const d of ['down', 'up', 'left', 'right']) for (const f of [0, 1]) names.push('s_' + n + '_' + d + '_' + f);
+    for (const n of ['lyra', 'lira', 'lira2', 'ancia', 'guardiao', 'guardiao2', 'sentinela', 'semrosto', 'mascate', 'espirito', 'figura', 'arauto', 'mae', 'primeira', 'guerreiro', 'pai', 'seraphyne', 'kfuturo', 'oprimeiro']) names.push('p_' + n);
+    for (const n of ['sentinelaG', 'cinzento', 'raizGuerra', 'sentinelaV', 'sombraRua', 'cristalVazio', 'guardaAntigo', 'simbolo', 'ossoNegro', 'respiracao', 'raizAntiga', 'servo', 'guardiaoAzul', 'olhoBranco', 'escolhido', 'raizMorta', 'luzApagada', 'seraphyne', 'coracao', 'kfuturo', 'primeiro']) names.push('e_' + n);
+    names.push('k_desperto');
     for (const p of ['k', 'kp', 't']) for (const d of ['down', 'up', 'left', 'right']) for (const f of [0, 1]) names.push(p + '_' + d + '_' + f);
     return Promise.all(names.map(n => new Promise(res => { const im = new Image(); im.onload = () => { X.imgs[n] = im; res(); }; im.onerror = () => res(); im.src = 'img/' + n + '.png?v=' + (window.KRAVENOX_V || ''); })));
   };
@@ -484,7 +486,8 @@
   // retratos desenhados (img/p_*.png): fundo em degradê e brilho, como nos irmãos
   const PBG = { lyra: ['#2a2a3a', '#c8d8ff'], lira: ['#10202a', '#6af0e0'], lira2: ['#4a3a10', '#ffe080'], ancia: ['#2a2010', '#ffd890'], guardiao: ['#2a2a30', '#ffffff'],
     guardiao2: ['#2a2a30', '#c0d8ff'], sentinela: ['#1a0a2a', '#b26bff'], semrosto: ['#1a0a2a', '#b26bff'], mascate: ['#2a1a0a', '#ffcf6a'], espirito: ['#0a1a2a', '#bfe4ff'],
-    figura: ['#1a1a2a', '#c0c8ff'], arauto: ['#2a0a1a', '#ff3a5a'], mae: ['#3a3020', '#fff0c0'], primeira: ['#1a0408', '#a01030'], guerreiro: ['#1a1030', '#c8a8ff'] };
+    figura: ['#1a1a2a', '#c0c8ff'], arauto: ['#2a0a1a', '#ff3a5a'], mae: ['#3a3020', '#fff0c0'], primeira: ['#1a0408', '#a01030'], guerreiro: ['#1a1030', '#c8a8ff'],
+    pai: ['#2a2410', '#ffd060'], seraphyne: ['#140a24', '#9a60ff'], kfuturo: ['#0a0a10', '#ffffff'], oprimeiro: ['#1a1004', '#ffb020'] };
   for (const k of Object.keys(PBG)) {
     const base = P[k];
     P[k] = function (ctx, x, y, t) {
@@ -502,7 +505,8 @@
     const map = { 'Kravenox': G.state && G.state.flags.prata ? 'kravenoxP' : 'kravenox', 'Thornox': 'thornox', 'Lyra': 'lyra', 'Lira': G.state && G.state.flags.liraDourada ? 'lira2' : 'lira',
       'Mulher das Raízes': 'ancia', 'Guardião Branco': G.state && G.state.flags.semMascara ? 'guardiao2' : 'guardiao', 'Sentinela': 'sentinela', 'Sentinela sem Rosto': 'semrosto',
       'Mascate de Cinzas': 'mascate', 'Espírito do Santuário': 'espirito', 'Arauto': 'arauto', 'A Mãe': 'mae', '???': 'primeira', 'A Primeira Consciência': 'primeira',
-      'Figura Encapuzada': 'figura', 'Guerreiro Cristalizado': 'guerreiro', 'O Velho': 'guardiao2' };
+      'Figura Encapuzada': 'figura', 'Guerreiro Cristalizado': 'guerreiro', 'O Velho': 'guardiao2',
+      'O Pai': 'pai', 'Seraphyne': 'seraphyne', 'Kravenox do Futuro': 'kfuturo', 'O Primeiro': 'oprimeiro', 'Mulher de Armadura Negra': 'seraphyne' };
     const k = map[name];
     return k ? P[k] : null;
   };
@@ -519,6 +523,13 @@
     ponte: { sky: ['#05070a', '#1a2030'], ground: ['#8f897c', '#2a2620'], deco: 'void', acc: '#f0f0ff' },
     submersa: { sky: ['#02080e', '#08283a'], ground: ['#0a2030', '#020a10'], deco: 'towers', acc: '#6af0e0' },
     fonte: { sky: ['#000000', '#1a1408'], ground: ['#14100a', '#000'], deco: 'tree', acc: '#ffe08a' },
+    guerra: { sky: ['#08060a', '#3a1a1a'], ground: ['#2a2428', '#100c10'], deco: 'smoke', acc: '#ff5a2a' },
+    valdora: { sky: ['#1a0604', '#7a2a10'], ground: ['#3a3236', '#161214'], deco: 'burning', acc: '#ff8a3a' },
+    escadaria: { sky: ['#140e08', '#2e2214'], ground: ['#3a2e20', '#120c08'], deco: 'roots', acc: '#ffc45a' },
+    passagem: { sky: ['#000000', '#0e0e14'], ground: ['#1a1a20', '#050508'], deco: 'stalac', acc: '#ffffff' },
+    ceus: { sky: ['#5a6a8a', '#c8d0e0'], ground: ['#4a4650', '#2a2830'], deco: 'clouds', acc: '#ffffff' },
+    fortaleza: { sky: ['#04060c', '#101a30'], ground: ['#1a2030', '#080a10'], deco: 'crystalwall', acc: '#78c8ff' },
+    raizes: { sky: ['#0a0804', '#2a2414'], ground: ['#3a3020', '#100c06'], deco: 'roots', acc: '#fff0b0' },
   };
   X.drawBG = function (ctx, name, t, h = 150) {
     const B = X.BG[name] || X.BG.planicie;
@@ -549,6 +560,14 @@
           g.fillStyle = 'rgba(200,220,255,0.08)'; for (let i = 0; i < 6; i++) g.fillRect(0, r() * hz, G.W, 3); break;
         case 'towers': for (let i = 0; i < 9; i++) { const x = r() * G.W, y = 10 + r() * (hz - 20), w = 8 + r() * 14, hh = 20 + r() * 40; g.fillStyle = i < 4 ? '#06141e' : '#0a2232'; g.fillRect(x, y, w, hh); g.beginPath(); g.moveTo(x, y); g.lineTo(x + w / 2, y - 8); g.lineTo(x + w, y); g.fill(); g.fillStyle = 'rgba(106,240,224,0.4)'; g.fillRect(x + w / 2, y + 6, 1, 3); }
           g.fillStyle = 'rgba(106,240,224,0.15)'; for (let i = 0; i < 40; i++) g.fillRect(r() * G.W, r() * h, 1, 1); break;
+        case 'smoke': g.fillStyle = '#120c10'; g.beginPath(); g.moveTo(0, hz); for (let x = 0; x <= G.W; x += 16) g.lineTo(x, hz - 8 - r() * 22); g.lineTo(G.W, hz); g.fill();
+          for (let i = 0; i < 7; i++) { const x = 20 + r() * (G.W - 40); for (let k = 0; k < 14; k++) { g.fillStyle = `rgba(${40 + k * 3},${30 + k * 2},${34 + k * 2},${0.5 - k * 0.03})`; g.beginPath(); g.ellipse(x + Math.sin(k * 0.7 + i) * 6 + k * 1.5, hz - 20 - k * 6, 4 + k * 0.8, 3 + k * 0.5, 0, 0, 7); g.fill(); } }
+          g.fillStyle = 'rgba(255,90,40,0.5)'; for (let i = 0; i < 20; i++) g.fillRect(r() * G.W, hz - 4 + r() * 6, 1, 1); break;
+        case 'burning': for (let i = 0; i < 7; i++) { const x = i * 48 + r() * 16, hh = 26 + r() * 22; g.fillStyle = '#140a0a'; g.fillRect(x, hz - hh, 30, hh); for (let k = 0; k < 4; k++) g.fillRect(x + r() * 26, hz - hh - 4 - r() * 6, 3, 6);
+            g.fillStyle = '#ff7a2a'; for (let k = 0; k < 3; k++) { const fx = x + 4 + r() * 22, fy = hz - hh + r() * hh * 0.6; g.beginPath(); g.moveTo(fx - 3, fy + 4); g.lineTo(fx, fy - 6 - r() * 4); g.lineTo(fx + 3, fy + 4); g.fill(); } }
+          g.fillStyle = 'rgba(255,160,60,0.5)'; for (let i = 0; i < 40; i++) g.fillRect(r() * G.W, r() * hz, 1, 1); break;
+        case 'clouds': for (let i = 0; i < 30; i++) { const x = r() * G.W, y = hz - 30 + r() * 60, s = 10 + r() * 24; g.fillStyle = i % 3 ? 'rgba(255,255,255,0.55)' : 'rgba(200,210,230,0.6)'; g.beginPath(); g.ellipse(x, y, s, s * 0.45, 0, 0, 7); g.fill(); }
+          g.fillStyle = '#3a3640'; g.beginPath(); g.moveTo(120, h); g.lineTo(150, hz); g.lineTo(170, hz); g.lineTo(200, h); g.fill(); g.fillStyle = 'rgba(200,225,255,0.6)'; g.fillRect(159, hz, 2, h - hz); break;
         case 'tree': g.strokeStyle = '#2a2010'; for (let i = 0; i < 10; i++) { g.lineWidth = 2 + r() * 4; g.beginPath(); g.moveTo(G.W / 2, hz); g.bezierCurveTo(G.W / 2 + (r() - 0.5) * 200, hz + 20, r() * G.W, h - 10, r() * G.W, h); g.stroke(); }
           g.fillStyle = '#3a3018'; g.fillRect(G.W / 2 - 12, 0, 24, hz);
           g.fillStyle = 'rgba(255,224,138,0.5)'; for (let i = 0; i < 40; i++) { const x = r() * G.W, y = r() * hz * 0.7; g.fillRect(x, y, 2, 1); } break;
@@ -654,6 +673,13 @@
     floresta: { floor: [42, 36, 44], grass: [60, 40, 46] },
     vale: { floor: [62, 72, 84], grass: [84, 98, 108] },
     ponte: { floor: [128, 110, 88], plank: true },
+    guerra: { floor: [60, 52, 58], grass: [72, 62, 50] },
+    valdora: { floor: [78, 70, 72], cob: true },
+    ceus: { floor: [96, 92, 104], plank: true },
+    escadaria: { floor: [92, 78, 60], stone: [100, 86, 66], vein: [255, 196, 90], indoor: true },
+    passagem: { floor: [40, 38, 46], stone: [48, 46, 54], vein: [230, 230, 255], indoor: true },
+    fortaleza: { floor: [36, 42, 58], stone: [44, 50, 70], vein: [110, 180, 255], indoor: true },
+    raizes: { floor: [120, 112, 96], stone: [140, 134, 120], vein: [255, 236, 170], indoor: true },
   };
   X.drawArena = function (ctx, name, t, h) {
     const A = ARENA[name] || ARENA.planicie;

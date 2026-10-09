@@ -74,4 +74,67 @@
     ev: { l: 'encontraLyra', r: 'rioMemorias', d: 'portaTres', f: 'fonte' },
     chests: [{ item: 'nectar', n: 2 }, { equip: 'veu' }, { item: 'lagrima' }, { equip: 'espinhoAntigo' }],
   };
+
+  // ===================== PARTE 2 — O REINO EM GUERRA =====================
+  M.guerra = {
+    name: 'O Reino em Guerra', kind: 'field', tiles: G.MAPSTR.GUERRA, theme: 'guerra', music: 'guerra',
+    enc: { '.': 'guerra', ',': 'guerra', '=': 'guerra', 'f': 'guerra' }, defRate: 24, encRate: { '=': 36 },
+    bg: () => 'guerra',
+    sub(ch) { if ('123'.includes(ch)) return '='; return ch; },
+    step: { '1': 'refugiados', '2': 'conversaEstrada', '3': 'colinaValdora', 'V': 'entrarValdora', 'R': 'passagemFechada', 'S': 'santuario' },
+    look: { 'W': 'torreBandeira', '*': 'cristalNegro', '~': 'fendaGuerra', 'k': 'poco', 'c': 'fogueiraCampo' },
+    npcs: [
+      { id: 'mascate2', sprite: 'mascate', x: 5, y: 12, dir: 'right', talk: 'mascateGuerra', cond: () => F().refugiados },
+      { id: 'refugiada', sprite: 'refugiada', x: 10, y: 12, dir: 'down', talk: 'refugiada', cond: () => F().refugiados },
+      { id: 'menino', sprite: 'menino', x: 11, y: 14, dir: 'left', talk: 'menino', cond: () => F().refugiados },
+      { id: 'refugiado', sprite: 'refugiado', x: 33, y: 16, dir: 'up', talk: 'refugiado', cond: () => F().colina && !F().valdora },
+    ],
+  };
+  M.valdora = {
+    name: 'Valdora', kind: 'field', tiles: G.MAPSTR.VALDORA, theme: 'valdora', music: 'valdora',
+    enc: { '.': 'valdora', ',': 'valdora', 'p': 'valdora' }, defRate: 26,
+    bg: () => 'valdora',
+    sub(ch) { if (ch === '4') return 'p'; if (ch === '5') return '.'; if (ch === 'D') return F().cupula ? 'D' : 'd'; return ch; },
+    step: { '=': 'portaoValdora', 'D': 'entrarPassagem', '4': 'torrePonte', '5': 'becoCriancas' },
+    look: { 's': 'estatuaPai', 'd': 'casaQueimada', 'c': 'fogoValdora', 'W': 'torreCeus', 'k': 'poco' },
+    npcs: [],
+  };
+  M.ceus = {
+    name: 'Ponte dos Céus', kind: 'field', tiles: G.MAPSTR.CEUS, theme: 'ceus', music: 'ceus',
+    enc: { 'B': 'ceus', '.': 'ceus', ',': 'ceus' }, defRate: 20,
+    bg: () => 'ceus',
+    sub(ch) { if (ch === '5') return '.'; if (ch === '6') return 'B'; if (ch === 'Q') return '.'; return ch; },
+    step: { '5': 'batalhaServos', '6': 'fimDaPonte', 'S': 'santuario' },
+    look: { '~': 'olharNuvens' },
+    npcs: [
+      { id: 'mascate3', sprite: 'mascate', x: 3, y: 14, dir: 'right', talk: 'mascateCeus' },
+    ],
+  };
+  M.escadaria = {
+    name: 'Escadaria sob Valdora', kind: 'dungeon', grid: G.MAPSTR.ESCADARIA, music: 'antigo', bg: 'escadaria',
+    enc: () => 'escadaria', rate: 14,
+    ev: { d: 'portaTresMaos', e: 'salaDoPai' },
+    voices: { 1: 'Símbolos mais antigos que a Fonte. Alguns parecem olhos. Outros, sementes.' },
+    chests: [{ item: 'elixir' }, { equip: 'cotaValdora' }, { fr: 300 }],
+  };
+  M.passagem = {
+    name: 'A Última Passagem', kind: 'dungeon', grid: G.MAPSTR.PASSAGEM, music: 'antigo', bg: 'passagem',
+    enc: () => 'passagem', rate: 13, gate: 'passagemAberta',
+    ev: { l: 'simbolosAntigos', a: 'criaturaOlhos', r: 'confrontoSeraphyne', d: 'portaDoCoracao', e: 'coracaoPrimeiro' },
+    voices: { 1: '— Antes da Essência havia o silêncio.', 2: '— E antes do silêncio havia aquele que observava.' },
+    chests: [{ equip: 'laminaSilencio' }, { item: 'cristalM', n: 2 }, { item: 'elixir', n: 2 }],
+  };
+  M.fortaleza = {
+    name: 'Fortaleza dos Guardiões', kind: 'dungeon', grid: G.MAPSTR.FORTALEZA, music: 'fortaleza', bg: 'fortaleza',
+    enc: () => 'fortaleza', rate: 14,
+    ev: { l: 'memoriaParede', d: 'portaEntrem', e: 'tronoFuturo', U: 'descerRaizes' },
+    voices: { 1: 'Na pedra, uma imagem: Kravenox jovem, coberto de sombras, lutando contra Thornox. Thornox não tenta matá-lo. Tenta alcançá-lo.', 2: 'Na pedra, Lyra sozinha diante da Fonte. E alguém atrás dela.' },
+    chests: [{ equip: 'armaduraGuardiao' }, { item: 'elixir', n: 2 }, { equip: 'cajadoGuardiao' }, { item: 'cristalM', n: 2 }, { fr: 600 }],
+  };
+  M.raizes = {
+    name: 'O Coração do Reino', kind: 'dungeon', grid: G.MAPSTR.RAIZES, music: 'antigo', bg: 'raizes',
+    enc: () => 'raizes', rate: 14, gate: 'portaCircular',
+    ev: { e: 'arvoreMae', d: 'portaCircularEv', r: 'escolhidosPonte', l: 'raizQuebra', f: 'aFonte' },
+    chests: [{ equip: 'cristalMae' }, { item: 'lagrima' }, { equip: 'espinhoQuatro' }],
+  };
 })();

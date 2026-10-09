@@ -1,4 +1,6 @@
-# Kravenox — Plano da Parte 2 (para aprovação)
+# Kravenox — Plano da Parte 2
+
+> **Status:** construída. O jogo segue o Livro I (caps. 1–35): Parte 1 = 1–13, Parte 2 = 14–25, Parte 3 = 26–35. O Livro II vira o jogo seguinte.
 
 Li o livro inteiro: 76 capítulos, mais o Prólogo, o Interlúdio e a Nota do Autor. Os capítulos 1 a 13 continuam iguais à versão que usei na Parte 1, então a Parte 1 não precisa mudar.
 

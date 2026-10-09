@@ -10,6 +10,8 @@
       weapon: 'cajadoRaiz', armor: 'manto', desc: 'O Guardião. Seus espinhos brilham com uma luz suave.' },
     lyra: { name: 'Lyra', sprite: 'lyra', base: { hp: 38, ep: 26, atk: 7, def: 6, mag: 14, agi: 11 }, grow: { hp: 7.5, ep: 5, atk: 1.6, def: 2, mag: 3.5, agi: 1.8 },
       weapon: 'cristalMemoria', armor: 'vestido', desc: 'A irmã esquecida. Guardiã da última memória da Fonte.' },
+    seraphyne: { name: 'Seraphyne', sprite: 'seraphyne', base: { hp: 46, ep: 22, atk: 12, def: 8, mag: 13, agi: 12 }, grow: { hp: 9.5, ep: 4.2, atk: 2.6, def: 2.2, mag: 3.1, agi: 1.7 },
+      weapon: 'maosVazio', armor: 'armaduraNegra', desc: 'Filha da Essência. Armadura negra, cabelos prateados e o Vazio na palma da mão.' },
   };
 
   // alvo: inimigo | inimigos | aliado | aliados | aliadoCaido | eu
@@ -32,6 +34,16 @@
     memoria: { name: 'Memória', ep: 5, lv: 1, who: 'lyra', target: 'aliados', kind: 'cura', pow: 1.4, base: 10, fx: 'memory', desc: 'Lembranças boas curam o grupo.' },
     prisao: { name: 'Barreira de Memórias', ep: 6, lv: 1, who: 'lyra', target: 'inimigos', kind: 'sono', chance: 0.65, fx: 'memory', desc: 'Prende inimigos em lembranças antigas.' },
     eco: { name: 'Eco da Vida', ep: 9, lv: 1, who: 'lyra', target: 'aliadoCaido', kind: 'reviver', fx: 'heal', desc: 'Traz de volta um aliado caído.' },
+    cupula: { name: 'Cúpula Prateada', ep: 10, lv: 99, who: 'kravenox', target: 'aliados', kind: 'escudo', fx: 'shield', desc: 'A Quarta Essência ergue uma cúpula sobre o grupo.' },
+    quatro: { name: 'Quatro Espinhos', ep: 16, lv: 99, who: 'kravenox', target: 'inimigos', kind: 'dano', pow: 1.9, stat: 'atk', fx: 'silver', desc: '"Uma escolha." A marca dos quatro espinhos atinge todos.' },
+    quarta: { name: 'Quarta Essência', ep: 20, lv: 99, who: 'kravenox', target: 'inimigos', kind: 'dano', pow: 4.0, stat: 'atk', fx: 'silver', desc: 'Luz, memória, Vazio e Essência num só golpe. Só na Forma Desperta.' },
+    onda: { name: 'Onda de Luz', ep: 10, lv: 99, who: 'thornox', target: 'inimigos', kind: 'dano', pow: 1.3, stat: 'mag', fx: 'light', holy: true, desc: 'Uma onda dourada que desfaz as sombras.' },
+    muralha: { name: 'Muralha de Luz', ep: 12, lv: 99, who: 'thornox', target: 'aliados', kind: 'escudo', fx: 'shield', desc: 'Uma muralha dourada contra qualquer onda.' },
+    milMemorias: { name: 'Mil Memórias', ep: 14, lv: 99, who: 'lyra', target: 'inimigos', kind: 'dano', pow: 1.5, stat: 'mag', fx: 'memory', holy: true, desc: '"Você não pode tirar o que é nosso!"' },
+    toque: { name: 'Toque do Vazio', ep: 5, lv: 1, who: 'seraphyne', target: 'inimigo', kind: 'dano', pow: 1.9, stat: 'mag', fx: 'violet', desc: 'O Vazio não explode. Apenas apaga.' },
+    portal: { name: 'Portal', ep: 7, lv: 1, who: 'seraphyne', target: 'inimigos', kind: 'sono', chance: 0.55, fx: 'violet', desc: 'Abre portais de Vazio que prendem os inimigos.' },
+    absorver: { name: 'Absorver', ep: 8, lv: 1, who: 'seraphyne', target: 'inimigo', kind: 'dreno', pow: 1.6, stat: 'mag', fx: 'dark', desc: 'O Vazio consome o alvo e devolve a força.' },
+    silencioV: { name: 'Silêncio', ep: 15, lv: 24, who: 'seraphyne', target: 'inimigos', kind: 'dano', pow: 1.6, stat: 'mag', fx: 'violet', desc: 'Não uma explosão: um silêncio que engole tudo.' },
     lembranca: { name: 'Lembrança Dourada', ep: 8, lv: 14, who: 'lyra', target: 'inimigo', kind: 'dano', pow: 2.6, stat: 'mag', fx: 'light', holy: true, desc: 'Uma memória da Fonte, afiada como luz.' },
   };
 
@@ -41,6 +53,8 @@
     cristal: { name: 'Cristal de Essência', price: 30, target: 'aliado', ep: 20, desc: 'Recupera 20 EP.' },
     raiz: { name: 'Raiz da Vida', price: 60, target: 'aliadoCaido', revive: 0.5, desc: 'Revive um aliado com metade da vida.' },
     lagrima: { name: 'Lágrima da Fonte', price: 0, target: 'aliados', heal: 999, ep: 999, desc: 'Restaura totalmente o grupo. Raríssima.' },
+    elixir: { name: 'Elixir de Valdora', price: 90, target: 'aliado', heal: 320, desc: 'Recupera 320 HP.' },
+    cristalM: { name: 'Cristal Maior', price: 75, target: 'aliado', ep: 50, desc: 'Recupera 50 EP.' },
     nevoa: { name: 'Véu de Névoa', price: 15, target: 'fuga', desc: 'Garante a fuga de uma batalha.' },
   };
 
@@ -55,6 +69,18 @@
     cajadoSolar: { name: 'Cajado Solar', slot: 'arma', who: 'thornox', atk: 12, mag: 9, price: 300 },
     cristalMemoria: { name: 'Cristal da Memória', slot: 'arma', who: 'lyra', atk: 3, mag: 4, price: 0 },
     cristalVivo: { name: 'Cristal Vivo', slot: 'arma', who: 'lyra', atk: 6, mag: 9, price: 280 },
+    garraPrata: { name: 'Garras de Prata', slot: 'arma', who: 'kravenox', atk: 26, price: 640 },
+    espinhoQuatro: { name: 'Espinho dos Quatro', slot: 'arma', who: 'kravenox', atk: 36, price: 0 },
+    cajadoValdora: { name: 'Cajado de Valdora', slot: 'arma', who: 'thornox', atk: 15, mag: 12, price: 560 },
+    cajadoGuardiao: { name: 'Cajado do Guardião', slot: 'arma', who: 'thornox', atk: 24, mag: 22, price: 0 },
+    cristalLuz: { name: 'Cristal de Luz', slot: 'arma', who: 'lyra', atk: 8, mag: 13, price: 540 },
+    cristalMae: { name: 'Lágrima da Árvore', slot: 'arma', who: 'lyra', atk: 12, mag: 24, price: 0 },
+    maosVazio: { name: 'Mãos do Vazio', slot: 'arma', who: 'seraphyne', atk: 10, mag: 10, price: 0 },
+    laminaSilencio: { name: 'Lâmina do Silêncio', slot: 'arma', who: 'seraphyne', atk: 16, mag: 14, price: 600 },
+    armaduraNegra: { name: 'Armadura Negra', slot: 'armadura', def: 18, price: 0 },
+    cotaValdora: { name: 'Cota de Valdora', slot: 'armadura', def: 21, price: 460 },
+    mantoCeus: { name: 'Manto dos Céus', slot: 'armadura', def: 27, price: 680 },
+    armaduraGuardiao: { name: 'Armadura dos Guardiões', slot: 'armadura', def: 34, price: 0 },
     manto: { name: 'Manto Rasgado', slot: 'armadura', def: 1, price: 0 },
     vestido: { name: 'Vestido Antigo', slot: 'armadura', def: 2, price: 0 },
     couraca: { name: 'Couraça de Raiz', slot: 'armadura', def: 5, price: 55 },
@@ -97,6 +123,33 @@
   en('primeira', 'A Primeira Consciência', 'mother', {}, 120, 130, { hp: 2600, atk: 57, def: 24, mag: 48, agi: 16, xp: 0, fr: 0 }, [atk(2), tech(2, 'sombra líquida', 1.25, 'todos', 'dark'), tech(2, '"Vocês são meus filhos"', 1.0, 'todos', 'dark', { drainEp: 6 }), tech(1, 'mil espinhos', 1.9)], { boss: true, void: true });
   en('primeira2', 'A Mãe Esquecida', 'mother', { golden: true }, 120, 130, { hp: 1700, atk: 57, def: 22, mag: 46, agi: 15, xp: 1200, fr: 0 }, [atk(2), tech(2, 'a dor transformou o desejo', 1.3, 'todos', 'dark'), tech(1, 'raízes negras', 1.8)], { boss: true, void: true });
 
+  // ---------- Parte 2: O Reino em Guerra (caps. 14–25) ----------
+  const S2 = { c1: '#2a2632', c2: '#16131c', eye: '#ff3a2a' };
+  en('sentinelaG', 'Sentinela da Guerra', 'sentinel', S2, 64, 84, { hp: 270, atk: 50, def: 28, mag: 22, agi: 12, xp: 70, fr: 36 }, [atk(5), tech(1, 'golpe de guerra', 1.5)]);
+  en('cinzento', 'Carniçal de Cinzas', 'ghost', { c1: '#6a6460', eye: '#ff8a3a' }, 58, 62, { hp: 210, atk: 46, def: 22, mag: 38, agi: 15, xp: 62, fr: 32 }, [atk(2), tech(2, 'sopra cinzas quentes', 1.1, 'todos', 'dark')], { void: true });
+  en('raizGuerra', 'Raiz Faminta', 'root', { c1: '#1a0808', c2: '#3a1010', n: 9, thick: 5, eyes: 2, eye: 'rgba(255,48,32,0.9)' }, 70, 70, { hp: 300, atk: 52, def: 30, mag: 22, agi: 9, xp: 72, fr: 38 }, [atk(4), tech(1, 'prende e suga', 1.4, 'um', 'dark', { drain: true })]);
+  en('larvaFogo', 'Larva Incendiária', 'larva', { ...LARVA, c1: '#5a2a1a', c2: '#8a4a2a', core: 'rgba(255,120,40,0.9)', eye: '#ffd040', long: true }, 72, 62, { hp: 190, atk: 44, def: 22, mag: 34, agi: 12, xp: 56, fr: 30 }, [atk(4), tech(2, 'cospe brasas', 1.05, 'todos', 'dark')], { void: true });
+  en('sentinelaV', 'Sentinela de Valdora', 'sentinel', S2, 64, 84, { hp: 340, atk: 56, def: 32, mag: 24, agi: 13, xp: 84, fr: 42 }, [atk(5), tech(1, 'lâmina de cinzas', 1.55)]);
+  en('sombraRua', 'Sombra das Ruas', 'ghost', { c1: '#141018', eye: '#c18bff' }, 56, 62, { hp: 240, atk: 50, def: 24, mag: 44, agi: 17, xp: 70, fr: 36 }, [atk(2), tech(2, 'toque de medo', 1.35, 'um', 'dark', { drainEp: 5 })], { void: true });
+  en('cristalVazio', 'Fragmento do Vazio', 'shards', {}, 64, 64, { hp: 220, atk: 54, def: 34, mag: 46, agi: 14, xp: 76, fr: 40 }, [atk(2), tech(3, 'apaga a vida ao redor', 1.15, 'todos', 'violet')], { void: true });
+  en('guardaAntigo', 'Guarda Antigo', 'crystalman', {}, 64, 80, { hp: 380, atk: 58, def: 36, mag: 26, agi: 11, xp: 92, fr: 46 }, [atk(4), tech(1, 'lâmina de ouro velho', 1.6)]);
+  en('simbolo', 'Símbolo Vivo', 'ghost', { c1: '#c8a040', eye: '#fff6c0', crystal: true }, 60, 66, { hp: 260, atk: 48, def: 28, mag: 52, agi: 16, xp: 80, fr: 40 }, [atk(1), tech(3, '"Filhos."', 1.3, 'um', 'dark', { drainEp: 6 })]);
+  en('ossoNegro', 'Casca de Ossos', 'herald', {}, 66, 86, { hp: 450, atk: 64, def: 38, mag: 40, agi: 13, xp: 110, fr: 54 }, [atk(4), tech(1, 'aperta com dedos de osso', 1.6), tech(1, 'o vazio do peito', 1.1, 'todos', 'dark')], { void: true });
+  en('respiracao', 'Respiração no Escuro', 'ghost', { c1: '#0a0a0e', eye: '#ffffff' }, 60, 66, { hp: 320, atk: 58, def: 30, mag: 58, agi: 18, xp: 100, fr: 50 }, [atk(1), tech(3, 'apaga as luzes', 1.25, 'todos', 'dark', { drainEp: 4 })], { void: true });
+  en('raizAntiga', 'Raiz do Princípio', 'root', { c1: '#c8c0b0', c2: '#8a8478', n: 9, thick: 5, eyes: 1, eye: 'rgba(255,255,255,0.9)' }, 72, 74, { hp: 480, atk: 62, def: 40, mag: 34, agi: 9, xp: 112, fr: 56 }, [atk(4), tech(1, 'esmaga contra a pedra', 1.6)]);
+  en('servo', 'Servo do Primeiro', 'shards', {}, 96, 70, { hp: 420, atk: 66, def: 34, mag: 50, agi: 20, xp: 124, fr: 60 }, [atk(4), tech(2, 'mergulha das nuvens', 1.5), tech(1, 'asas de cristal', 1.1, 'todos', 'white')], { void: true });
+  en('guardiaoAzul', 'Guardião Reconstruído', 'sentinel', { c1: '#1a2432', c2: '#0e141e', eye: '#78c8ff' }, 64, 84, { hp: 530, atk: 70, def: 42, mag: 36, agi: 14, xp: 136, fr: 66 }, [atk(5), tech(1, 'lança de luz azul', 1.6), tech(1, 'chama os outros', 1.0, 'todos', 'white')]);
+  en('olhoBranco', 'Olho na Escuridão', 'ghost', { c1: '#1a2a40', eye: '#ffffff', crystal: true }, 60, 66, { hp: 380, atk: 62, def: 34, mag: 66, agi: 19, xp: 128, fr: 62 }, [atk(1), tech(3, 'mostra o que você será', 1.3, 'um', 'dark', { drainEp: 7 })], { void: true });
+  en('escolhido', 'Sentinela Escolhido', 'sentinel', { c1: '#c8c0a0', c2: '#8a8470', eye: '#fffae0' }, 64, 84, { hp: 610, atk: 76, def: 44, mag: 44, agi: 15, xp: 150, fr: 72 }, [atk(5), tech(1, 'luz nos olhos', 1.5), tech(1, 'pensamento do Primeiro', 1.05, 'todos', 'white')], { regen: 0.22 });
+  en('raizMorta', 'Raiz Morta', 'root', { c1: '#3a3a40', c2: '#24242a', n: 8, thick: 4, eyes: 2, eye: 'rgba(160,160,176,0.9)' }, 70, 70, { hp: 510, atk: 72, def: 42, mag: 40, agi: 10, xp: 140, fr: 68 }, [atk(4), tech(1, 'parte-se e cai', 1.65)]);
+  en('luzApagada', 'Luz Apagada', 'shards', {}, 64, 64, { hp: 430, atk: 66, def: 38, mag: 62, agi: 18, xp: 138, fr: 66 }, [atk(2), tech(2, 'apaga uma vida', 1.2, 'todos', 'white', { drainEp: 5 })]);
+  // chefes
+  en('seraphyne', 'Seraphyne', 'sentinel', {}, 56, 86, { hp: 5200, atk: 66, def: 30, mag: 60, agi: 24, xp: 900, fr: 300 }, [atk(3), tech(2, 'Toque do Vazio', 1.5, 'um', 'violet'), tech(1, 'antecipa cada golpe', 1.2, 'todos', 'violet'), tech(1, '"Você ainda luta como naquela época."', 1.0, 'todos', 'dark', { drainEp: 6 })], { boss: true });
+  en('coracao', 'Coração do Primeiro', 'colossus', {}, 120, 120, { hp: 6000, atk: 76, def: 34, mag: 64, agi: 10, xp: 1200, fr: 400 }, [atk(2), tech(2, 'puxa o núcleo', 1.3, 'um', 'dark', { drainEp: 10 }), tech(2, 'bate uma, duas, três vezes', 1.15, 'todos', 'dark'), tech(1, '"Você é meu."', 1.0, 'todos', 'dark', { sleep: 0.25 })], { boss: true, void: true });
+  en('kfuturo', 'O Kravenox do Futuro', 'herald', {}, 52, 66, { hp: 4000, atk: 80, def: 34, mag: 56, agi: 22, xp: 1600, fr: 500 }, [atk(4), tech(2, 'conhece cada movimento', 1.45), tech(1, 'espinhos retorcidos', 1.85), tech(1, 'explosão negra', 1.25, 'todos', 'dark')], { boss: true });
+  en('kfuturoD', 'O Kravenox do Futuro', 'herald', { img: 'e_kfuturo' }, 52, 66, { hp: 1600, atk: 56, def: 30, mag: 50, agi: 20, xp: 1600, fr: 500 }, [atk(4), tech(2, 'conhece cada movimento', 1.4), tech(1, 'espinhos retorcidos', 1.75), tech(1, 'certeza de quem já viveu tudo', 1.2, 'um', 'dark', { drainEp: 6 })], { boss: true });
+  en('primeiro', 'O Primeiro', 'colossus', {}, 150, 112, { hp: 11000, atk: 84, def: 38, mag: 74, agi: 16, xp: 0, fr: 0 }, [atk(2), tech(2, 'onda negra', 1.2, 'todos', 'dark'), tech(1, '"Vocês são meus."', 1.0, 'todos', 'dark', { drainEp: 8 }), tech(1, 'olhar dourado', 1.9), tech(1, 'drena a Fonte', 1.1, 'todos', 'dark', { drain: true })], { boss: true, void: true });
+
   // Tabelas de encontros: listas de grupos possíveis
   D.ENC = {
     abismo: [['larva'], ['larva', 'larva'], ['larva'], ['eco'], ['larva', 'eco']],
@@ -108,6 +161,13 @@
     vale: [['maoNevoa'], ['lembranca', 'maoNevoa'], ['sentinelaN'], ['lembranca', 'lembranca'], ['sentinelaN', 'maoNevoa']],
     submersa: [['fragmento'], ['afogado'], ['raizVazio', 'fragmento'], ['afogado', 'fragmento'], ['raizVazio']],
     submersaSolo: [['fragmento'], ['raizVazio'], ['afogado']],
+    guerra: [['sentinelaG'], ['cinzento', 'cinzento'], ['raizGuerra'], ['larvaFogo', 'cinzento'], ['sentinelaG', 'larvaFogo'], ['larvaFogo', 'larvaFogo', 'larvaFogo']],
+    valdora: [['sentinelaV'], ['sombraRua', 'sombraRua'], ['sentinelaV', 'sombraRua'], ['larvaFogo', 'sentinelaV'], ['sombraRua', 'larvaFogo', 'sombraRua']],
+    escadaria: [['guardaAntigo'], ['simbolo', 'simbolo'], ['guardaAntigo', 'simbolo'], ['sentinelaV', 'simbolo']],
+    passagem: [['ossoNegro'], ['respiracao', 'respiracao'], ['raizAntiga'], ['ossoNegro', 'respiracao'], ['raizAntiga', 'respiracao']],
+    ceus: [['servo'], ['servo', 'cristalVazio'], ['cristalVazio', 'cristalVazio'], ['servo', 'servo']],
+    fortaleza: [['guardiaoAzul'], ['olhoBranco', 'olhoBranco'], ['guardiaoAzul', 'olhoBranco'], ['ossoNegro', 'guardiaoAzul'], ['olhoBranco', 'olhoBranco', 'olhoBranco']],
+    raizes: [['escolhido'], ['raizMorta', 'luzApagada'], ['luzApagada', 'luzApagada'], ['raizMorta', 'raizMorta'], ['escolhido', 'luzApagada']],
   };
 
   // ---------- Estado ----------
