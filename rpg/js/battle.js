@@ -179,6 +179,7 @@
   }
 
   async function hurtEnemy(e, dmg, crit) {
+    if (e.immune) { e.flash = 4; numFx(e.x, e.by - e.h - 4, 'nada', '#8a8aa8'); G.Audio.sfx('miss'); return; }   // o golpe atravessa a sombra
     e.hp = Math.max(0, e.hp - dmg); e.flash = 10; e.shake = 12;
     numFx(e.x, e.by - e.h - 4, String(dmg), crit ? '#ffcf6a' : '#ffffff');
     G.Audio.sfx(crit ? 'crit' : 'hit');
@@ -277,7 +278,7 @@
       await hurtEnemy(tgt, dmg, crit);
       await G.wait(8);
       await moveHero(hi, HOME[hi][0], HOME[hi][1], 12);
-      await B.say(crit ? 'Golpe crítico! ' + dmg + ' de dano.' : tgt.name + ' sofre ' + dmg + ' de dano.', 30);
+      await B.say(tgt.immune ? 'O golpe atravessa a sombra. Nada acontece.' : crit ? 'Golpe crítico! ' + dmg + ' de dano.' : tgt.name + ' sofre ' + dmg + ' de dano.', 30);
     } else if (act.type === 'tech') {
       const T = D.TECHS[act.tech];
       if (h.ep < T.ep) { await B.say('EP insuficiente.', 24); return; }
@@ -293,7 +294,7 @@
         let total = 0;
         for (const e of ts) { const d = techDmg(h, e, T); total += d; await hurtEnemy(e, d, false); await G.wait(4); }
         if (T.kind === 'dreno') { const heal = Math.round(total * 0.5); h.hp = Math.min(h.maxhp, h.hp + heal); numFx(heroAt(h).x, heroAt(h).y - 36, '+' + heal, '#9aff8a'); }
-        await B.say(ts.length > 1 ? 'Os espinhos atravessam todos!' : ts[0].name + ' sofre ' + total + ' de dano.', 28);
+        await B.say(ts.some(e => e.immune) ? 'O golpe atravessa a sombra. Nada acontece.' : ts.length > 1 ? 'Os espinhos atravessam todos!' : ts[0].name + ' sofre ' + total + ' de dano.', 28);
       } else if (T.kind === 'cura') {
         const ts = tgt === 'all' ? alive(party()) : [tgt];
         playFx(T.fx, ts, true); await G.wait(10);
@@ -386,6 +387,7 @@
   G.battle = async function (ids, opt = {}) {
     const prev = G.scene;
     B.opt = opt; B.enemies = ids.map((id, i) => mkEnemy(id, i, ids.length)); layout();
+    if (opt.setup) opt.setup(B);
     HOME = party().length > 3 ? HOME4 : HOME3; B.noRegen = false;
     B.fxs = []; B.msg = null; B.bg = opt.bg || 'planicie'; B.slotFlash = [0, 0, 0, 0]; B.turnHero = -1; B.hs = []; B.victory = false;
     for (const h of party()) { h.status = {}; h.lunge = 0; }

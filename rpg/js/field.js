@@ -72,7 +72,7 @@
     const m = this.map;
     const ev = m.step && m.step[raw];
     if (ev && G.story[ev]) { G.run(() => G.story[ev](this.px, this.py)); return; }
-    if (m.enc && m.enc[raw] && this.steps > 3 && !G.debug.noEnc) {
+    if (m.enc && m.enc[raw] && this.steps > 3 && !G.debug.noEnc && !(m.noEnc && m.noEnc())) {
       const rate = (m.encRate && m.encRate[raw]) || m.defRate || 24;
       if (Math.random() < 1 / rate) {
         this.steps = 0;
@@ -114,7 +114,7 @@
         const im = X.sprite(n.sprite, n.face || n.dir, (G.time >> 5) & 1 && sp && sp.ghost ? 1 : 0); ctx.drawImage(im, sx + 8 - (im.width >> 1), sy + 15 - im.height + (sp && sp.ghost ? Math.sin(G.time / 20) * 1.5 - 2 : 0)); ctx.globalAlpha = 1; } });
     }
     const lead = G.state.party[0];
-    const spr = G.state.flags.prata ? 'kravenoxP' : (lead ? G.data.HEROES[lead.id].sprite : 'kravenox');
+    const spr = lead && lead.id !== 'kravenox' ? G.data.HEROES[lead.id].sprite : (G.state.flags.prata ? 'kravenoxP' : 'kravenox');
     const wf = this.mv ? [1, 0, 2, 0][this.walkF & 3] : 0;
     talls.push({ y: fy + 0.2, draw: () => { const sx = Math.round(fx * T - cx), sy = Math.round(fy * T - cy); X.drawShadow(ctx, sx, sy); const im = X.sprite(spr, this.dir, wf, this.mv ? (this.walkF & 3) : -1); ctx.drawImage(im, sx + 8 - (im.width >> 1), sy + 15 - im.height); } });
     talls.sort((a, b) => a.y - b.y).forEach(t => t.draw());
@@ -128,6 +128,8 @@
       ctx.fillStyle = 'rgba(120,20,20,0.08)'; ctx.fillRect(0, 0, G.W, G.H);
       if (here === 'f' || here === '2' || here === '3') { ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(0, 0, G.W, G.H); }
     }
+    if (m.theme === 'colheita') { ctx.fillStyle = 'rgba(40,0,10,0.16)'; ctx.fillRect(0, 0, G.W, G.H); }
+    if (m.theme === 'mar') { ctx.fillStyle = 'rgba(10,20,40,0.12)'; ctx.fillRect(0, 0, G.W, G.H); }
     if (m.theme === 'guerra') { ctx.fillStyle = 'rgba(30,10,20,0.1)'; ctx.fillRect(0, 0, G.W, G.H); }
     if (m.theme === 'valdora') { ctx.fillStyle = `rgba(255,80,20,${0.06 + 0.03 * Math.sin(G.time / 9)})`; ctx.fillRect(0, 0, G.W, G.H); }
     if (L) Wd.lightning(ctx, this);

@@ -44,6 +44,9 @@
     portal: { name: 'Portal', ep: 7, lv: 1, who: 'seraphyne', target: 'inimigos', kind: 'sono', chance: 0.55, fx: 'violet', desc: 'Abre portais de Vazio que prendem os inimigos.' },
     absorver: { name: 'Absorver', ep: 8, lv: 1, who: 'seraphyne', target: 'inimigo', kind: 'dreno', pow: 1.6, stat: 'mag', fx: 'dark', desc: 'O Vazio consome o alvo e devolve a força.' },
     silencioV: { name: 'Silêncio', ep: 15, lv: 24, who: 'seraphyne', target: 'inimigos', kind: 'dano', pow: 1.6, stat: 'mag', fx: 'violet', desc: 'Não uma explosão: um silêncio que engole tudo.' },
+    espelho: { name: 'Espelho do Vazio', ep: 16, lv: 99, who: 'seraphyne', target: 'inimigos', kind: 'dano', pow: 2.1, stat: 'mag', fx: 'violet', desc: 'O Vazio reflete a criatura para dentro dela mesma.' },
+    memoriaColetiva: { name: 'Memória Coletiva', ep: 16, lv: 99, who: 'lyra', target: 'aliados', kind: 'cura', pow: 2.6, base: 40, fx: 'memory', desc: 'Cada um passa a carregar a lembrança do outro.' },
+    primeiraEscolha: { name: 'A Primeira Escolha', ep: 24, lv: 99, who: 'kravenox', target: 'inimigos', kind: 'dano', pow: 5.0, stat: 'atk', fx: 'silver', desc: 'Não controlar. Escolher.' },
     lembranca: { name: 'Lembrança Dourada', ep: 8, lv: 14, who: 'lyra', target: 'inimigo', kind: 'dano', pow: 2.6, stat: 'mag', fx: 'light', holy: true, desc: 'Uma memória da Fonte, afiada como luz.' },
   };
 
@@ -55,6 +58,8 @@
     lagrima: { name: 'Lágrima da Fonte', price: 0, target: 'aliados', heal: 999, ep: 999, desc: 'Restaura totalmente o grupo. Raríssima.' },
     elixir: { name: 'Elixir de Valdora', price: 90, target: 'aliado', heal: 320, desc: 'Recupera 320 HP.' },
     cristalM: { name: 'Cristal Maior', price: 75, target: 'aliado', ep: 50, desc: 'Recupera 50 EP.' },
+    agua: { name: 'Água das Três Luas', price: 170, target: 'aliado', heal: 650, desc: 'Recupera 650 HP.' },
+    cristalG: { name: 'Cristal Antigo', price: 150, target: 'aliado', ep: 90, desc: 'Recupera 90 EP.' },
     nevoa: { name: 'Véu de Névoa', price: 15, target: 'fuga', desc: 'Garante a fuga de uma batalha.' },
   };
 
@@ -81,6 +86,12 @@
     cotaValdora: { name: 'Cota de Valdora', slot: 'armadura', def: 21, price: 460 },
     mantoCeus: { name: 'Manto dos Céus', slot: 'armadura', def: 27, price: 680 },
     armaduraGuardiao: { name: 'Armadura dos Guardiões', slot: 'armadura', def: 34, price: 0 },
+    garraAntiga: { name: 'Garras da Primeira Cidade', slot: 'arma', who: 'kravenox', atk: 46, price: 1150 },
+    cajadoArkan: { name: 'Cajado de Arkan', slot: 'arma', who: 'thornox', atk: 30, mag: 28, price: 1100 },
+    cristalCidade: { name: 'Cristal das Mil Vozes', slot: 'arma', who: 'lyra', atk: 14, mag: 30, price: 1050 },
+    laminaFilha: { name: 'Lâmina da Primeira Filha', slot: 'arma', who: 'seraphyne', atk: 30, mag: 28, price: 0 },
+    mantoCidade: { name: 'Manto Branco', slot: 'armadura', def: 40, price: 1250 },
+    armaduraEspinho: { name: 'Armadura do Espinho', slot: 'armadura', def: 48, price: 0 },
     manto: { name: 'Manto Rasgado', slot: 'armadura', def: 1, price: 0 },
     vestido: { name: 'Vestido Antigo', slot: 'armadura', def: 2, price: 0 },
     couraca: { name: 'Couraça de Raiz', slot: 'armadura', def: 5, price: 55 },
@@ -150,6 +161,23 @@
   en('kfuturoD', 'O Kravenox do Futuro', 'herald', { img: 'e_kfuturo' }, 52, 66, { hp: 1600, atk: 56, def: 30, mag: 50, agi: 20, xp: 1600, fr: 500 }, [atk(4), tech(2, 'conhece cada movimento', 1.4), tech(1, 'espinhos retorcidos', 1.75), tech(1, 'certeza de quem já viveu tudo', 1.2, 'um', 'dark', { drainEp: 6 })], { boss: true });
   en('primeiro', 'O Primeiro', 'colossus', {}, 150, 112, { hp: 11000, atk: 84, def: 38, mag: 74, agi: 16, xp: 0, fr: 0 }, [atk(2), tech(2, 'onda negra', 1.2, 'todos', 'dark'), tech(1, '"Vocês são meus."', 1.0, 'todos', 'dark', { drainEp: 8 }), tech(1, 'olhar dourado', 1.9), tech(1, 'drena a Fonte', 1.1, 'todos', 'dark', { drain: true })], { boss: true, void: true });
 
+  // ---------- Parte 3: Além do Reino (caps. 26–35) ----------
+  en('ecoAntigo', 'Eco do Caminho', 'ghost', { c1: '#5a7a6a', eye: '#c8ffd8' }, 58, 62, { hp: 520, atk: 80, def: 44, mag: 76, agi: 20, xp: 210, fr: 90 }, [atk(2), tech(2, 'lembra quem passou por aqui', 1.2, 'todos', 'dark', { drainEp: 5 })], { void: true });
+  en('raizJovem', 'Raiz Jovem', 'root', { c1: '#2a3a1a', c2: '#3a5020', n: 8, thick: 4, eyes: 2, eye: 'rgba(184,255,128,0.9)' }, 70, 70, { hp: 640, atk: 84, def: 48, mag: 40, agi: 12, xp: 220, fr: 96 }, [atk(4), tech(1, 'cresce e aperta', 1.5)]);
+  en('estatuaGuerreiro', 'Guerreiro de Pedra', 'crystalman', {}, 64, 80, { hp: 700, atk: 88, def: 54, mag: 30, agi: 12, xp: 236, fr: 104 }, [atk(4), tech(1, 'golpe de pedra antiga', 1.6)]);
+  en('fragmentoMar', 'Fragmento do Oceano', 'shards', {}, 64, 64, { hp: 560, atk: 82, def: 50, mag: 80, agi: 21, xp: 228, fr: 100 }, [atk(2), tech(2, 'ondas negras', 1.2, 'todos', 'violet')], { void: true });
+  en('afogadoAntigo', 'Guardião Afogado', 'sentinel', { c1: '#0e2a2a', c2: '#061818', eye: '#40ffe0' }, 64, 84, { hp: 760, atk: 90, def: 52, mag: 40, agi: 15, xp: 250, fr: 110 }, [atk(5), tech(1, 'lâmina das três luas', 1.6)]);
+  en('pintura', 'Pintura Viva', 'ghost', { c1: '#3a2a1a', eye: '#ffd060', crystal: true }, 60, 64, { hp: 380, atk: 66, def: 36, mag: 66, agi: 18, xp: 190, fr: 80 }, [atk(2), tech(2, 'mostra o que foi pintado', 1.15, 'um', 'dark', { drainEp: 4 })]);
+  en('memoriaCrianca', 'Memória de Criança', 'ghost', { c1: '#d8d4c8', eye: '#7a8aa0' }, 52, 58, { hp: 340, atk: 62, def: 34, mag: 70, agi: 22, xp: 180, fr: 76 }, [atk(1), tech(3, '"Não nos esqueça."', 1.2, 'um', 'dark')]);
+  en('sombraQuatro', 'Sombra de Quatro Braços', 'herald', {}, 74, 88, { hp: 820, atk: 94, def: 54, mag: 60, agi: 16, xp: 280, fr: 120 }, [atk(4), tech(1, 'quatro braços', 1.25, 'todos'), tech(1, 'a sombra do peito pulsa', 1.6, 'um', 'dark')], { void: true });
+  en('sementeVazio', 'Semente do Vazio', 'shards', {}, 64, 64, { hp: 600, atk: 86, def: 50, mag: 86, agi: 22, xp: 260, fr: 110 }, [atk(2), tech(2, 'apaga um nome', 1.3, 'um', 'violet', { drainEp: 6 })], { void: true });
+  en('correnteViva', 'Correntes de Sombra', 'hands', {}, 76, 70, { hp: 700, atk: 90, def: 50, mag: 50, agi: 14, xp: 260, fr: 112 }, [atk(4), tech(1, 'prende e arrasta', 1.5)]);
+  en('carcereiro', 'Carcereiro Vermelho', 'sentinel', { c1: '#2a1414', c2: '#140808', eye: '#ff2020' }, 64, 84, { hp: 900, atk: 98, def: 56, mag: 50, agi: 16, xp: 300, fr: 130 }, [atk(5), tech(1, 'olhos vermelhos', 1.55), tech(1, 'colheita', 1.15, 'todos', 'dark')]);
+  // chefes
+  en('devorador', 'O Primeiro Devorador', 'colossus', {}, 160, 120, { hp: 15000, atk: 108, def: 50, mag: 90, agi: 16, xp: 4000, fr: 1500 }, [atk(2), tech(2, 'onda de escuridão', 1.15, 'todos', 'dark'), tech(1, 'asa que cobre o céu', 1.9), tech(1, '"Vocês não podem impedir o fim."', 1.0, 'todos', 'dark', { drainEp: 8 })], { boss: true, void: true });
+  en('guardiaoTorre', 'O Guardião da Torre', 'sentinel', { c1: '#2a1414', c2: '#140808', eye: '#ff2020', img: 'e_carcereiro' }, 64, 84, { hp: 2600, atk: 80, def: 44, mag: 50, agi: 18, xp: 2400, fr: 800 }, [atk(4), tech(2, 'golpe de ferro negro', 1.45), tech(1, '"Você não deveria possuir esse poder."', 1.2, 'um', 'dark', { drainEp: 6 })], { boss: true });
+  en('reiVazio', 'O Rei do Vazio', 'colossus', {}, 150, 130, { hp: 18000, atk: 112, def: 52, mag: 96, agi: 18, xp: 0, fr: 0 }, [atk(2), tech(2, 'mãos negras atravessam a terra', 1.15, 'todos', 'dark'), tech(1, '"Vocês fogem."', 1.0, 'todos', 'dark', { sleep: 0.2 }), tech(1, 'apaga', 1.9, 'um', 'violet'), tech(1, 'mundos mortos', 1.25, 'todos', 'violet', { drainEp: 8 })], { boss: true, void: true });
+
   // Tabelas de encontros: listas de grupos possíveis
   D.ENC = {
     abismo: [['larva'], ['larva', 'larva'], ['larva'], ['eco'], ['larva', 'eco']],
@@ -167,6 +195,12 @@
     passagem: [['ossoNegro'], ['respiracao', 'respiracao'], ['raizAntiga'], ['ossoNegro', 'respiracao'], ['raizAntiga', 'respiracao']],
     ceus: [['servo'], ['servo', 'cristalVazio'], ['cristalVazio', 'cristalVazio'], ['servo', 'servo']],
     fortaleza: [['guardiaoAzul'], ['olhoBranco', 'olhoBranco'], ['guardiaoAzul', 'olhoBranco'], ['ossoNegro', 'guardiaoAzul'], ['olhoBranco', 'olhoBranco', 'olhoBranco']],
+    estrada: [['ecoAntigo'], ['raizJovem'], ['ecoAntigo', 'ecoAntigo'], ['estatuaGuerreiro'], ['raizJovem', 'ecoAntigo']],
+    mar: [['fragmentoMar'], ['afogadoAntigo'], ['fragmentoMar', 'fragmentoMar'], ['afogadoAntigo', 'fragmentoMar']],
+    caminhos: [['pintura'], ['memoriaCrianca'], ['pintura', 'memoriaCrianca']],
+    cidade: [['sombraQuatro'], ['sementeVazio', 'sementeVazio'], ['sombraQuatro', 'sementeVazio'], ['estatuaGuerreiro', 'sementeVazio']],
+    colheita: [['correnteViva'], ['carcereiro'], ['correnteViva', 'sementeVazio'], ['sombraQuatro']],
+    torreNegra: [['sementeVazio'], ['pintura'], ['pintura', 'memoriaCrianca']],
     raizes: [['escolhido'], ['raizMorta', 'luzApagada'], ['luzApagada', 'luzApagada'], ['raizMorta', 'raizMorta'], ['escolhido', 'luzApagada']],
   };
 

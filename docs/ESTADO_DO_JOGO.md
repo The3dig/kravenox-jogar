@@ -77,6 +77,24 @@ oferece começar a Parte 2 direto (e quem já tinha terminado a Parte 1 entra ne
 | 24 | O Último Caminho | O Coração do Reino | Porta que só o Vazio abre; Sentinelas Escolhidos que se regeneram |
 | 25 | A Última Batalha | A Fonte | Chefe final: **O Primeiro**, em fases; no meio da luta Kravenox desperta a **Forma Desperta** (armadura prateada); o céu fica azul; "Agora começa a Era" |
 
+## 2c. História coberta (Parte 3 — Além do Reino) — fecha o Livro I
+
+| Cap. | Título | Onde acontece | Destaques |
+|---|---|---|---|
+| 26 | Depois do Fim | A Fonte / Além das Montanhas | A primeira folha viva; a estrela negra; a noite no acampamento; a figura de armadura branca no trono antigo |
+| 27 | Além das Montanhas | Estrada antiga / O Oceano das Três Luas | "Aqui termina o Reino": o portão que só Seraphyne abre; a serpente; a viagem de barco |
+| 28 | A Primeira Cidade | A Primeira Cidade / Os Quatro Caminhos | Arkan; **os quatro irmãos separados, cada um jogando sozinho**, e os três sinos; a primeira filha; ⭐ **o pai vivo na torre** |
+| 29 | O Mundo que Virá | A torre | O mundo antigo, as quatro luzes (criação, memória, Vazio e escolha), os Devoradores |
+| 30 | A Queda da Primeira Cidade | A Primeira Cidade | Chefe: **o Primeiro Devorador**; a cidade vira uma árvore de pedra com uma nova Fonte |
+| 31 | O Exército das Sombras | Cidade / Planície da Colheita / Torre Negra | Kravenox se entrega e sobe a torre negra sozinho |
+| 32 | O Rei dos Espinhos | Torre Negra | Chefe: o Guardião da Torre; o núcleo de memórias e a voz da mãe; ⭐ **o Rei dos Espinhos** (o desenho do autor) |
+| 33 | O Peso da Escolha | A Primeira Cidade | A coroa vira cinzas; batalha contra a vanguarda do exército; a evacuação para o Reino |
+| 34 | O Rei do Vazio | A Fonte | Chefe final do Livro I: **o Rei do Vazio**, que começa imune; Kravenox desperta e ganha "A Primeira Escolha"; o jogador escolhe: destruir, preservar ou mudar a regra |
+| 35 | A Nova Essência | Dentro da Essência / o novo Reino | ⭐ **a despedida do pai**; o novo Reino de céu violeta e duas luas; "enviem o segundo Rei"; a quinta marca. **FIM DO LIVRO I** |
+
+Novidades da Parte 3: 3 campos e 2 masmorras novas, trechos em que cada irmão joga sozinho, 13 inimigos e 3 chefes
+novos, chefe imune até a virada da história, 6 músicas novas.
+
 Novidades da Parte 2: **Seraphyne** jogável (grupo de 4), 8 músicas novas, 3 campos e 4 masmorras novas,
 18 inimigos e 5 chefes novos, técnicas novas (Cúpula Prateada, Quatro Espinhos, Quarta Essência, Onda de Luz,
 Muralha de Luz, Mil Memórias e as da Seraphyne), inimigos que se regeneram e duelo solo.
@@ -274,8 +292,7 @@ raízes, partículas e legendas.
 
 ## 11. Planos já combinados
 - ✅ **Parte 2** (capítulos 14–25) pronta, com o encontro com o pai e o Kravenox de armadura.
-- **Parte 3** (capítulos 26–35, fecha o Livro I): Além do Reino — A Primeira Cidade, o pai na torre,
-  o Rei dos Espinhos, o Rei do Vazio, a Nova Essência.
+- ✅ **Parte 3** (capítulos 26–35) pronta: o **Livro I inteiro** está jogável, do Abismo Carmesim ao novo Reino.
 - **Livro II — O Reino da Escolha** depois, como jogo seguinte.
 - **Mundo expandido:** existe uma planilha do autor com o universo do jogo, com a ideia de mundo aberto e
   masmorras opcionais, possivelmente em **Godot**.

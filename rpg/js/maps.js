@@ -137,4 +137,68 @@
     ev: { e: 'arvoreMae', d: 'portaCircularEv', r: 'escolhidosPonte', l: 'raizQuebra', f: 'aFonte' },
     chests: [{ equip: 'cristalMae' }, { item: 'lagrima' }, { equip: 'espinhoQuatro' }],
   };
+  // ===================== PARTE 3 — ALÉM DO REINO =====================
+  M.estrada = {
+    name: 'Além das Montanhas', kind: 'field', tiles: G.MAPSTR.ESTRADA, theme: 'estrada', music: 'alem',
+    enc: { '.': 'estrada', ',': 'estrada', '=': 'estrada', 'f': 'estrada' }, defRate: 24, encRate: { '=': 40 },
+    bg: () => 'estrada',
+    sub(ch) { if ('123'.includes(ch)) return ch === '1' ? '.' : '='; return ch; },
+    step: { '1': 'acampamentoNoite', '2': 'estradaAntiga', '3': 'colinaEstrela', 'V': 'portaoFimReino', 'R': 'voltaFonte', 'S': 'santuario' },
+    look: { 'c': 'fogueiraNoite', 'k': 'poco', 'h': 'ruinaVila', 'o': 'ruinaVila' },
+    npcs: [
+      { id: 'mascate4', sprite: 'mascate', x: 26, y: 17, dir: 'left', talk: 'mascateEstrada' },
+    ],
+  };
+  M.mar = {
+    name: 'O Oceano das Três Luas', kind: 'field', tiles: G.MAPSTR.MAR, theme: 'mar', music: 'mar',
+    enc: { '.': 'mar', ',': 'mar' }, defRate: 22,
+    bg: () => 'mar',
+    sub(ch) { if (ch === '4') return 'B'; if (ch === 'Q') return 'B'; return ch; },
+    step: { '4': 'serpente', 'Q': 'embarcacao', '=': 'voltarPortao', 'S': 'santuario' },
+    look: { '~': 'olharMar', '*': 'cristalNegro' },
+    npcs: [],
+  };
+  M.cidade = {
+    name: 'A Primeira Cidade', kind: 'field', tiles: G.MAPSTR.CIDADE, theme: 'cidade', music: 'cidade',
+    enc: { 'p': 'cidade', '.': 'cidade' }, defRate: 26,
+    noEnc: () => !F().cidadeViva || F().fimLivro,
+    bg: () => 'cidade',
+    sub(ch) { if (ch === '1') return 'p'; if (ch === '5') return F().ch31 && !F().colheitaFim ? 'R' : 'p'; if (ch === 'D') return F().arkan ? 'D' : 'd'; if (ch === 'R') return 'p'; return ch; },
+    step: { '1': 'pracaVazia', 'D': 'portaTorre', '5': 'portalColheita', '=': 'cais' },
+    look: { 'k': 'mesaQuente', 'd': 'casaBranca', 'W': 'torreBranca', '~': 'canal' },
+    npcs: [
+      { id: 'arkan', sprite: 'arkan', x: 18, y: 8, dir: 'down', talk: 'arkanFala', cond: () => !F().torreTopo },
+      { id: 'sob1', sprite: 'sobrevivente', x: 6, y: 13, dir: 'right', talk: 'sobrevivente1', cond: () => F().cidadeViva },
+      { id: 'sob2', sprite: 'refugiada', x: 22, y: 12, dir: 'left', talk: 'sobrevivente2', cond: () => F().cidadeViva },
+      { id: 'sob3', sprite: 'menino', x: 9, y: 16, dir: 'up', talk: 'sobrevivente3', cond: () => F().cidadeViva },
+      { id: 'mascate5', sprite: 'mascate', x: 24, y: 4, dir: 'down', talk: 'mascateCidade', cond: () => F().cidadeViva },
+    ],
+  };
+  M.colheita = {
+    name: 'A Planície da Colheita', kind: 'field', tiles: G.MAPSTR.COLHEITA, theme: 'colheita', music: 'devorador',
+    enc: { '.': 'colheita', ',': 'colheita' }, defRate: 22,
+    bg: () => 'colheita',
+    sub(ch) { if (ch === '4') return '.'; return ch; },
+    step: { '4': 'torreColheita', 'R': 'portalVolta' },
+    look: { 'W': 'torreNegraOlhar', '*': 'cristalNegro', '~': 'fendaColheita' },
+    npcs: [
+      { id: 'preso1', sprite: 'sobrevivente', x: 6, y: 5, dir: 'down', talk: 'preso', cond: () => !F().colheitaFim },
+      { id: 'preso2', sprite: 'refugiada', x: 20, y: 6, dir: 'down', talk: 'preso', cond: () => !F().colheitaFim },
+      { id: 'preso3', sprite: 'refugiado', x: 9, y: 11, dir: 'up', talk: 'preso', cond: () => !F().colheitaFim },
+      { id: 'preso4', sprite: 'menino', x: 22, y: 11, dir: 'up', talk: 'preso', cond: () => !F().colheitaFim },
+    ],
+  };
+  M.caminhos = {
+    name: 'Os Quatro Caminhos', kind: 'dungeon', grid: G.MAPSTR.CAMINHOS, music: 'cidade', bg: 'caminhos',
+    enc: () => 'caminhos', rate: 16,
+    ev: { a: 'caminhoKravenox', e: 'caminhoThornox', l: 'caminhoLyra', r: 'caminhoSeraphyne' },
+    voices: { 1: 'Uma pintura: o Cisma, o Primeiro, a Fonte.', 2: 'Uma pintura: o pai diante de uma porta. Depois, quatro crianças diante de um trono. E uma quinta, menor.' },
+    chests: [],
+  };
+  M.torreNegra = {
+    name: 'A Torre Negra', kind: 'dungeon', grid: G.MAPSTR.TORRENEGRA, music: 'devorador', bg: 'torreNegra',
+    enc: () => 'torreNegra', rate: 15,
+    ev: { e: 'topoTorreNegra' },
+    chests: [{ equip: 'armaduraEspinho' }, { item: 'agua', n: 2 }],
+  };
 })();

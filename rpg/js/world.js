@@ -109,6 +109,37 @@
     pit: 'rio', mist: true,
   });
 
+  TH.estrada = Object.assign({}, TH.reino, {
+    base: 'reino',
+    ground: ramp(['#26291f', '#2e3226', '#373c2d', '#414634', '#4c523c']),
+    grass: ramp(['#34402a', '#3e4c32', '#4a5a3a', '#566844', '#62764e']),
+    leaves: ramp(['#2a3a20', '#34482a', '#3e5632', '#4a6a3a', '#5a7a44']),
+    road: ramp(['#3a3226', '#463c2e', '#524636', '#5e5040', '#6a5a48']),
+    ash: false,
+  });
+  TH.mar = Object.assign({}, TH.vale, {
+    base: 'vale',
+    ground: ramp(['#22202a', '#2a2834', '#33303e', '#3c3948', '#464252']),
+    grass: ramp(['#2a2a34', '#33333e', '#3c3c48', '#464652']),
+    pitWall: ramp(['#06080e', '#0a0e16', '#0e141e', '#121a26']),
+    pitDeep: ramp(['#020306', '#04060c', '#060a12', '#0a1018', '#10182a', '#4a6a9a']),
+    rim: rgb('#5a6a7a'), vein: rgb('#203040'), pit: 'rio', mist: true,
+  });
+  TH.cidade = Object.assign({}, TH.vila, {
+    base: 'vila',
+    ground: ramp(['#3a3a40', '#44444a', '#4e4e56', '#5a5a62', '#66666e']),
+    stone: ramp(['#6a6a72', '#7a7a84', '#8a8a94', '#9a9aa4', '#acacb6', '#bebec8']),
+    road: ramp(['#7a7a84', '#8a8a94', '#9a9aa4', '#aaaab4']),
+    pitWall: ramp(['#0a1a2a', '#0e2234', '#122a3e', '#163248']), pitDeep: ramp(['#04101c', '#081a2a', '#0c2438', '#103048', '#163a56', '#3a6a8a']),
+    rim: rgb('#c8ccd8'), vein: rgb('#4a6a8a'),
+  });
+  TH.colheita = Object.assign({}, TH.reino, {
+    base: 'reino',
+    ground: ramp(['#0e0c10', '#141216', '#1a171c', '#201c22', '#262228']),
+    grass: ramp(['#16141a', '#1c1a20', '#222026', '#28262c']),
+    pitDeep: ramp(['#000000', '#030103', '#060206', '#0a030a', '#12040e', '#2a0614']),
+  });
+
   function material(c, theme) {
     if (c === '^' || c === 'A') return 'mtn';
     if (c === '~' || c === 'B') return 'pit';
@@ -344,7 +375,7 @@
     }
     // casas da vila
     const pits = [];
-    if (house) houses(g, tl, cols, rows, lights, m.theme === 'valdora');
+    if (house) houses(g, tl, cols, rows, lights, m.theme === 'valdora', m.theme === 'cidade');
     if (pit) {
       for (let ty = 0; ty < rows; ty++) for (let tx = 0; tx < cols; tx++) if (tl(tx, ty) === '~' && h2(tx, ty, 61) < 0.12) pits.push({ x: tx * T + 8, y: ty * T + 10 });
     }
@@ -398,7 +429,7 @@
     g.fillStyle = '#2a3038'; g.beginPath(); g.ellipse(x + 8, y + 8, 5, 3, 0, 0, 7); g.fill();
     for (let a = 0; a < 6.28; a += 1.05) { const sx = x + 8 + Math.cos(a) * 8 | 0, sy = y + 8 + Math.sin(a) * 5 | 0; g.fillStyle = '#7a8290'; g.fillRect(sx - 1, sy - 4, 2, 4); g.fillStyle = '#4a5260'; g.fillRect(sx, sy - 4, 1, 4); }
   }
-  function houses(g, tl, cols, rows, lights, burnt) {
+  function houses(g, tl, cols, rows, lights, burnt, white) {
     const seen = new Set();
     const isH = (x, y) => 'ohdD'.includes(tl(x, y)) && x >= 0 && y >= 0 && x < cols && y < rows;
     for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
@@ -409,8 +440,8 @@
       let wallY = y1; // última fileira = parede
       const X0 = x * T, X1 = (x1 + 1) * T, RY0 = y * T - 4, RY1 = wallY * T + 2, WY = wallY * T;
       // parede de enxaimel
-      g.fillStyle = '#5a4a40'; g.fillRect(X0 + 1, WY, X1 - X0 - 2, 16);
-      g.fillStyle = '#4a3c34'; for (let k = WY + 1; k < WY + 16; k += 3) g.fillRect(X0 + 1, k, X1 - X0 - 2, 1);
+      g.fillStyle = white ? '#c8c4bc' : '#5a4a40'; g.fillRect(X0 + 1, WY, X1 - X0 - 2, 16);
+      g.fillStyle = white ? '#aaa69e' : '#4a3c34'; for (let k = WY + 1; k < WY + 16; k += 3) g.fillRect(X0 + 1, k, X1 - X0 - 2, 1);
       g.fillStyle = '#261a14'; g.fillRect(X0 + 1, WY + 14, X1 - X0 - 2, 2); g.fillRect(X0 + 1, WY, 2, 16); g.fillRect(X1 - 3, WY, 2, 16);
       for (let k = X0 + 12; k < X1 - 6; k += 12) { g.fillRect(k, WY, 2, 16); }
       for (let xx = x; xx <= x1; xx++) {
@@ -443,12 +474,13 @@
           if (bottom) col = back ? '#2a1016' : '#401a22';
           else if (seam) col = back ? '#2e1218' : '#4a1e28';
           else if (!back && (yy - RY0) % 3 === 0) col = '#6e3038';
-          if (burnt) { col = bottom ? '#140c0c' : back ? '#22181a' : seam ? '#1a1214' : (yy - RY0) % 3 === 0 ? '#3a2a28' : '#2c2022'; if (h2(xx >> 1, yy >> 1, 85) < 0.13) col = '#070404'; else if (h2(xx, yy, 86) < 0.02) col = '#ff6a20'; }   // telhado queimado
+          if (white) { col = bottom ? '#5a6a7a' : back ? '#8a9aaa' : seam ? '#7a8a9a' : (yy - RY0) % 3 === 0 ? '#d8e0ea' : '#b0bccc'; }
+          else if (burnt) { col = bottom ? '#140c0c' : back ? '#22181a' : seam ? '#1a1214' : (yy - RY0) % 3 === 0 ? '#3a2a28' : '#2c2022'; if (h2(xx >> 1, yy >> 1, 85) < 0.13) col = '#070404'; else if (h2(xx, yy, 86) < 0.02) col = '#ff6a20'; }   // telhado queimado
           else if (h2(xx, yy, 83) < 0.03) col = '#2a2a2a'; // telha faltando
           g.fillStyle = col; g.fillRect(xx, yy, 1, 1);
         }
       }
-      g.fillStyle = burnt ? '#3a2422' : '#8a4048'; g.fillRect(X0 - 2, ridge, X1 - X0 + 4, 1);
+      g.fillStyle = burnt ? '#3a2422' : white ? '#e8f0f8' : '#8a4048'; g.fillRect(X0 - 2, ridge, X1 - X0 + 4, 1);
       g.fillStyle = '#1a0a0e'; g.fillRect(X0 - 2, RY1, X1 - X0 + 4, 2); // beiral
       g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(X0, RY1 + 2, X1 - X0, 3);
       // chaminé
@@ -657,6 +689,10 @@
     } else if (id === 'vila') { w.ash = 0.6; }
     else if (id === 'guerra') { w.ash = 1.8; w.fog = 'rgba(8,6,10,0.12)'; w.haze = 'rgba(0,0,0,0.14)'; w.storm = x >= 20; }   // névoa negra; trovões perto de Valdora
     else if (id === 'valdora') { w.ash = 3.2; w.haze = 'rgba(160,40,10,0.13)'; }                                         // a cidade em chamas
+    else if (id === 'estrada') { w.ash = 0; w.fog = 'rgba(200,230,200,0.04)'; }
+    else if (id === 'mar') { w.ash = 0; w.fog = 'rgba(160,180,220,0.08)'; w.haze = 'rgba(0,0,20,0.12)'; }
+    else if (id === 'cidade') { w.ash = F && F.id && G.state.flags.ch30 && !G.state.flags.fimLivro ? 2 : 0; w.haze = G.state.flags.ch30 && !G.state.flags.fimLivro ? 'rgba(60,0,20,0.12)' : null; }
+    else if (id === 'colheita') { w.ash = 1.4; w.haze = 'rgba(30,0,10,0.18)'; w.storm = true; }
     else if (id === 'ceus') { w.ash = 0; w.fog = 'rgba(255,255,255,0.14)'; w.haze = 'rgba(200,215,240,0.08)'; }
     return w;
   };
