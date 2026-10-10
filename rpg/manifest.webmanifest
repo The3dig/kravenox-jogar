@@ -1,0 +1,17 @@
+{
+  "name": "Kravenox: O Reino Quebrado",
+  "short_name": "Kravenox",
+  "description": "RPG baseado no livro Reino Quebrado.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#07050a",
+  "theme_color": "#07050a",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
