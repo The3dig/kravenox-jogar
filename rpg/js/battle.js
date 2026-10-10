@@ -152,6 +152,13 @@
         break;
       case 'violet':
         G.Audio.sfx('dark'); G.flash('#b26bff', 0.5); break;
+      case 'choice': case 'stars':
+        G.Audio.sfx(kind === 'stars' ? 'light' : 'memory'); G.flash(kind === 'stars' ? '#e8f0ff' : '#b8ffd0', 0.45);
+        for (const p of pts) addFx({ t: 0, life: 36, draw(ctx) { const k = this.t / this.life;
+          for (let i = 0; i < 12; i++) { const a = i * 0.52 + k * 3, r = 6 + 34 * k; ctx.globalAlpha = 1 - k; ctx.fillStyle = kind === 'stars' ? (i % 2 ? '#ffffff' : '#a8c8ff') : (i % 2 ? '#8affb0' : '#ffffff');
+            ctx.fillRect(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r * 0.8, i % 3 ? 1 : 2, i % 3 ? 1 : 2); }
+          X.glow(ctx, p.x, p.y, 20 + 20 * k, kind === 'stars' ? 'rgba(200,220,255,0.8)' : 'rgba(140,255,170,0.7)', 1 - k); ctx.globalAlpha = 1; } });
+        break;
       case 'heal': case 'memory': case 'shield':
         G.Audio.sfx(kind === 'memory' ? 'memory' : kind === 'shield' ? 'light' : 'heal');
         for (const p of pts) addFx({ t: 0, life: 40, draw(ctx) { const k = this.t / this.life;
@@ -180,6 +187,7 @@
 
   async function hurtEnemy(e, dmg, crit) {
     if (e.immune) { e.flash = 4; numFx(e.x, e.by - e.h - 4, 'nada', '#8a8aa8'); G.Audio.sfx('miss'); return; }   // o golpe atravessa a sombra
+    if (e.absorb) { const v = Math.round(dmg * e.absorb); e.hp = Math.min(e.maxhp, e.hp + v); e.flash = 6; numFx(e.x, e.by - e.h - 4, '+' + v, '#9aff8a'); G.Audio.sfx('heal'); B.absorbed = (B.absorbed || 0) + 1; return; }   // cada golpe o deixa mais forte
     e.hp = Math.max(0, e.hp - dmg); e.flash = 10; e.shake = 12;
     numFx(e.x, e.by - e.h - 4, String(dmg), crit ? '#ffcf6a' : '#ffffff');
     G.Audio.sfx(crit ? 'crit' : 'hit');
@@ -231,6 +239,9 @@
     for (;;) {
       const cmds = ['Atacar', 'Técnica', 'Item', 'Defender', 'Fugir'];
       const items = cmds.map((c, i) => ({ label: c, disabled: (i === 1 && D.techsOf(h).length === 0) || (i === 2 && !Object.keys(G.state.inv).some(k => G.state.inv[k] > 0)) || (i === 4 && B.opt.noEscape) }));
+      // Escolher: em algumas batalhas a resposta não é a força (Livro II)
+      const ch = B.opt.choose, canChoose = ch && (!ch.who || ch.who === h.id) && (!ch.when || ch.when(B));
+      if (canChoose) items.splice(4, 1, { label: ch.label || 'Escolher' });
       let pick = G.debug.auto ? (G.debug.battlePick ? G.debug.battlePick(h, B) : 0) : await G.menu({ x: 238, y: 12, w: 76, items, title: h.name, index: h.lastCmd || 0, cancel: idx > 0 });
       if (typeof pick === 'object' && pick) return pick;
       if (pick < 0) return null; // volta para o anterior
@@ -247,6 +258,10 @@
         const ii = await G.menu({ x: 70, y: 60, w: 168, title: 'Itens', items: keys.map(k => ({ label: D.ITEMS[k].name, right: 'x' + G.state.inv[k], disabled: D.ITEMS[k].target === 'fuga' && B.opt.noEscape })), help: i => D.ITEMS[keys[i]].desc, maxRows: 6 });
         if (ii >= 0) { const it = D.ITEMS[keys[ii]]; const tg = await pickTarget(it.target); if (tg) return { type: 'item', item: keys[ii], target: tg }; }
       } else if (pick === 3) return { type: 'guard' };
+      else if (pick === 4 && canChoose) {
+        const ci = await G.menu({ x: 40, y: 50, w: 240, title: ch.prompt || 'O que escolher?', items: ch.options.map(o => ({ label: o.label })), help: ch.options.some(o => o.help) ? (i => ch.options[i].help || '') : null });
+        if (ci >= 0) return { type: 'choose', opt: ci };
+      }
       else if (pick === 4) return { type: 'flee' };
     }
   }
@@ -284,7 +299,7 @@
       if (h.ep < T.ep) { await B.say('EP insuficiente.', 24); return; }
       h.ep -= T.ep;
       const hi2 = party().indexOf(h);
-      hs(hi2).cast = { kravenox: 'rgba(255,40,30,0.9)', thornox: 'rgba(255,214,110,0.9)', lyra: 'rgba(170,215,255,0.9)' }[h.id];
+      hs(hi2).cast = { kravenox: 'rgba(255,40,30,0.9)', thornox: 'rgba(255,214,110,0.9)', lyra: 'rgba(170,215,255,0.9)', seraphyne: 'rgba(170,110,255,0.9)', erya: 'rgba(140,255,170,0.9)', mae: 'rgba(255,240,200,0.9)', origem: 'rgba(200,220,255,0.95)' }[h.id];
       moveHero(hi2, HOME[hi2][0] - 12, HOME[hi2][1] - 6, 10);
       await B.say(h.name + ': ' + T.name + '!', 22);
       (async () => { await G.wait(30); hs(hi2).cast = null; await moveHero(hi2, HOME[hi2][0], HOME[hi2][1], 10); })();
@@ -298,7 +313,7 @@
       } else if (T.kind === 'cura') {
         const ts = tgt === 'all' ? alive(party()) : [tgt];
         playFx(T.fx, ts, true); await G.wait(10);
-        for (const p of ts) { const v = Math.round((h.mag * T.pow + T.base) * rnd()); p.hp = Math.min(p.maxhp, p.hp + v); numFx(heroAt(p).x, heroAt(p).y - 36, '+' + v, '#9aff8a'); }
+        for (const p of ts) { const v = Math.round((h.mag * T.pow + T.base) * rnd()); p.hp = Math.min(p.maxhp, p.hp + v); if (T.clear) p.status.sleep = 0; if (T.epGive) p.ep = Math.min(p.mep, p.ep + T.epGive); numFx(heroAt(p).x, heroAt(p).y - 36, '+' + v, '#9aff8a'); }
         await B.say(ts.length > 1 ? 'O grupo se recupera.' : ts[0].name + ' se recupera.', 28);
       } else if (T.kind === 'furia') {
         playFx('fury', [h], true);
@@ -325,6 +340,11 @@
       await G.useItemOn(act.item, tgt, true);
     } else if (act.type === 'guard') {
       // já aplicado no início da rodada
+    } else if (act.type === 'choose') {
+      const o = B.opt.choose.options[act.opt];
+      B.msg = null;
+      const r = await o.run(B, h);
+      if (r) B.forced = r;
     }
   }
   G.useItemOn = async function (key, tgt, inBattle) {
@@ -389,6 +409,7 @@
     B.opt = opt; B.enemies = ids.map((id, i) => mkEnemy(id, i, ids.length)); layout();
     if (opt.setup) opt.setup(B);
     HOME = party().length > 3 ? HOME4 : HOME3; B.noRegen = false;
+    B.forced = null; B.absorbed = 0; B.hinted = 0;
     B.fxs = []; B.msg = null; B.bg = opt.bg || 'planicie'; B.slotFlash = [0, 0, 0, 0]; B.turnHero = -1; B.hs = []; B.victory = false;
     for (const h of party()) { h.status = {}; h.lunge = 0; }
     const music = opt.music || (B.enemies.some(e => e.boss) ? 'chefe' : 'batalha');
@@ -436,6 +457,7 @@
       order.sort((a, b) => b.s - a.s);
       for (const o of order) {
         if (o.hero) await heroAct(o.hero, o.act); else await enemyAct(o.enemy);
+        if (B.forced) { result = B.forced; break; }
         const evr = await checkEvents(); if (evr) { result = evr; break; }
         if (!alive(B.enemies).length) { result = 'win'; break; }
         if (!alive(hs).length) { result = 'lose'; break; }
@@ -446,6 +468,7 @@
         const v = Math.round(e.maxhp * e.regen); e.hp = Math.min(e.maxhp, e.hp + v); numFx(e.x, e.by - e.h * 0.6, '+' + v, '#9aff8a'); G.Audio.sfx('heal'); await G.wait(10);
       }
       if (!result) { const evr = await checkEvents(); if (evr) result = evr; }
+      if (!result && opt.choose && opt.choose.hints) { const hh = opt.choose.hints[B.hinted]; if (hh && round >= hh.round && (!hh.when || hh.when(B))) { B.hinted++; await G.say(hh.who || null, hh.text); } }
     }
     B.turnHero = -1;
     if (result === 'win' && !opt.noRewards) await rewards();

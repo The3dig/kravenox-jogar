@@ -132,6 +132,7 @@
     if (m.theme === 'mar') { ctx.fillStyle = 'rgba(10,20,40,0.12)'; ctx.fillRect(0, 0, G.W, G.H); }
     if (m.theme === 'guerra') { ctx.fillStyle = 'rgba(30,10,20,0.1)'; ctx.fillRect(0, 0, G.W, G.H); }
     if (m.theme === 'valdora') { ctx.fillStyle = `rgba(255,80,20,${0.06 + 0.03 * Math.sin(G.time / 9)})`; ctx.fillRect(0, 0, G.W, G.H); }
+    if (m.tint) { ctx.fillStyle = typeof m.tint === 'function' ? m.tint() : m.tint; ctx.fillRect(0, 0, G.W, G.H); }
     if (L) Wd.lightning(ctx, this);
     vignette(ctx);
     if (G.debug.showPos) G.text(ctx, this.px + ',' + this.py, 4, 4, '#fff', 7);

@@ -20,6 +20,7 @@
     torreNegra: { stone: [34, 26, 30], stoneVar: 0.18, mortar: [6, 2, 4], floor: [24, 18, 22], ceil: [10, 6, 8], acc: [255, 40, 40], kind: 'veias', light: [220, 160, 160] },
     raizes: { stone: [150, 146, 136], stoneVar: 0.14, mortar: [60, 54, 44], floor: [64, 54, 40], ceil: [30, 26, 20], acc: [255, 236, 170], kind: 'raizes', light: [255, 240, 200] },
   };
+  G.DUN_THEMES = THEMES;   // o Livro II acrescenta os seus
   const themeOf = id => (THEMES[id] ? id : 'abismo');
   const rgba = (r, g, b) => (255 << 24) | (Math.max(0, Math.min(255, b | 0)) << 16) | (Math.max(0, Math.min(255, g | 0)) << 8) | Math.max(0, Math.min(255, r | 0));
   const mul = (c, f) => [c[0] * f, c[1] * f, c[2] * f];

@@ -319,6 +319,7 @@
     for (const n of ['ecoAntigo', 'raizJovem', 'estatuaGuerreiro', 'fragmentoMar', 'afogadoAntigo', 'pintura', 'memoriaCrianca', 'sombraQuatro', 'sementeVazio', 'correnteViva', 'carcereiro', 'devorador', 'reiVazio']) names.push('e_' + n);
     for (const n of ['sentinelaG', 'cinzento', 'raizGuerra', 'sentinelaV', 'sombraRua', 'cristalVazio', 'guardaAntigo', 'simbolo', 'ossoNegro', 'respiracao', 'raizAntiga', 'servo', 'guardiaoAzul', 'olhoBranco', 'escolhido', 'raizMorta', 'luzApagada', 'seraphyne', 'coracao', 'kfuturo', 'primeiro']) names.push('e_' + n);
     names.push('k_desperto');
+    for (const n of (X.extraImages || [])) names.push(n);   // imagens do Livro II
     for (const p of ['k', 'kp', 't']) for (const d of ['down', 'up', 'left', 'right']) for (const f of [0, 1]) names.push(p + '_' + d + '_' + f);
     return Promise.all(names.map(n => new Promise(res => { const im = new Image(); im.onload = () => { X.imgs[n] = im; res(); }; im.onerror = () => res(); im.src = 'img/' + n + '.png?v=' + (window.KRAVENOX_V || ''); })));
   };
@@ -502,6 +503,18 @@
     };
   }
   X.P = P;
+  // retrato desenhado (img/p_<key>.png) com fundo em degradê e brilho; se faltar a imagem, um busto simples
+  X.addPortrait = function (key, b0, gl, fb) {
+    P[key] = function (ctx, x, y, t) {
+      const im = X.imgs['p_' + key];
+      const gr = ctx.createLinearGradient(0, y, 0, y + 48); gr.addColorStop(0, b0); gr.addColorStop(1, '#050204'); ctx.fillStyle = gr; ctx.fillRect(x, y, 48, 48);
+      const r = parseInt(gl.slice(1, 3), 16), g2 = parseInt(gl.slice(3, 5), 16), b2 = parseInt(gl.slice(5, 7), 16);
+      X.glow(ctx, x + 24, y + 22, 24, `rgba(${r},${g2},${b2},0.3)`, 0.6 + 0.25 * Math.sin(t / 25));
+      if (im) ctx.drawImage(im, x, y);
+      else if (fb && P[fb]) P[fb](ctx, x, y, t);
+    };
+    return P[key];
+  };
   G.portraitFor = function (name) {
     const map = { 'Kravenox': G.state && G.state.flags.prata ? 'kravenoxP' : 'kravenox', 'Thornox': 'thornox', 'Lyra': 'lyra', 'Lira': G.state && G.state.flags.liraDourada ? 'lira2' : 'lira',
       'Mulher das Raízes': 'ancia', 'Guardião Branco': G.state && G.state.flags.semMascara ? 'guardiao2' : 'guardiao', 'Sentinela': 'sentinela', 'Sentinela sem Rosto': 'semrosto',
@@ -702,6 +715,7 @@
     caminhos: { floor: [150, 146, 136], stone: [170, 166, 156], vein: [255, 210, 110], indoor: true },
     torreNegra: { floor: [34, 26, 30], stone: [44, 34, 40], vein: [255, 40, 40], indoor: true },
   };
+  X.ARENA = ARENA;   // o Livro II acrescenta as suas arenas
   X.drawArena = function (ctx, name, t, h) {
     const A = ARENA[name] || ARENA.planicie;
     const key = 'arena' + name + h;
