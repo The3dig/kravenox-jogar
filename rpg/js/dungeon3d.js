@@ -16,6 +16,8 @@
     escadaria: { stone: [104, 92, 78], stoneVar: 0.18, mortar: [30, 22, 16], floor: [76, 64, 52], ceil: [40, 30, 22], acc: [255, 196, 90], kind: 'veias', light: [255, 190, 120] },
     passagem: { stone: [46, 44, 52], stoneVar: 0.16, mortar: [8, 8, 12], floor: [30, 28, 34], ceil: [12, 12, 16], acc: [235, 235, 255], kind: 'veias', light: [200, 205, 225] },
     fortaleza: { stone: [40, 46, 62], stoneVar: 0.2, mortar: [10, 12, 20], floor: [30, 34, 46], ceil: [14, 16, 24], acc: [110, 180, 255], kind: 'cristais', light: [150, 190, 255] },
+    caminhos: { stone: [170, 168, 160], stoneVar: 0.12, mortar: [80, 76, 70], floor: [120, 116, 108], ceil: [60, 58, 54], acc: [255, 210, 110], kind: 'veias', light: [255, 245, 225] },
+    torreNegra: { stone: [34, 26, 30], stoneVar: 0.18, mortar: [6, 2, 4], floor: [24, 18, 22], ceil: [10, 6, 8], acc: [255, 40, 40], kind: 'veias', light: [220, 160, 160] },
     raizes: { stone: [150, 146, 136], stoneVar: 0.14, mortar: [60, 54, 44], floor: [64, 54, 40], ceil: [30, 26, 20], acc: [255, 236, 170], kind: 'raizes', light: [255, 240, 200] },
   };
   const themeOf = id => (THEMES[id] ? id : 'abismo');

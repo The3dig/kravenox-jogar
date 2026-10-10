@@ -122,11 +122,24 @@
     G.fadeA = 1;
     // quem terminou a Parte 1 continua direto na Parte 2
     if (st.flags.fim && !st.flags.p2) { G.run(() => G.story.parte2()); return; }
+    if (st.flags.fim2 && !st.flags.p3) { G.run(() => G.story.parte3()); return; }
     if (l.mode === 'dungeon') G.enterDungeon(l.map, l.x, l.y, l.dir); else G.enterField(l.map, l.x, l.y, l.dir);
     G.run(() => G.fade(0, 30));
   };
   G.credits = async function (part = 1) {
-    const lines = part === 2 ? [
+    const lines = part === 3 ? [
+      ['FIM DO LIVRO I', '#ffcf6a', 16],
+      ['Kravenox: O Reino Quebrado', '#e8d8c0', 11],
+      ['', '', 6],
+      ['Partes 1, 2 e 3 — capítulos 1 a 35 de', '#a89a8a', 8],
+      ['"Reino Quebrado" (Livro I)', '#e8d8c0', 9],
+      ['', '', 6],
+      ['A história continua no Livro II:', '#a89a8a', 8],
+      ['O Reino da Escolha', '#c9a24a', 12],
+      ['', '', 6],
+      ['Uma história de Rone Ignacio da Silva', '#c9bfd8', 8],
+      ['Kravenox nasceu de um desenho de escola, há 45 anos.', '#8a7a8a', 7],
+    ] : part === 2 ? [
       ['FIM DA PARTE 2', '#ffcf6a', 16],
       ['Kravenox: O Reino Quebrado', '#e8d8c0', 11],
       ['', '', 8],
@@ -158,14 +171,14 @@
       let y = 28;
       lines.forEach(([s, c, sz], i) => { ctx.globalAlpha = G.clamp((this.t - i * 14) / 30, 0, 1); if (s) G.text(ctx, s, G.W / 2, y, c, sz, 'center', i === 0); y += sz + 7; });
       ctx.globalAlpha = 1;
-      if (this.t > 200) G.text(ctx, part === 1 ? 'A: continuar' : 'A: voltar ao título', G.W / 2, G.H - 14, '#5a4a5a', 7, 'center');
+      if (this.t > 200) G.text(ctx, part < 3 ? 'A: continuar' : 'A: voltar ao título', G.W / 2, G.H - 14, '#5a4a5a', 7, 'center');
     } };
     G.fadeA = 0;
     await new Promise(r => { ov.done = r; G.push(ov); });
     if (G.gfx.imgs.desenho) await G.showImage(G.gfx.imgs.desenho, 'Kravenox nasceu de um desenho de escola, há 45 anos.');
-    if (part === 1) {
-      const i = await G.choose('A história continua. Começar a Parte 2 agora?', ['Começar a Parte 2', 'Voltar ao título']);
-      if (i === 0) { await G.story.parte2(); return; }
+    if (part === 1 || part === 2) {
+      const i = await G.choose('A história continua. Começar a Parte ' + (part + 1) + ' agora?', ['Começar a Parte ' + (part + 1), 'Voltar ao título']);
+      if (i === 0) { await G.story['parte' + (part + 1)](); return; }
     }
     G.titleScreen();
   };
