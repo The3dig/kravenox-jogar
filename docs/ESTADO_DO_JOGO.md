@@ -25,8 +25,8 @@
   pessoa, batalhas por turnos), com batalha em arena isométrica inspirada em **Super Mario RPG**.
 - **Origem:** o Kravenox nasceu de um **desenho de caneta azul numa brincadeira de escola, há 45 anos**.
   Virou o romance *"Reino Quebrado — A Lenda dos Irmãos Espinhos"*, e agora vira jogo.
-- **Escopo atual:** **Parte 1 — "A Fonte"**, que cobre os **capítulos 1 a 13** do livro. A Parte 2 ("O Reino
-  em Guerra") cobrirá do capítulo 14 em diante, incluindo o encontro com o pai.
+- **Escopo atual:** os **dois livros completos**: o Livro I (35 capítulos, três partes) e o Livro II, *O Reino da
+  Escolha* (41 capítulos, três partes), que fecha a história.
 - **Plataforma:** página web (HTML5 + JavaScript puro, sem motor externo), publicada no GitHub Pages.
   Funciona no celular com controle na tela (direcional + A/B) e no PC com teclado.
 - **Filosofia de design pedida pelo autor:** *"nada de facilidades dos jogos atuais"*. Sem minimapa com
@@ -98,6 +98,43 @@ novos, chefe imune até a virada da história, 6 músicas novas.
 Novidades da Parte 2: **Seraphyne** jogável (grupo de 4), 8 músicas novas, 3 campos e 4 masmorras novas,
 18 inimigos e 5 chefes novos, técnicas novas (Cúpula Prateada, Quatro Espinhos, Quarta Essência, Onda de Luz,
 Muralha de Luz, Mil Memórias e as da Seraphyne), inimigos que se regeneram e duelo solo.
+
+---
+
+## 2d. Livro II — O Reino da Escolha (capítulos 1–41) — o jogo inteiro termina aqui
+
+> O **Livro I** continua intacto e é preservado como o **primeiro jogo oficial** do projeto. Na tela inicial,
+> o jogador escolhe **Livro I** ou **Livro II**; cada livro tem o **próprio registro** (um não apaga o outro),
+> e o código de "Passar registro" diz de qual livro é (KRV1 ou KRV2).
+
+Começa logo depois do Livro I: o grupo está no nível 38, com o equipamento final do Livro I, numa cidade
+que ninguém nomeou. A nova mecânica é o comando **Escolher** na batalha: em certas lutas, vencer na força
+não resolve, e o jogador precisa perceber que a resposta é outra (baixar as armas, escrever "NÃO SEI",
+escrever "CONTINUAR", não escrever nada). Os personagens dão dicas se o jogador demorar.
+
+| Parte | Capítulos | Grupo | Momentos marcantes |
+|---|---|---|---|
+| 1 — O Reino da Escolha | 1–14 | Kravenox, Thornox, Lyra, Seraphyne | o irmão que morreu; o Último Rei; Rei das Asas (Kravenox sozinho); o Primeiro Mundo; o Primeiro Irmão; **o Entre** (Kravenox sozinho) e a libertação da **Mãe** |
+| 2 — O Mundo sem Nome | 15–22 | Kravenox, Thornox, Seraphyne, Erya → Mãe | despedida de Lyra; Cidade dos Espinhos; o Rei do Último Mundo (o Kravenox que venceu pelo medo); o pai; a Biblioteca do Fim e o Primeiro Leitor |
+| 3 — O que Fica Depois do Fim | 23–41 | Kravenox, Thornox, Erya, Mãe → Origem | Auren; o destino de Thornox (sozinho); a porta dentro de Thornox (Kravenox sozinho); a despedida dos pais; Liora; Aveline; o Primeiro Kravenox; o Último Inimigo; o mundo verde; a volta de Seraphyne, Aster e **Lyra** |
+
+Capítulos: 1 A Cidade sem Nome · 2 O Irmão que Morreu · 3 O Último Rei · 4 A Guerra dos Mundos · 5 O Terceiro
+Espinho · 6 O Primeiro Mundo · 7 Aquilo que Sou · 8 O Nascimento do Caos · 9 A Cidade que Não Existia · 10 O Pai
+dos Devoradores · 11 A Prisão entre Mundos · 12 A Porta · 13 A Primeira Origem · 14 Os Antigos · 15 O Mundo sem
+Nome · 16 A Cidade dos Espinhos · 17 O Homem Antes do Rei · 18 O Rei do Último Mundo · 19 A Escolha que Não Foi
+Sua · 20 Quando a Fonte Morreu · 21 A Biblioteca do Fim · 22 O Primeiro Leitor · 23 O Mundo Depois do Fim · 24
+Aquele que Existia Antes · 25 O Livro de Thornox · 26 O Destino de Thornox · 27 A Estrada entre as Estrelas · 28 A
+Porta Dentro de Thornox · 29 O que a Fonte Escondeu · 30 O Caminho até o Fim · 31 O Começo Depois do Fim · 32 Um
+Mundo sem Nome · 33 A Menina que Lembrava · 34 Aveline · 35 A Última Escolha de Aveline · 36 A Estrela Azul · 37 O
+Primeiro Kravenox · 38 A Escolha que Faltava · 39 O Último Inimigo · 40 O Mundo Verde · 41 O que Fica Depois do Fim.
+
+**Novidades do Livro II:** 3 personagens jogáveis novos (Erya, a Mãe, a Origem), 24 técnicas, cerca de 66
+inimigos e chefes, 14 regiões e 7 masmorras novas, 16 músicas novas, 33 cenários de cena e pontos de retorno
+antes de cada luta decisiva (perder volta para logo antes da luta, não horas atrás). Há também um **depois
+do fim**: quem continuar jogando encontra o grupo inteiro em paz na Cidade sem Nome.
+
+**Teste:** um robô joga o Livro II inteiro com progressão natural (lutas aleatórias, compras, descanso). A
+cada passo, ele confere se tudo o que o jogador precisa (pessoas, portas, gatilhos, baús) é alcançável a pé.
 
 ---
 
@@ -283,7 +320,7 @@ raízes, partículas e legendas.
   substituí-los por arte própria (como já existe para o Kravenox).
 - O mapa do mundo é **um só** (40×30 tiles), mais Vila, Casa e Vale. Não há mundo aberto grande.
 - **Não há missões paralelas**, colecionáveis com recompensa, bestiário, diário ou mapa.
-- Um único espaço de save, guardado no navegador (trocar de aparelho perde o progresso).
+- Um espaço de save por livro, guardado no navegador (o código de "Passar registro" leva o progresso para outro aparelho).
 - Sem opções de acessibilidade (tamanho de texto, cores, legendas de som).
 - Sem dublagem (todo diálogo é texto).
 - As músicas são sintetizadas por computador; soam bem, mas não como uma gravação de orquestra ou banda real.
@@ -293,7 +330,7 @@ raízes, partículas e legendas.
 ## 11. Planos já combinados
 - ✅ **Parte 2** (capítulos 14–25) pronta, com o encontro com o pai e o Kravenox de armadura.
 - ✅ **Parte 3** (capítulos 26–35) pronta: o **Livro I inteiro** está jogável, do Abismo Carmesim ao novo Reino.
-- **Livro II — O Reino da Escolha** depois, como jogo seguinte.
+- ✅ **Livro II — O Reino da Escolha** pronto (41 capítulos), com final e créditos. O Livro I segue jogável como o primeiro jogo.
 - **Mundo expandido:** existe uma planilha do autor com o universo do jogo, com a ideia de mundo aberto e
   masmorras opcionais, possivelmente em **Godot**.
 - **Filme medieval de ~2h30** ao final de tudo, para publicar em plataforma de vídeo.

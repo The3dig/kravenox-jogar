@@ -30,14 +30,22 @@
     G.scene = C.prev;
   };
   // legenda dentro da faixa de baixo; espera A (ou some sozinha no modo automático)
-  C.caption = function (text, minFrames = 50) {
+  // texto longo vira páginas de duas linhas (cada página espera A)
+  let measure = null;
+  C.caption = async function (text, minFrames = 50) {
+    if (!measure) measure = X.canvas(8, 8)[1];
+    const ls = G.wrap(measure, text, G.W - 30, 8.5), pages = [];
+    for (let i = 0; i < ls.length; i += 2) pages.push(ls.slice(i, i + 2).join('\n'));
+    for (let p = 0; p < pages.length; p++) await capPage(pages[p], p < pages.length - 1 ? Math.min(minFrames, 40) : minFrames);
+  };
+  function capPage(text, minFrames) {
     return new Promise(res => {
       C.cap = { text, t: 0 };
       let t = 0;
       const ov = { update() { t++; if (G.debug.auto || (t > minFrames && (G.Input.pressed.a || G.Input.pressed.b)) || t > minFrames + 420) { G.pop(ov); if (C.cap && C.cap.text === text) C.cap = null; res(); } }, draw() {} };
       G.push(ov);
     });
-  };
+  }
   C.burst = function (x, y, n, color, o = {}) {
     for (let i = 0; i < n; i++) {
       const a = o.up ? -Math.PI / 2 + (Math.random() - 0.5) * (o.spread || 1.2) : Math.random() * Math.PI * 2;

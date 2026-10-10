@@ -260,7 +260,9 @@
   D.healAll = function () { for (const h of G.state.party) { h.alive = true; h.hp = h.maxhp; h.ep = h.mep; h.status = {}; } };
   D.give = function (item, n = 1) { const inv = G.state.inv; inv[item] = (inv[item] || 0) + n; };
 
-  D.SAVEKEY = 'kravenox_reino_quebrado_v1';
+  // cada livro tem seu próprio registro: começar o Livro II não apaga o Livro I
+  D.SAVEKEYS = { 1: 'kravenox_reino_quebrado_v1', 2: 'kravenox_reino_escolha_v1' };
+  Object.defineProperty(D, 'SAVEKEY', { get: () => D.SAVEKEYS[G.book === 2 ? 2 : 1] });
   D.save = function () {
     try { localStorage.setItem(D.SAVEKEY, JSON.stringify(G.state)); return true; } catch (e) { return false; }
   };

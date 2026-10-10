@@ -34,11 +34,12 @@
       // brasas
       for (let i = 0; i < 30; i++) { const x = (i * 71 + t * (0.2 + (i % 5) * 0.08)) % G.W, y = G.H - ((i * 43 + t * (0.3 + (i % 3) * 0.2)) % G.H); ctx.fillStyle = i % 3 ? '#ff5a2a' : '#ffcf6a'; ctx.globalAlpha = 0.5; ctx.fillRect(x, y, 1, 1); }
       ctx.globalAlpha = 1;
+      if (G.book === 2) { ctx.fillStyle = 'rgba(60,40,140,0.22)'; ctx.fillRect(0, 0, G.W, G.H); }
       G.text(ctx, 'KRAVENOX', G.W / 2, 22, '#e8d8c0', 30, 'center', true);
-      G.text(ctx, 'O REINO QUEBRADO', G.W / 2, 56, '#c9a24a', 12, 'center', true);
-      G.text(ctx, 'Parte 1 — A Fonte', G.W / 2, 71, '#a07a6a', 8, 'center');
+      if (G.book === 2) { G.text(ctx, 'O REINO DA ESCOLHA', G.W / 2, 56, '#b8a8ff', 12, 'center', true); G.text(ctx, 'Livro II', G.W / 2, 71, '#8a7aa8', 8, 'center'); }
+      else { G.text(ctx, 'O REINO QUEBRADO', G.W / 2, 56, '#c9a24a', 12, 'center', true); G.text(ctx, 'Livro I', G.W / 2, 71, '#a07a6a', 8, 'center'); }
       const v = +window.KRAVENOX_V; if (v > 1e9) { const d = new Date(v * 1000), z = n => String(n).padStart(2, '0'); G.text(ctx, 'versão ' + z(d.getDate()) + '/' + z(d.getMonth() + 1) + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()), G.W - 4, G.H - 22, '#8a7078', 6, 'right'); }
-      G.text(ctx, 'baseado no romance "Reino Quebrado — A Lenda dos Irmãos Espinhos"', G.W / 2, G.H - 11, '#5a3a40', 6.5, 'center');
+      G.text(ctx, G.book === 2 ? 'baseado no romance "Reino Quebrado II — O Reino da Escolha"' : 'baseado no romance "Reino Quebrado — A Lenda dos Irmãos Espinhos"', G.W / 2, G.H - 11, '#5a3a40', 6.5, 'center');
       let off = null; try { off = localStorage.getItem('kravenox_offline'); } catch (e) {}
       if (off && off === String(window.KRAVENOX_V)) G.text(ctx, '✓ pronto para jogar sem internet', 4, G.H - 22, '#6a9a7a', 6, 'left');
       else if (navigator.onLine === false) G.text(ctx, 'jogando sem internet', 4, G.H - 22, '#8a7078', 6, 'left');
@@ -95,28 +96,37 @@
       }
     }
   };
+  // Tela título: primeiro escolhe o livro, depois começa ou continua. Cada livro tem seu registro.
+  const BOOKS = ['Livro I — O Reino Quebrado', 'Livro II — O Reino da Escolha'];
+  const lastBook = () => { try { return +localStorage.getItem('kravenox_livro') === 2 ? 2 : 1; } catch (e) { return 1; } };
   G.titleScreen = async function () {
     G.overlays.length = 0; G.lock = 0;
     G.scene = Title; G.fadeA = 0; G.Audio.play('title');
     for (;;) {
+      G.book = G.book || lastBook();
+      const b = await G.menu({ x: G.W / 2 - 78, y: 146, w: 156, items: [{ label: BOOKS[0] }, { label: BOOKS[1] }, { label: 'Passar registro' }], index: G.book - 1, cancel: false });
+      if (b === 2) { await G.transferSave(); continue; }
+      G.book = b + 1; try { localStorage.setItem('kravenox_livro', String(G.book)); } catch (e) {}
       const has = D.hasSave();
-      const i = await G.menu({ x: G.W / 2 - 60, y: 152, w: 120, items: [{ label: 'Novo jogo' }, { label: 'Continuar', disabled: !has }, { label: 'Passar registro' }], index: has ? 1 : 0, cancel: false });
-      if (i === 2) { await G.transferSave(); continue; }
+      const i = await G.menu({ x: G.W / 2 - 50, y: 152, w: 100, title: G.book === 2 ? 'Livro II' : 'Livro I', items: [{ label: 'Novo jogo' }, { label: 'Continuar', disabled: !has }, { label: 'Voltar' }], index: has ? 1 : 0 });
+      if (i < 0 || i === 2) continue;
       if (i === 0) {
-        if (has) { const c = await G.choose('Começar de novo apaga o registro atual. Tem certeza?', ['Não', 'Sim']); if (c !== 1) continue; }
+        if (has) { const c = await G.choose('Começar de novo apaga o registro deste livro. Tem certeza?', ['Não', 'Sim']); if (c !== 1) continue; }
         G.newGame(); return;
       }
       if (i === 1) { G.loadGame(); return; }
     }
   };
   // Passar o registro de um lugar para outro (do Safari para o app da tela de início, ou para outro aparelho):
-  // o registro vira um código de texto que se copia e cola.
+  // o registro vira um código de texto que se copia e cola. KRV1 = Livro I, KRV2 = Livro II.
   G.transferSave = async function () {
     const c = await G.choose('Passar o registro para outro lugar ou aparelho.', ['Copiar meu registro', 'Colar um registro', 'Voltar'], { w: 150 });
     if (c === 0) {
-      let raw = null; try { raw = localStorage.getItem(D.SAVEKEY); } catch (e) {}
-      if (!raw) { await G.say(null, 'Ainda não há registro neste aparelho.'); return; }
-      const code = 'KRV1' + btoa(unescape(encodeURIComponent(raw)));
+      const bk = await G.choose('Copiar o registro de qual livro?', ['Livro I', 'Livro II', 'Voltar'], { w: 120 });
+      if (bk === 2 || bk < 0) return;
+      let raw = null; try { raw = localStorage.getItem(D.SAVEKEYS[bk + 1]); } catch (e) {}
+      if (!raw) { await G.say(null, 'Ainda não há registro deste livro neste aparelho.'); return; }
+      const code = 'KRV' + (bk + 1) + btoa(unescape(encodeURIComponent(raw)));
       let ok = false; try { if (navigator.clipboard) { await navigator.clipboard.writeText(code); ok = true; } } catch (e) {}
       if (!ok) window.prompt('Copie este código (toque e segure, Selecionar tudo, Copiar):', code);
       await G.say(null, ok ? 'Código do registro copiado! Agora abra o jogo no outro lugar, toque em "Passar registro" e depois em "Colar um registro".' : 'Depois de copiar, abra o jogo no outro lugar e use "Colar um registro".');
@@ -124,15 +134,18 @@
       const t = (window.prompt('Cole aqui o código do registro:') || '').trim();
       if (!t) return;
       try {
-        const raw = decodeURIComponent(escape(atob(t.replace(/^KRV1/, '').replace(/\s+/g, ''))));
+        const bk = /^KRV2/.test(t) ? 2 : 1;
+        const raw = decodeURIComponent(escape(atob(t.replace(/^KRV[12]/, '').replace(/\s+/g, ''))));
         const st = JSON.parse(raw); if (!st.party || !st.flags) throw new Error('inválido');
-        if (D.hasSave()) { const k = await G.choose('Isso substitui o registro deste aparelho. Continuar?', ['Não', 'Sim']); if (k !== 1) return; }
-        localStorage.setItem(D.SAVEKEY, raw); G.Audio.sfx('save');
-        await G.say(null, 'Registro recebido! Escolha "Continuar".');
+        let has = false; try { has = !!localStorage.getItem(D.SAVEKEYS[bk]); } catch (e) {}
+        if (has) { const k = await G.choose('Isso substitui o registro do Livro ' + (bk === 2 ? 'II' : 'I') + ' deste aparelho. Continuar?', ['Não', 'Sim']); if (k !== 1) return; }
+        localStorage.setItem(D.SAVEKEYS[bk], raw); G.Audio.sfx('save');
+        await G.say(null, 'Registro do Livro ' + (bk === 2 ? 'II' : 'I') + ' recebido! Escolha o livro e depois "Continuar".');
       } catch (e) { await G.say(null, 'Esse código não parece um registro do Kravenox. Copie de novo, inteiro.'); }
     }
   };
   G.newGame = function () {
+    if (G.book === 2) { G.state = D.newState2(); G.run(() => G.story.livro2()); return; }
     G.state = D.newState();
     G.run(async () => {
       G.fadeA = 1;
@@ -148,9 +161,10 @@
     G.overlays.length = 0;
     const l = st.loc;
     G.fadeA = 1;
+    if (G.book === 2 && G.story.resume2 && G.story.resume2(st)) return;
     // quem terminou a Parte 1 continua direto na Parte 2
-    if (st.flags.fim && !st.flags.p2) { G.run(() => G.story.parte2()); return; }
-    if (st.flags.fim2 && !st.flags.p3) { G.run(() => G.story.parte3()); return; }
+    if (G.book !== 2 && st.flags.fim && !st.flags.p2) { G.run(() => G.story.parte2()); return; }
+    if (G.book !== 2 && st.flags.fim2 && !st.flags.p3) { G.run(() => G.story.parte3()); return; }
     if (l.mode === 'dungeon') G.enterDungeon(l.map, l.x, l.y, l.dir); else G.enterField(l.map, l.x, l.y, l.dir);
     G.run(() => G.fade(0, 30));
   };
@@ -164,6 +178,7 @@
       ['', '', 6],
       ['A história continua no Livro II:', '#a89a8a', 8],
       ['O Reino da Escolha', '#c9a24a', 12],
+      ['(escolha "Livro II" na tela inicial)', '#8a7a8a', 7],
       ['', '', 6],
       ['Uma história de Rone Ignacio da Silva', '#c9bfd8', 8],
       ['Kravenox nasceu de um desenho de escola, há 45 anos.', '#8a7a8a', 7],

@@ -140,6 +140,9 @@
     pitDeep: ramp(['#000000', '#030103', '#060206', '#0a030a', '#12040e', '#2a0614']),
   });
 
+  // os temas do Livro II são acrescentados de fora (js/l2maps.js)
+  Wd.TH = TH; Wd.ramp = ramp; Wd.rgb = rgb;
+
   function material(c, theme) {
     if (c === '^' || c === 'A') return 'mtn';
     if (c === '~' || c === 'B') return 'pit';
@@ -679,6 +682,7 @@
   // ---------- clima por região ----------
   Wd.weather = function (F) {
     const id = F && F.id, x = F ? F.px : 0, y = F ? F.py : 0, w = { ash: 1, fog: null, haze: null, storm: false };
+    if (F && F.map && F.map.weather) return Object.assign(w, F.map.weather(x, y));
     if (id === 'reino') {
       if (y >= 19 && x <= 12) { w.ash = 3; w.haze = 'rgba(140,30,20,0.12)'; }                       // perto do Abismo: tempestade de cinzas
       else if (x >= 22 && y <= 17) { w.ash = 0.4; w.fog = 'rgba(90,70,120,0.08)'; w.haze = 'rgba(0,0,0,0.12)'; }   // floresta morta

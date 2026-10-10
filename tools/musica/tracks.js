@@ -361,4 +361,176 @@ window.KTRACKS = {
       { type: 'timp', vol: 0.3, every: 4, oct: 2, wet: 0.6 },
       { type: 'melody', inst: 'flute', vol: 0.17, wet: 0.55, notes: 'A4:2 C5:1 F5:1 | E5:2 G5:2 | F5:3 D5:1 | D5:4 | A4:2 C5:1 F5:1 | G5:2 E5:1 C5:1 | D5:2 Bb4:2 | C5:4 | F5:2 E5:1 D5:1 | C5:2 A4:2 | Bb4:2 D5:1 F5:1 | A5:4 | G5:2 F5:1 D5:1 | F5:2 D5:2 | E5:2 G5:2 | F5:4' },
     ] },
+
+  // ================= LIVRO II — O REINO DA ESCOLHA =================
+  // O Reino da Escolha: esperança nova, céu violeta. O tema do Kravenox em maior, pela primeira vez.
+  escolha: { bpm: 88, reverb: 4, wet: 0.5, rms: 0.13,
+    chords: ['D', 'A', 'Bm', 'G', 'D', 'A', 'G', 'A', 'Bm', 'F#m', 'G', 'D', 'Em', 'G', 'A', 'A'],
+    layers: [
+      { type: 'arp', inst: 'harp', oct: 3, vol: 0.12, div: 2, pat: [0, 1, 2, 3, 2, 1, 2, 1], wet: 0.45 },
+      { type: 'pad', inst: 'strings', oct: 3, vol: 0.1, wet: 0.5 },
+      { type: 'bass', inst: 'bass', oct: 2, vol: 0.17, pat: 'x---x---' },
+      { type: 'drums', vol: 0.3, from: 8, bus: 'kit', wet: 0.3, pat: { k: 'X.......x.......', s: '........X.......' } },
+      { type: 'melody', inst: 'flute', vol: 0.18, wet: 0.5, notes: 'D5:2 F#5:1 A5:1 | G#5:1.5 A5:0.5 F#5:1 E5:1 | D5:3 r:1 | B4:4 | D5:2 F#5:1 A5:1 | B5:2 A5:1 G5:1 | F#5:2 E5:2 | E5:4 | F#5:2 D5:1 B4:1 | C#5:2 A4:2 | B4:2 D5:1 G5:1 | F#5:4 | E5:2 G5:1 B5:1 | A5:2 G5:1 F#5:1 | E5:2 C#5:2 | A4:4' },
+      { type: 'melody', inst: 'horn', vol: 0.1, from: 8, wet: 0.5, shift: -12, notes: 'F#5:2 D5:1 B4:1 | C#5:2 A4:2 | B4:2 D5:1 G5:1 | F#5:4 | E5:2 G5:1 B5:1 | A5:2 G5:1 F#5:1 | E5:2 C#5:2 | A4:4' },
+    ] },
+  // A Guerra dos Mundos: exércitos descendo dos portais.
+  guerraMundos: { bpm: 126, reverb: 3, wet: 0.35, rms: 0.17,
+    chords: ['Dm', 'Dm', 'Bb', 'C', 'Dm', 'Dm', 'Gm', 'A', 'Bb', 'C', 'Dm', 'Dm', 'Bb', 'Gm', 'A', 'A'],
+    layers: [
+      { type: 'chug', inst: 'guitar', vol: 0.36, oct: 2, pat: 'x.x.x.xxx.x.x.xx', pan: -0.6, bus: 'gL', wet: 0.08 },
+      { type: 'chug', inst: 'guitar', vol: 0.36, oct: 2, pat: 'x.x.x.xxx.x.x.xx', pan: 0.6, bus: 'gR', wet: 0.08 },
+      { type: 'bass', inst: 'bass', oct: 1, vol: 0.34, pat: 'x.x.x.xxx.x.x.xx' },
+      { type: 'drums', vol: 0.6, bus: 'kit', wet: 0.12, pat: { k: 'X..xX..xX..xX..x', s: '....X.......X...', h: 'x.x.x.x.x.x.x.x.' }, fillEvery: 4, fill: { s: '....X...XxXxXXXX', c: 'X...............' } },
+      { type: 'pad', inst: 'choir', oct: 4, vol: 0.13, voicing: [0, 1, 2, 3], wet: 0.6 },
+      { type: 'timp', vol: 0.5, every: 2, oct: 2 },
+      { type: 'melody', inst: 'horn', vol: 0.16, wet: 0.4, notes: 'D5:2 A4:1 D5:1 | F5:2 E5:2 | D5:2 F5:1 Bb5:1 | A5:2 G5:2 | F5:2 E5:1 D5:1 | C#5:2 E5:2 | D5:2 Bb4:2 | A4:4 | Bb4:2 D5:1 F5:1 | E5:2 C5:2 | D5:2 F5:1 A5:1 | A5:4 | Bb5:2 A5:1 G5:1 | G5:2 D5:2 | E5:2 C#5:2 | A4:4' },
+    ] },
+  // O Primeiro Mundo: perfeito e vazio, um órgão antigo e uma caixinha de música.
+  primeiroMundo: { bpm: 60, reverb: 7, wet: 0.75, rms: 0.11,
+    chords: ['Am', 'Am', 'F', 'F', 'C', 'C', 'G', 'E', 'Am', 'Am', 'Dm', 'Dm', 'F', 'G', 'E', 'E'],
+    layers: [
+      { type: 'pad', inst: 'organ', oct: 3, vol: 0.1, every: 2, wet: 0.75 },
+      { type: 'arp', inst: 'musicbox', oct: 5, vol: 0.08, div: 2, pat: [0, 2, 1, 2], wet: 0.8 },
+      { type: 'pad', inst: 'choir', oct: 4, vol: 0.06, every: 4, wet: 0.9, vow: 'o' },
+      { type: 'melody', inst: 'piano', vol: 0.12, wet: 0.8, from: 4, notes: 'E5:3 C5:1 | A4:4 | r:4 | B4:2 E4:2 | E5:3 D5:1 | C5:2 A4:2 | F4:4 | G#4:4 | A4:3 C5:1 | B4:4 | r:4 | G#4:4' },
+    ] },
+  // Caos: todas as possibilidades ao mesmo tempo — ritmo instável, sinos e coral desencontrados.
+  caos: { bpm: 138, reverb: 3.5, wet: 0.45, rms: 0.17,
+    chords: ['Em', 'F', 'Em', 'Bb', 'Em', 'F', 'C', 'B', 'Em', 'F', 'Em', 'Bb', 'Am', 'F', 'B', 'B'],
+    layers: [
+      { type: 'chug', inst: 'guitar', vol: 0.38, oct: 2, pat: 'x.xx.x.xx.x.xxx.', pan: -0.6, bus: 'gL', wet: 0.1 },
+      { type: 'chug', inst: 'guitar', vol: 0.38, oct: 2, pat: 'x.xx.x.xx.x.xxx.', pan: 0.6, bus: 'gR', wet: 0.1 },
+      { type: 'bass', inst: 'bass', oct: 1, vol: 0.34, pat: 'x.xx.x.xx.x.xxx.' },
+      { type: 'drums', vol: 0.6, bus: 'kit', wet: 0.15, pat: { k: 'X.xX..x.X.x..Xx.', s: '....X..x....X...', h: 'x.xxx.x.x.xxx.x.' }, fillEvery: 2, fill: { s: '....X..xXxXxXXXX', c: 'X...............' } },
+      { type: 'pad', inst: 'choir', oct: 4, vol: 0.14, voicing: [0, 1, 2, 3], wet: 0.6 },
+      { type: 'hits', vol: 0.12, bus: 'bells', wet: 0.7, list: [[0, 1, 'bell', ['B5']], [3, 3, 'bell', ['F5']], [6, 2, 'bell', ['C6']], [9, 0, 'bell', ['F5']], [13, 1, 'bell', ['A#5']]] },
+      { type: 'melody', inst: 'lead', vol: 0.2, wet: 0.35, notes: 'E5:1 F5:1 E5:1 B4:1 | F5:2 E5:2 | G5:1 F5:1 E5:1 D5:1 | D5:2 F5:2 | E5:1 B5:1 A5:1 G5:1 | F5:2 A5:2 | G5:2 E5:2 | D#5:4 | E5:1 F5:1 E5:1 B4:1 | C5:2 A4:2 | B4:1 C5:1 E5:1 G5:1 | F5:4 | E5:2 C5:2 | F5:2 A5:2 | F#5:2 D#5:2 | B4:4' },
+    ] },
+  // A Cidade que Não Existia: céu próprio, rios que correm para cima.
+  aster: { bpm: 74, reverb: 6, wet: 0.65, rms: 0.12,
+    chords: ['F#m', 'D', 'A', 'E', 'F#m', 'D', 'Bm', 'C#', 'D', 'A', 'Bm', 'F#m', 'D', 'E', 'C#', 'C#'],
+    layers: [
+      { type: 'arp', inst: 'pluck', oct: 4, vol: 0.1, div: 2, pat: [0, 2, 1, 3, 2, 1, 0, 2], wet: 0.6 },
+      { type: 'pad', inst: 'pad', oct: 3, vol: 0.12, wet: 0.7 },
+      { type: 'bass', inst: 'bass', oct: 2, vol: 0.15, pat: 'x-------' },
+      { type: 'hits', vol: 0.1, bus: 'bells', wet: 0.85, list: [[0, 0, 'bell', ['C#6']], [4, 0, 'bell', ['A5']], [8, 0, 'bell', ['F#5']], [12, 0, 'bell', ['G#5']]] },
+      { type: 'melody', inst: 'flute', vol: 0.15, wet: 0.6, from: 4, notes: 'C#5:2 A4:1 F#5:1 | E5:4 | D5:2 B4:1 F#5:1 | F5:4 | F#5:2 A5:1 E5:1 | C#5:2 E5:2 | D5:2 B4:2 | F#5:4 | E5:2 D5:1 C#5:1 | B4:2 G#4:2 | F4:4 | r:4' },
+    ] },
+  // O Entre: correntes, silêncio, coração.
+  entre: { bpm: 58, reverb: 8, wet: 0.8, rms: 0.1,
+    chords: ['Cm', 'Cm', 'Ab', 'Ab', 'Fm', 'Fm', 'G', 'G', 'Cm', 'Cm', 'Db', 'Db', 'Ab', 'Fm', 'G', 'G'],
+    layers: [
+      { type: 'pad', inst: 'drone', oct: 1, vol: 0.26, every: 4, wet: 0.3 },
+      { type: 'pad', inst: 'pad', oct: 3, vol: 0.1, every: 2, wet: 0.8 },
+      { type: 'drums', vol: 0.5, bus: 'heart', wet: 0.3, pat: { b: 'x.......' } },
+      { type: 'drums', vol: 0.4, bus: 'wind', wet: 0.9, pat: { w: '........' }, fillEvery: 2, fill: { w: 'x.......' } },
+      { type: 'hits', vol: 0.08, bus: 'bells', wet: 0.9, list: [[2, 2, 'bell', ['G3']], [6, 0, 'bell', ['B3']], [10, 2, 'bell', ['Db4']], [14, 0, 'bell', ['B3']]] },
+      { type: 'melody', inst: 'piano', vol: 0.12, wet: 0.85, from: 4, notes: 'G4:2 r:2 | Eb4:2 r:2 | C5:4 | B4:4 | r:4 | Ab4:2 G4:2 | F4:4 | D4:4' },
+    ] },
+  // A Primeira Origem: a criança com todas as estrelas nos olhos.
+  origem: { bpm: 66, reverb: 7, wet: 0.75, rms: 0.11,
+    chords: ['C', 'Am', 'F', 'G', 'C', 'Am', 'Dm', 'G', 'Am', 'F', 'C', 'G', 'F', 'G', 'C', 'C'],
+    layers: [
+      { type: 'arp', inst: 'musicbox', oct: 5, vol: 0.1, div: 2, pat: [0, 1, 2, 3, 2, 1, 2, 1], wet: 0.75 },
+      { type: 'pad', inst: 'choir', oct: 4, vol: 0.09, wet: 0.85, vow: 'o' },
+      { type: 'pad', inst: 'strings', oct: 3, vol: 0.07, wet: 0.6 },
+      { type: 'melody', inst: 'flute', vol: 0.14, wet: 0.7, from: 4, notes: 'E5:2 G5:2 | A5:2 E5:2 | F5:2 E5:1 D5:1 | D5:4 | C5:2 E5:1 A5:1 | G5:2 F5:2 | E5:3 D5:1 | C5:4 | A4:2 C5:1 E5:1 | D5:2 B4:2 | C5:4 | C5:4' },
+    ] },
+  // A Cidade dos Espinhos: devoção e medo, coral grave e sinos de templo.
+  espinhos: { bpm: 76, reverb: 5, wet: 0.6, rms: 0.13,
+    chords: ['Bm', 'Bm', 'G', 'F#', 'Bm', 'Em', 'F#', 'F#', 'G', 'D', 'Em', 'Bm', 'G', 'Em', 'F#', 'F#'],
+    layers: [
+      { type: 'pad', inst: 'choir', oct: 3, vol: 0.14, every: 2, wet: 0.65 },
+      { type: 'pad', inst: 'organ', oct: 2, vol: 0.07, every: 2, wet: 0.6 },
+      { type: 'timp', vol: 0.4, every: 2, oct: 2, wet: 0.6 },
+      { type: 'drums', vol: 0.35, bus: 'orch', wet: 0.4, pat: { T: 'X...............' } },
+      { type: 'hits', vol: 0.12, bus: 'bells', wet: 0.8, list: [[0, 0, 'bell', ['B4']], [4, 0, 'bell', ['F#4']], [8, 0, 'bell', ['G4']], [12, 0, 'bell', ['A#4']]] },
+      { type: 'melody', inst: 'horn', vol: 0.14, wet: 0.55, notes: 'B4:2 D5:1 F#5:1 | F5:1.5 F#5:0.5 D5:1 C#5:1 | B4:3 r:1 | A#4:4 | B4:2 D5:1 F#5:1 | G5:2 E5:2 | F#5:2 C#5:2 | A#4:4 | G4:2 B4:1 D5:1 | F#5:2 D5:2 | E5:2 G5:1 E5:1 | D5:4 | B4:2 D5:1 G5:1 | E5:2 G4:2 | A#4:2 C#5:2 | F#4:4' },
+    ] },
+  // A Biblioteca do Fim: páginas, poeira e um cravo que não para.
+  biblioteca: { bpm: 96, reverb: 4, wet: 0.5, rms: 0.12,
+    chords: ['Am', 'E', 'Am', 'E', 'F', 'C', 'Dm', 'E', 'Am', 'G', 'F', 'E', 'Dm', 'Am', 'E', 'E'],
+    layers: [
+      { type: 'arp', inst: 'pluck', oct: 3, vol: 0.13, div: 4, pat: [0, 2, 1, 2, 0, 2, 1, 2, 0, 2, 1, 2, 3, 2, 1, 2], wet: 0.35 },
+      { type: 'pad', inst: 'strings', oct: 3, vol: 0.07, wet: 0.5 },
+      { type: 'bass', inst: 'bass', oct: 2, vol: 0.15, pat: 'x...x...' },
+      { type: 'melody', inst: 'piano', vol: 0.12, wet: 0.5, from: 8, notes: 'A4:1 C5:1 E5:1 A5:1 | G#5:4 | A5:1 E5:1 C5:1 A4:1 | B4:4 | A4:2 F5:2 | E5:2 C5:2 | D5:1 F5:1 A5:1 F5:1 | E5:4' },
+    ] },
+  // Auren: uma cidade normal, música de praça, alegria simples.
+  auren: { bpm: 104, beats: 3, reverb: 2.5, wet: 0.35, rms: 0.13,
+    chords: ['G', 'C', 'D', 'G', 'Em', 'C', 'D', 'D', 'G', 'C', 'D', 'Em', 'C', 'G', 'D', 'G'],
+    layers: [
+      { type: 'arp', inst: 'harp', oct: 3, vol: 0.12, div: 2, pat: [0, 1, 2, 3, 2, 1], wet: 0.3 },
+      { type: 'bass', inst: 'bass', oct: 2, vol: 0.17, pat: 'x---x-' },
+      { type: 'drums', vol: 0.3, bus: 'kit', wet: 0.25, pat: { k: 'X.....', s: '..x.x.' } },
+      { type: 'melody', inst: 'flute', vol: 0.18, wet: 0.35, notes: 'D5:1 G5:1 B5:1 | A5:2 G5:1 | F#5:1 A5:1 D5:1 | G5:3 | E5:1 G5:1 B5:1 | C6:2 A5:1 | A5:2 F#5:1 | D5:3 | B4:1 D5:1 G5:1 | E5:2 C5:1 | A4:1 C5:1 F#5:1 | G5:2 E5:1 | C5:1 E5:1 G5:1 | B4:2 D5:1 | A4:2 F#4:1 | G4:3' },
+    ] },
+  // O Primeiro Silêncio: notas que somem antes de terminar.
+  silencio: { bpm: 120, reverb: 6, wet: 0.6, rms: 0.15,
+    chords: ['Gm', 'Gm', 'Eb', 'D', 'Gm', 'Gm', 'Cm', 'D', 'Eb', 'F', 'Gm', 'Gm', 'Eb', 'Cm', 'D', 'D'],
+    layers: [
+      { type: 'pad', inst: 'drone', oct: 1, vol: 0.24, every: 2, wet: 0.3 },
+      { type: 'pad', inst: 'choir', oct: 4, vol: 0.15, voicing: [0, 1, 2, 3], wet: 0.7 },
+      { type: 'timp', vol: 0.55, oct: 2, wet: 0.5 },
+      { type: 'drums', vol: 0.5, bus: 'orch', wet: 0.4, pat: { T: 'X.......X..X....', s: '............x.x.' }, fillEvery: 4, fill: { s: 'xxxxxxxxXXXXXXXX' } },
+      { type: 'chug', inst: 'guitar', vol: 0.3, oct: 2, from: 8, pat: 'x...x...x...x.x.', pan: 0, bus: 'gL', wet: 0.1 },
+      { type: 'melody', inst: 'lead', vol: 0.18, wet: 0.5, notes: 'G5:2 r:2 | Bb5:2 r:2 | G5:1 F5:1 Eb5:1 D5:1 | D5:4 | G5:2 r:2 | A5:2 r:2 | Eb5:2 C5:2 | F#5:4 | G5:2 Bb5:1 G5:1 | A5:2 F5:2 | G5:1 D5:1 Bb4:1 G4:1 | D5:4 | Eb5:2 G5:2 | C5:2 Eb5:2 | D5:2 F#5:2 | D5:4' },
+    ] },
+  // A Estrada entre as Estrelas: leve, aberta, quase uma canção de viagem.
+  estrelas: { bpm: 80, reverb: 6, wet: 0.65, rms: 0.12,
+    chords: ['E', 'B', 'C#m', 'A', 'E', 'B', 'A', 'B', 'C#m', 'G#m', 'A', 'E', 'F#m', 'A', 'B', 'B'],
+    layers: [
+      { type: 'arp', inst: 'piano', oct: 3, vol: 0.12, div: 2, pat: [0, 1, 2, 3, 2, 1, 2, 1], wet: 0.55 },
+      { type: 'pad', inst: 'strings', oct: 3, vol: 0.09, wet: 0.6 },
+      { type: 'hits', vol: 0.08, bus: 'bells', wet: 0.9, list: [[1, 2, 'bell', ['B5']], [5, 2, 'bell', ['G#5']], [9, 2, 'bell', ['E6']], [13, 2, 'bell', ['F#5']]] },
+      { type: 'bass', inst: 'bass', oct: 2, vol: 0.14, pat: 'x-------' },
+      { type: 'melody', inst: 'flute', vol: 0.16, wet: 0.6, from: 2, notes: 'E5:2 G#5:1 B5:1 | A5:4 | C#6:2 B5:1 A5:1 | G#5:4 | E5:2 G#5:1 B5:1 | C#6:2 E6:2 | D#6:4 | B5:4 | C#6:2 B5:1 G#5:1 | E5:2 C#5:2 | B4:4 | B4:4 | r:4 | r:4' },
+    ] },
+  // Um Mundo sem Nome: o rio, a grama, a paz depois de tudo.
+  semNome: { bpm: 72, beats: 3, reverb: 4, wet: 0.5, rms: 0.12,
+    chords: ['F', 'C', 'Dm', 'Bb', 'F', 'C', 'Bb', 'C', 'Dm', 'Am', 'Bb', 'F', 'Gm', 'C', 'F', 'F'],
+    layers: [
+      { type: 'arp', inst: 'harp', oct: 3, vol: 0.12, div: 2, pat: [0, 1, 2, 3, 2, 1], wet: 0.45 },
+      { type: 'pad', inst: 'strings', oct: 3, vol: 0.07, wet: 0.55 },
+      { type: 'bass', inst: 'bass', oct: 2, vol: 0.14, pat: 'x-----' },
+      { type: 'melody', inst: 'flute', vol: 0.16, wet: 0.5, notes: 'A4:2 C5:1 | E5:2 G5:1 | F5:2 D5:1 | D5:3 | A4:2 C5:1 | G5:2 E5:1 | D5:2 Bb4:1 | C5:3 | F5:2 E5:1 | C5:2 A4:1 | Bb4:2 D5:1 | A5:3 | G5:2 F5:1 | E5:2 G5:1 | F5:3 | F5:3' },
+    ] },
+  // Aveline e as montanhas da estrela vermelha: a autora apagando o mundo, página por página.
+  aveline: { bpm: 112, reverb: 4.5, wet: 0.5, rms: 0.15,
+    chords: ['Am', 'F', 'C', 'E', 'Am', 'F', 'Dm', 'E', 'F', 'G', 'Am', 'Am', 'Dm', 'F', 'E', 'E'],
+    layers: [
+      { type: 'arp', inst: 'pluck', oct: 4, vol: 0.12, div: 4, pat: [0, 1, 2, 1, 0, 1, 2, 3, 0, 1, 2, 1, 3, 2, 1, 2], wet: 0.35 },
+      { type: 'pad', inst: 'choir', oct: 4, vol: 0.13, wet: 0.6 },
+      { type: 'pad', inst: 'strings', oct: 3, vol: 0.1, wet: 0.5 },
+      { type: 'timp', vol: 0.45, every: 2, oct: 2 },
+      { type: 'drums', vol: 0.45, bus: 'kit', wet: 0.2, from: 4, pat: { k: 'X.......X.x.....', s: '....X.......X...', h: 'x.x.x.x.x.x.x.x.' } },
+      { type: 'melody', inst: 'strings', vol: 0.15, wet: 0.5, notes: 'E5:2 A5:1 C6:1 | B5:2 A5:2 | G5:2 E5:1 C5:1 | G#5:4 | A5:2 C6:1 E6:1 | D6:2 C6:2 | A5:2 F5:2 | G#5:4 | A5:2 C6:1 A5:1 | B5:2 G5:2 | E5:4 | E5:4 | F5:2 A5:1 D6:1 | C6:2 A5:2 | B5:2 G#5:2 | E5:4' },
+    ] },
+  // O Último Inimigo: o Vazio. A batalha final do Livro II, com o tema do Kravenox por inteiro.
+  ultimo: { bpm: 140, reverb: 4, wet: 0.45, rms: 0.17,
+    chords: ['Dm', 'Bb', 'C', 'A', 'Dm', 'Bb', 'Gm', 'A', 'Bb', 'C', 'Dm', 'Dm', 'Gm', 'Bb', 'A', 'A',
+      'D', 'A', 'Bm', 'G', 'D', 'A', 'G', 'A', 'Bm', 'G', 'D', 'A', 'G', 'A', 'D', 'D'],
+    layers: [
+      { type: 'pad', inst: 'choir', oct: 4, vol: 0.16, voicing: [0, 1, 2, 3], wet: 0.6 },
+      { type: 'pad', inst: 'organ', oct: 2, vol: 0.07, every: 2, wet: 0.5 },
+      { type: 'timp', vol: 0.55, oct: 2 },
+      { type: 'chug', inst: 'guitar', vol: 0.38, oct: 2, pat: 'x.xxx.xxx.xxx.xx', pan: -0.6, bus: 'gL', wet: 0.08 },
+      { type: 'chug', inst: 'guitar', vol: 0.38, oct: 2, pat: 'x.xxx.xxx.xxx.xx', pan: 0.6, bus: 'gR', wet: 0.08 },
+      { type: 'bass', inst: 'bass', oct: 1, vol: 0.34, pat: 'x.xxx.xxx.xxx.xx' },
+      { type: 'drums', vol: 0.6, bus: 'kit', wet: 0.12, pat: { k: 'XxXxXxXxXxXxXxXx', s: '....X.......X...', h: 'x.x.x.x.x.x.x.x.' }, fillEvery: 8, fill: { s: '....X...XxXxXXXX', c: 'X...............' } },
+      { type: 'melody', inst: 'lead', vol: 0.21, wet: 0.35, harm: -12, notes: 'D5:2 F5:1 A5:1 | G#5:1.5 A5:0.5 F5:1 E5:1 | D5:3 r:1 | C#5:4 | D5:2 F5:1 A5:1 | Bb5:2 A5:1 G5:1 | A5:4 | C#5:4 | Bb4:2 D5:1 F5:1 | E5:2 C5:2 | D5:2 F5:1 A5:1 | D6:4 | Bb5:2 A5:1 G5:1 | G5:2 D5:2 | E5:2 C#5:2 | A4:4 | D5:2 F#5:1 A5:1 | G#5:1.5 A5:0.5 F#5:1 E5:1 | D5:3 r:1 | B4:4 | D5:2 F#5:1 A5:1 | B5:2 A5:1 G5:1 | F#5:2 E5:2 | E5:4 | F#5:2 D5:1 B4:1 | B4:2 G4:2 | A4:2 D5:1 F#5:1 | A5:4 | B5:2 A5:1 G5:1 | E5:2 C#5:2 | D5:4 | D5:4' },
+    ] },
+  // Livre: o fim. O tema dos irmãos, devagar, em maior, com coral e piano.
+  livre: { bpm: 66, reverb: 6, wet: 0.65, rms: 0.13,
+    chords: ['D', 'A', 'Bm', 'G', 'D', 'A', 'G', 'A', 'Bm', 'F#m', 'G', 'D', 'G', 'A', 'D', 'D'],
+    layers: [
+      { type: 'arp', inst: 'piano', oct: 3, vol: 0.13, div: 2, pat: [0, 1, 2, 3, 2, 1, 2, 1], wet: 0.55 },
+      { type: 'pad', inst: 'strings', oct: 3, vol: 0.1, wet: 0.6 },
+      { type: 'pad', inst: 'choir', oct: 4, vol: 0.09, from: 8, wet: 0.75, vow: 'o' },
+      { type: 'bass', inst: 'bass', oct: 2, vol: 0.15, pat: 'x-------' },
+      { type: 'timp', vol: 0.28, every: 4, oct: 2, wet: 0.6 },
+      { type: 'melody', inst: 'flute', vol: 0.17, wet: 0.6, notes: 'D5:2 F#5:1 A5:1 | G#5:1.5 A5:0.5 F#5:1 E5:1 | D5:3 r:1 | D5:4 | D5:2 F#5:1 A5:1 | B5:2 A5:1 G5:1 | F#5:2 E5:2 | E5:4 | F#5:2 D5:1 B4:1 | C#5:2 A4:2 | B4:2 D5:1 G5:1 | F#5:4 | G5:2 B5:1 G5:1 | A5:2 E5:2 | F#5:4 | D5:4' },
+      { type: 'melody', inst: 'horn', vol: 0.09, from: 8, wet: 0.6, shift: -12, notes: 'F#5:2 D5:1 B4:1 | C#5:2 A4:2 | B4:2 D5:1 G5:1 | F#5:4 | G5:2 B5:1 G5:1 | A5:2 E5:2 | F#5:4 | D5:4' },
+    ] },
 };
