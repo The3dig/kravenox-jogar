@@ -39,6 +39,9 @@
       G.text(ctx, 'Parte 1 — A Fonte', G.W / 2, 71, '#a07a6a', 8, 'center');
       const v = +window.KRAVENOX_V; if (v > 1e9) { const d = new Date(v * 1000), z = n => String(n).padStart(2, '0'); G.text(ctx, 'versão ' + z(d.getDate()) + '/' + z(d.getMonth() + 1) + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()), G.W - 4, G.H - 22, '#8a7078', 6, 'right'); }
       G.text(ctx, 'baseado no romance "Reino Quebrado — A Lenda dos Irmãos Espinhos"', G.W / 2, G.H - 11, '#5a3a40', 6.5, 'center');
+      let off = null; try { off = localStorage.getItem('kravenox_offline'); } catch (e) {}
+      if (off && off === String(window.KRAVENOX_V)) G.text(ctx, '✓ pronto para jogar sem internet', 4, G.H - 22, '#6a9a7a', 6, 'left');
+      else if (navigator.onLine === false) G.text(ctx, 'jogando sem internet', 4, G.H - 22, '#8a7078', 6, 'left');
     },
   };
 
@@ -54,6 +57,7 @@
   // Vídeo de abertura: se ninguém mexer na tela título por 25 s, passa o vídeo de apresentação.
   let idle = 0;
   function attract() {
+    if (navigator.onLine === false) return;   // sem internet o vídeo não está guardado no aparelho
     const cv = G.canvas.getBoundingClientRect();
     const v = document.createElement('video');
     for (const [ext, type] of [['mp4', 'video/mp4'], ['webm', 'video/webm']]) { const so = document.createElement('source'); so.src = 'video/abertura.' + ext + '?v=' + (window.KRAVENOX_V || ''); so.type = type; v.appendChild(so); }
@@ -96,12 +100,36 @@
     G.scene = Title; G.fadeA = 0; G.Audio.play('title');
     for (;;) {
       const has = D.hasSave();
-      const i = await G.menu({ x: G.W / 2 - 50, y: 160, w: 100, items: [{ label: 'Novo jogo' }, { label: 'Continuar', disabled: !has }], index: has ? 1 : 0, cancel: false });
+      const i = await G.menu({ x: G.W / 2 - 60, y: 152, w: 120, items: [{ label: 'Novo jogo' }, { label: 'Continuar', disabled: !has }, { label: 'Passar registro' }], index: has ? 1 : 0, cancel: false });
+      if (i === 2) { await G.transferSave(); continue; }
       if (i === 0) {
         if (has) { const c = await G.choose('Começar de novo apaga o registro atual. Tem certeza?', ['Não', 'Sim']); if (c !== 1) continue; }
         G.newGame(); return;
       }
       if (i === 1) { G.loadGame(); return; }
+    }
+  };
+  // Passar o registro de um lugar para outro (do Safari para o app da tela de início, ou para outro aparelho):
+  // o registro vira um código de texto que se copia e cola.
+  G.transferSave = async function () {
+    const c = await G.choose('Passar o registro para outro lugar ou aparelho.', ['Copiar meu registro', 'Colar um registro', 'Voltar'], { w: 150 });
+    if (c === 0) {
+      let raw = null; try { raw = localStorage.getItem(D.SAVEKEY); } catch (e) {}
+      if (!raw) { await G.say(null, 'Ainda não há registro neste aparelho.'); return; }
+      const code = 'KRV1' + btoa(unescape(encodeURIComponent(raw)));
+      let ok = false; try { if (navigator.clipboard) { await navigator.clipboard.writeText(code); ok = true; } } catch (e) {}
+      if (!ok) window.prompt('Copie este código (toque e segure, Selecionar tudo, Copiar):', code);
+      await G.say(null, ok ? 'Código do registro copiado! Agora abra o jogo no outro lugar, toque em "Passar registro" e depois em "Colar um registro".' : 'Depois de copiar, abra o jogo no outro lugar e use "Colar um registro".');
+    } else if (c === 1) {
+      const t = (window.prompt('Cole aqui o código do registro:') || '').trim();
+      if (!t) return;
+      try {
+        const raw = decodeURIComponent(escape(atob(t.replace(/^KRV1/, '').replace(/\s+/g, ''))));
+        const st = JSON.parse(raw); if (!st.party || !st.flags) throw new Error('inválido');
+        if (D.hasSave()) { const k = await G.choose('Isso substitui o registro deste aparelho. Continuar?', ['Não', 'Sim']); if (k !== 1) return; }
+        localStorage.setItem(D.SAVEKEY, raw); G.Audio.sfx('save');
+        await G.say(null, 'Registro recebido! Escolha "Continuar".');
+      } catch (e) { await G.say(null, 'Esse código não parece um registro do Kravenox. Copie de novo, inteiro.'); }
     }
   };
   G.newGame = function () {

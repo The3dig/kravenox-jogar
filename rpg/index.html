@@ -8,11 +8,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#07050a">
 <title>Kravenox — Reino Quebrado</title>
-<link rel="apple-touch-icon" href="../index.apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&display=swap" rel="stylesheet">
+<meta name="apple-mobile-web-app-title" content="Kravenox">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
+  @font-face { font-family: 'Pixelify Sans'; font-style: normal; font-weight: 400 700; font-display: swap; src: url(fonts/pixelify.woff2) format('woff2'); }
   html, body { margin: 0; height: 100%; background: #07050a; overflow: hidden; touch-action: none;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
   body { display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -58,7 +58,14 @@
     let i = 0;
     (function next() { if (i >= files.length) return; const sc = document.createElement('script'); sc.src = files[i++] + '?v=' + v; sc.onload = next; document.body.appendChild(sc); })();
   }
-  fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()).then(j => go(j.v)).catch(() => go(String(Date.now())));
+  // sem internet: usa a última versão que ficou guardada no aparelho
+  const last = () => { try { return localStorage.getItem('kravenox_lastv'); } catch (e) { return null; } };
+  fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()).then(j => { try { localStorage.setItem('kravenox_lastv', j.v); } catch (e) {} go(j.v); }).catch(() => go(last() || 'offline'));
+  // instala o jogo no aparelho para funcionar offline (tela de início do iPhone/Android)
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.offline) try { localStorage.setItem('kravenox_offline', e.data.offline); } catch (err) {} });
+    fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()).then(j => navigator.serviceWorker.register('sw.js?v=' + j.v)).catch(() => {});
+  }
 })();
 </script>
 </body>
