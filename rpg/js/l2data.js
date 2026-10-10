@@ -112,8 +112,8 @@
   en('cristalSemEss', 'Cristal sem Essência', 'shards', {}, 64, 64, { hp: 960, atk: 104, def: 66, mag: 100, agi: 18, xp: 360, fr: 140 }, [atk(2), tech(2, 'apaga a Essência ao redor', 1.15, 'todos', 'violet', { drainEp: 6 })]);
   en('devoradorMenor', 'Devorador Faminto', 'colossus', {}, 110, 96, { hp: 1500, atk: 118, def: 62, mag: 80, agi: 12, xp: 460, fr: 180 }, [atk(3), tech(2, 'devora um pedaço do mundo', 1.2, 'todos', 'dark')], { void: true, regen: 0.12 });
   en('garrasMundo', 'Garras de Mundo Morto', 'hands', {}, 76, 70, { hp: 1150, atk: 114, def: 60, mag: 60, agi: 16, xp: 400, fr: 150 }, [atk(4), tech(1, 'arrasta para dentro da boca', 1.55)]);
-  en('correnteEntre', 'Corrente do Entre', 'hands', { c1: '#c8c8d0', c2: '#6a6a74' }, 76, 70, { hp: 1000, atk: 110, def: 62, mag: 70, agi: 16, xp: 380, fr: 140 }, [atk(4), tech(1, 'prende a escolha', 1.3, 'um', 'dark', { sleep: 0.35 })]);
-  en('esquecido', 'Esquecido', 'ghost', { c1: '#8a8a9a', eye: '#000000' }, 56, 62, { hp: 900, atk: 104, def: 54, mag: 112, agi: 22, xp: 370, fr: 140 }, [atk(1), tech(3, '"Os Reis apagaram meu nome."', 1.25, 'um', 'dark', { drainEp: 7 })], { void: true });
+  en('correnteEntre', 'Corrente do Entre', 'hands', { c1: '#c8c8d0', c2: '#6a6a74' }, 76, 70, { hp: 820, atk: 100, def: 58, mag: 70, agi: 16, xp: 380, fr: 140 }, [atk(4), tech(1, 'prende a escolha', 1.3, 'um', 'dark', { sleep: 0.35 })]);
+  en('esquecido', 'Esquecido', 'ghost', { c1: '#8a8a9a', eye: '#000000' }, 56, 62, { hp: 760, atk: 96, def: 50, mag: 100, agi: 22, xp: 370, fr: 140 }, [atk(1), tech(3, '"Os Reis apagaram meu nome."', 1.25, 'um', 'dark', { drainEp: 7 })], { void: true });
   en('antigo', 'Antigo sem Rosto', 'sentinel', { c1: '#0a0a0e', c2: '#000000', eye: '#e8f0ff', faceless: true }, 70, 94, { hp: 1600, atk: 124, def: 70, mag: 80, agi: 16, xp: 480, fr: 190 }, [atk(4), tech(1, 'uma pressão que curva o mundo', 1.15, 'todos', 'white')]);
   en('antigoFera', 'Antigo de Pedra e Fumaça', 'colossus', {}, 120, 100, { hp: 1900, atk: 128, def: 72, mag: 86, agi: 12, xp: 520, fr: 200 }, [atk(3), tech(2, 'fissuras de luz', 1.2, 'todos', 'white')]);
   // chefes da Parte 1
@@ -123,7 +123,7 @@
   en('reiFumaca', 'O Rei de Fumaça', 'ghost', { c1: '#2a2830', eye: '#ffe080' }, 70, 80, { hp: 9000, atk: 108, def: 56, mag: 116, agi: 26, xp: 2600, fr: 900 }, [atk(1), tech(2, '"Memórias são fraquezas."', 1.25, 'um', 'dark', { drainEp: 12 }), tech(1, 'cobre o céu', 1.1, 'todos', 'dark', { sleep: 0.25 })], { boss: true, void: true });
   en('reiAsas', 'O Rei das Asas', 'herald', {}, 80, 96, { hp: 13000, atk: 122, def: 62, mag: 90, agi: 28, xp: 3200, fr: 1200 }, [atk(3), tech(2, 'o grito que traz o medo da morte', 1.15, 'todos', 'dark', { sleep: 0.25 }), tech(2, 'espada negra', 1.6)], { boss: true });
   en('primeiroRei', 'O Primeiro Rei', 'guardian', { golden: true, unmasked: true }, 84, 108, { hp: 20000, atk: 128, def: 66, mag: 110, agi: 22, xp: 4200, fr: 1600 }, [atk(3), tech(2, 'força invisível', 1.25, 'todos', 'white'), tech(1, 'a espada atravessada no peito', 1.9), tech(1, '"Criar o mundo perfeito."', 1.0, 'todos', 'white', { drainEp: 10 })], { boss: true });
-  en('primeiroReiD', 'O Primeiro Rei', 'guardian', { golden: true, unmasked: true }, 84, 108, { hp: 9000, atk: 114, def: 60, mag: 100, agi: 22, xp: 2400, fr: 800 }, [atk(4), tech(2, 'golpes cada vez mais desesperados', 1.45), tech(1, '"Você não deveria lembrar."', 1.2, 'um', 'white', { drainEp: 8 })], { boss: true });
+  en('primeiroReiD', 'O Primeiro Rei', 'guardian', { golden: true, unmasked: true }, 84, 108, { hp: 4200, atk: 100, def: 56, mag: 100, agi: 22, xp: 2400, fr: 800 }, [atk(4), tech(2, 'golpes cada vez mais desesperados', 1.45), tech(1, '"Você não deveria lembrar."', 1.2, 'um', 'white', { drainEp: 8 })], { boss: true });
   en('caos', 'Caos', 'root', { c1: '#3a2a20', c2: '#e0d0c0', n: 16, thick: 6, eyes: 6, eye: 'rgba(255,255,255,0.95)', mouth: true, seed: 66 }, 130, 124, { hp: 30000, atk: 120, def: 70, mag: 110, agi: 18, xp: 4800, fr: 1800 }, [atk(2), tech(2, 'transforma espinhos em árvores', 1.2, 'todos', 'violet'), tech(1, 'o espaço desaparece', 1.15, 'todos', 'dark', { sleep: 0.3 }), tech(1, 'mostra um mundo onde vocês perderam', 1.4, 'um', 'violet', { drainEp: 10 })], { boss: true, void: true });
   en('devoradorGrande', 'Devorador de Mundos', 'colossus', {}, 160, 120, { hp: 26000, atk: 126, def: 66, mag: 96, agi: 12, xp: 4400, fr: 1600 }, [atk(2), tech(2, 'montanhas nas costas', 1.2, 'todos'), tech(1, 'olhos que são portais', 1.8), tech(1, 'luto de mil mundos', 1.0, 'todos', 'dark', { drainEp: 8 })], { boss: true, void: true, regen: 0.06 });
   en('primeiroIrmao', 'O Primeiro Irmão', 'colossus', {}, 150, 124, { hp: 24000, atk: 128, def: 68, mag: 108, agi: 16, xp: 4600, fr: 1700 }, [atk(2), tech(2, 'quatro braços', 1.25, 'todos'), tech(1, 'seis asas', 1.3, 'todos', 'dark'), tech(1, '"VOCÊ CARREGA AQUILO QUE ME PERTENCE."', 1.7, 'um', 'dark', { drainEp: 10 })], { boss: true, void: true });
@@ -144,9 +144,9 @@
   en('personagem', 'Personagem Esquecido', 'sentinel', { c1: '#8a8478', c2: '#5a564e', eye: '#000000', faceless: true }, 64, 84, { hp: 2000, atk: 138, def: 82, mag: 80, agi: 18, xp: 650, fr: 250 }, [atk(5), tech(1, '"Ninguém leu minha história."', 1.5)]);
   // chefes da Parte 2
   en('mascarado', 'O Homem Mascarado', 'herald', {}, 60, 78, { hp: 16000, atk: 134, def: 74, mag: 110, agi: 24, xp: 4400, fr: 1600 }, [atk(3), tech(2, 'olhos completamente negros', 1.4), tech(1, 'a espada longa dos Herdeiros', 1.75)], { boss: true });
-  en('reiUltimo', 'O Rei do Último Mundo', 'herald', { img: 'k_futuro' }, 52, 66, { hp: 36000, atk: 140, def: 76, mag: 124, agi: 22, xp: 6400, fr: 2400 }, [atk(3), tech(2, 'mundos queimando atrás dele', 1.25, 'todos', 'dark'), tech(1, 'apaga a luz', 1.2, 'um', 'dark', { drainEp: 14 }), tech(1, '"Sou aquilo que acontece quando ele vence."', 1.8)], { boss: true });
-  en('paiBranco', 'O Pai de Armadura Branca', 'guardian', { unmasked: true }, 84, 108, { hp: 14000, atk: 132, def: 74, mag: 110, agi: 22, xp: 5000, fr: 1800 }, [atk(4), tech(2, 'a lâmina negra do primeiro conflito', 1.5), tech(1, 'cada golpe abre uma memória', 1.2, 'um', 'dark', { drainEp: 10 })], { boss: true });
-  en('primeiroLeitor', 'O Primeiro Leitor', 'ghost', { c1: '#e8e4d8', eye: '#ffffff' }, 64, 76, { hp: 40000, atk: 138, def: 78, mag: 140, agi: 22, xp: 7000, fr: 2600 }, [atk(1), tech(2, 'milhares de livros voam das estantes', 1.2, 'todos', 'white'), tech(2, 'vira uma página', 1.0, 'todos', 'white', { sleep: 0.25 }), tech(1, 'escreve MORTE', 1.9, 'um', 'dark')], { boss: true });
+  en('reiUltimo', 'O Rei do Último Mundo', 'herald', { img: 'k_futuro' }, 52, 66, { hp: 26000, atk: 136, def: 72, mag: 124, agi: 22, xp: 6400, fr: 2400 }, [atk(3), tech(2, 'mundos queimando atrás dele', 1.25, 'todos', 'dark'), tech(1, 'apaga a luz', 1.2, 'um', 'dark', { drainEp: 14 }), tech(1, '"Sou aquilo que acontece quando ele vence."', 1.8)], { boss: true });
+  en('paiBranco', 'O Pai de Armadura Branca', 'guardian', { unmasked: true }, 84, 108, { hp: 5600, atk: 112, def: 66, mag: 100, agi: 22, xp: 5000, fr: 1800 }, [atk(4), tech(2, 'a lâmina negra do primeiro conflito', 1.5), tech(1, 'cada golpe abre uma memória', 1.2, 'um', 'dark', { drainEp: 10 })], { boss: true });
+  en('primeiroLeitor', 'O Primeiro Leitor', 'ghost', { c1: '#e8e4d8', eye: '#ffffff' }, 64, 76, { hp: 34000, atk: 134, def: 78, mag: 140, agi: 22, xp: 7000, fr: 2600 }, [atk(1), tech(2, 'milhares de livros voam das estantes', 1.2, 'todos', 'white'), tech(2, 'vira uma página', 1.0, 'todos', 'white', { sleep: 0.25 }), tech(1, 'escreve MORTE', 1.9, 'um', 'dark')], { boss: true });
 
   // Parte 3 — Auren, o destino de Thornox, a estrada entre as estrelas, o Recomeço, o fim
   en('apagado', 'Os Apagados', 'ghost', { c1: '#1a1a20', eye: '#ffffff' }, 58, 64, { hp: 2100, atk: 148, def: 84, mag: 150, agi: 26, xp: 760, fr: 300 }, [atk(1), tech(3, 'esquece o próprio nome', 1.25, 'um', 'dark', { drainEp: 8 })], { void: true });
@@ -167,11 +167,11 @@
   en('vazioMenor', 'Pedaço do Vazio', 'shards', {}, 66, 66, { hp: 3100, atk: 168, def: 100, mag: 170, agi: 24, xp: 980, fr: 380 }, [atk(2), tech(2, 'devolve ao lugar de onde veio', 1.2, 'todos', 'violet')], { void: true });
   // chefes da Parte 3
   en('primeiroSilencio', 'O Primeiro Silêncio', 'colossus', {}, 150, 124, { hp: 30000, atk: 150, def: 84, mag: 150, agi: 20, xp: 7600, fr: 2800 }, [atk(2), tech(2, 'a cidade desaparece por um segundo', 1.2, 'todos', 'dark'), tech(1, '"Estou removendo possibilidades."', 1.9, 'um', 'dark'), tech(1, 'o rosto muda a cada segundo', 1.0, 'todos', 'dark', { drainEp: 12 })], { boss: true, void: true });
-  en('sombraThornox', 'A Sombra sobre Thornox', 'ghost', { c1: '#000000', eye: '#ffffff' }, 80, 90, { hp: 18000, atk: 140, def: 80, mag: 140, agi: 24, xp: 5600, fr: 2000 }, [atk(1), tech(3, '"Ele não pertence a você."', 1.35, 'um', 'dark', { drainEp: 10 })], { boss: true, void: true });
+  en('sombraThornox', 'A Sombra sobre Thornox', 'ghost', { c1: '#000000', eye: '#ffffff' }, 80, 90, { hp: 9000, atk: 116, def: 80, mag: 120, agi: 24, xp: 5600, fr: 2000 }, [atk(1), tech(3, '"Ele não pertence a você."', 1.35, 'um', 'dark', { drainEp: 10 })], { boss: true, void: true });
   en('kravenoxAlt', 'O Kravenox que Escolheu o Mundo', 'herald', { img: 'k_futuro' }, 52, 66, { hp: 30000, atk: 160, def: 90, mag: 130, agi: 26, xp: 8000, fr: 3000 }, [atk(3), tech(2, 'espada da armadura negra', 1.5), tech(1, '"Alguém precisava pagar o preço."', 1.25, 'todos', 'dark'), tech(1, 'olhos vermelhos', 1.85)], { boss: true });
   en('thornoxSilencio', 'Thornox, o Primeiro Silêncio', 'herald', {}, 60, 78, { hp: 32000, atk: 156, def: 88, mag: 160, agi: 24, xp: 8400, fr: 3200 }, [atk(2), tech(2, 'ausência', 1.25, 'todos', 'dark'), tech(1, '"Eu sou o que foi destruído."', 1.8, 'um', 'dark', { drainEp: 12 })], { boss: true, void: true });
   en('aveline', 'Aveline', 'mother', { golden: true }, 120, 130, { hp: 44000, atk: 160, def: 90, mag: 170, agi: 22, xp: 9000, fr: 3400 }, [atk(1), tech(2, 'a página vira', 1.2, 'todos', 'white', { drainEp: 10 }), tech(2, 'o mundo começa a desaparecer', 1.3, 'todos', 'white'), tech(1, '"Eu sinto muito."', 1.0, 'todos', 'white', { sleep: 0.25 })], { boss: true });
-  en('silencioRosto', 'O Primeiro Silêncio com o Rosto de Kravenox', 'herald', { img: 'k_futuro' }, 52, 66, { hp: 20000, atk: 150, def: 86, mag: 150, agi: 24, xp: 6000, fr: 2200 }, [atk(2), tech(2, '"Eu fui a escolha que vocês recusaram."', 1.3, 'um', 'dark', { drainEp: 10 })], { boss: true, void: true });
+  en('silencioRosto', 'O Primeiro Silêncio com o Rosto de Kravenox', 'herald', { img: 'k_futuro' }, 52, 66, { hp: 9000, atk: 126, def: 86, mag: 130, agi: 24, xp: 6000, fr: 2200 }, [atk(2), tech(2, '"Eu fui a escolha que vocês recusaram."', 1.3, 'um', 'dark', { drainEp: 10 })], { boss: true, void: true });
   en('ultimoInimigo', 'O Último Inimigo', 'ghost', { c1: '#e8e8f0', eye: '#e8e8f0' }, 70, 84, { hp: 60000, atk: 172, def: 96, mag: 180, agi: 26, xp: 0, fr: 0 }, [atk(1), tech(2, 'devolve as possibilidades ao vazio', 1.25, 'todos', 'violet'), tech(2, 'as chamas azuis se apagam', 1.2, 'todos', 'dark', { drainEp: 12 }), tech(1, '"Um mundo precisa de limites."', 1.9, 'um', 'violet')], { boss: true, void: true });
 
   Object.assign(D.ENC, {
@@ -181,7 +181,7 @@
     primeiroMundo: [['memoriaErrante'], ['guardaDourado'], ['memoriaErrante', 'memoriaErrante'], ['guardaDourado', 'memoriaErrante']],
     norte: [['cristalSemEss'], ['cristalSemEss', 'cristalSemEss'], ['esquecido'], ['cristalSemEss', 'esquecido']],
     cidadeAster: [['devoradorMenor'], ['garrasMundo', 'garrasMundo'], ['devoradorMenor', 'garrasMundo']],
-    entre: [['correnteEntre'], ['esquecido'], ['correnteEntre', 'esquecido']],
+    entre: [['correnteEntre'], ['esquecido'], ['esquecido']],
     antigos: [['antigo'], ['antigoFera'], ['antigo', 'antigo'], ['antigoFera', 'antigo']],
     mundoNovo: [['feraFolhas'], ['pedraFlutuante'], ['marVerde', 'marVerde'], ['feraFolhas', 'pedraFlutuante'], ['marVerde', 'feraFolhas']],
     espinhos: [['herdeiro'], ['sacerdote', 'herdeiro'], ['herdeiro', 'herdeiro'], ['herdeiroCap'], ['sacerdote', 'sacerdote']],
@@ -230,8 +230,7 @@
   for (const [k, [b0, gl]] of Object.entries(PORTRAITS)) { X.extraImages.push('p_' + k); X.addPortrait(k, b0, gl); }
   for (const n of ['erya', 'mae', 'origem', 'origemH', 'aster', 'rainha', 'bibliotecario', 'leitor', 'liora', 'aveline', 'azul', 'velha', 'estranho', 'senhora', 'aldeao', 'aldea', 'crianca'])
     for (const d of ['down', 'up', 'left', 'right']) for (const f of [0, 1]) X.extraImages.push('s_' + n + '_' + d + '_' + f);
-  for (const id of Object.keys(E)) if (!before.has(id)) X.extraImages.push('e_' + id);
-  X.extraImages.push('l2_titulo');
+  for (const id of Object.keys(E)) if (!before.has(id) && !['guardaDourado', 'reiUltimo', 'kravenoxAlt', 'silencioRosto'].includes(id)) X.extraImages.push('e_' + id);
 
   // personagens desenhados no mapa (sprites procedurais, caso falte a imagem)
   Object.assign(X.SPEC, {

@@ -388,7 +388,7 @@
         await hurtHero(t, dmg);
         if (a.drainEp && t.alive) { t.ep = Math.max(0, t.ep - a.drainEp); }
         if (a.drain) { e.hp = Math.min(e.maxhp, e.hp + Math.round(dmg * 0.5)); }
-        if (a.sleep && t.alive && Math.random() < a.sleep) t.status.sleep = 1;
+        if (a.sleep && t.alive && party().length > 1 && Math.random() < a.sleep) t.status.sleep = 1;   // sozinho, ninguém o acordaria
         await G.wait(6);
       }
       if (a.drainEp) await B.say('A Essência do grupo enfraquece.', 22);

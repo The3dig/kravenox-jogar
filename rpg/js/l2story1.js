@@ -363,7 +363,7 @@
     await nar('Kravenox atacou, e o Rei das Asas subiu. Kravenox saltou atrás dele, e os dois atravessaram as nuvens até a cidade ficar pequena lá embaixo.');
     L2.solo('kravenox'); L2.heal();
     await G.battle(['reiAsas'], { bg: 'ceus', music: 'chefe', noEscape: true, intro: 'Acima das nuvens, sozinho contra o Rei das Asas.',
-      setup: b => { b.enemies[0].hp = b.enemies[0].maxhp = 7400; },
+      setup: b => { const e = b.enemies[0]; e.hp = e.maxhp = 3200; e.atk = 100; },
       events: [
         { when: b => b.round >= 3 && !F().tec_asas, run: async () => {
           await nar('A criatura desviava, atacava, sumia, voltava. Kravenox percebeu que não o venceria no ar. Então parou de atacar.');

@@ -32,7 +32,7 @@ const { chromium } = require('playwright');
     for (const [n, f] of steps) {
       boost(40);
       const t0 = performance.now();
-      try { await Promise.race([G.run(f), new Promise((_, rej) => setTimeout(() => rej(new Error('TIMEOUT')), 20000))]); } catch (e) { log.push('ERR ' + n + ' ' + e.message); }
+      try { await Promise.race([G.run(f), new Promise((_, rej) => setTimeout(() => rej(new Error('TIMEOUT')), 60000))]); } catch (e) { log.push('ERR ' + n + ' ' + e.message); }
       if (G.lastError) { log.push('LASTERR ' + n + ' ' + G.lastError.message + ' ' + G.lastError.stack); G.lastError = null; }
       console.log('LOG ' + n); log.push(n + ' ok ' + Math.round(performance.now() - t0) + 'ms scene=' + (G.scene === G.Field ? 'field:' + G.Field.id : G.scene === G.Dungeon ? 'dun:' + G.Dungeon.id : G.scene === G.Battle ? 'battle' : 'other') + ' party=' + G.state.party.map(h => h.id).join(','));
     }

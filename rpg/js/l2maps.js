@@ -135,10 +135,10 @@
   };
   M.entre = {
     name: 'O Entre', kind: 'dungeon', grid: G.MAPSTR.ENTRE, music: 'entre', bg: 'entre',
-    enc: () => 'entre', rate: 16,
+    enc: () => 'entre', rate: 30,
     ev: { e: 'irmaoCrianca', l: 'maeCorrentes' },
     voices: { 1: 'Cada passo faz surgir uma lembrança: uma infância, uma batalha, uma vida que nunca viveu.', 2: 'Thornox criança. A mãe segurando os dois. O pai observando de longe.' },
-    chests: [{ item: 'folha', n: 2 }, { equip: 'mantoMemoria' }],
+    chests: [{ item: 'folha', n: 2 }, { equip: 'mantoMemoria' }, { item: 'elixir', n: 3 }],
   };
 
   // ===================== PARTE 2 =====================
@@ -210,7 +210,7 @@
       { id: 'mercA', sprite: 'mascate', x: 26, y: 7, dir: 'down', talk: 'mercadorAuren', cond: () => F().aurenChegou },
       { id: 'musico', sprite: 'aldeao', x: 30, y: 10, dir: 'left', talk: 'musicoAuren', cond: () => F().aurenChegou },
       { id: 'cri2', sprite: 'crianca', x: 21, y: 13, dir: 'up', talk: 'criancaAuren', cond: () => F().aurenChegou },
-      { id: 'paiAur', sprite: 'pai', x: 34, y: 4, dir: 'down', talk: 'paiMuralhaAuren', cond: () => F().ch25 && !F().paiAurenFalou },
+      { id: 'paiAur', sprite: 'pai', x: 36, y: 7, dir: 'down', talk: 'paiMuralhaAuren', cond: () => F().ch25 && !F().paiAurenFalou },
     ],
   };
   M.destino = {
@@ -253,7 +253,7 @@
     name: 'Um Mundo sem Nome', kind: 'field', tiles: G.MAPSTR.SEMNOME, theme: 'semNome', music: 'semNome',
     enc: {}, defRate: 99, noEnc: () => true,
     bg: () => 'semNome',
-    tint: () => F().noiteSemNome ? 'rgba(0,0,40,0.25)' : null,
+    tint: () => F().noiteSemNome ? 'rgba(0,0,40,0.25)' : null, weather: () => ({ ash: 0, fog: 'rgba(220,235,255,0.04)' }),
     sub(ch) { if (ch === '1') return '='; if (ch === 'R') return F().estrelaVermelha ? 'R' : '='; return ch; },
     step: { '1': 'colinaFinal', 'R': 'irMontanhas', 'S': 'santuario' },
     look: { 's': 'estatuaLivro', '~': 'rioSemNome', 'd': 'casaSemNome' },
@@ -262,9 +262,13 @@
       { id: 'hom', sprite: 'aldeao', x: 17, y: 9, dir: 'left', talk: 'homemEstatua', cond: () => F().semNomeCidade },
       { id: 'lio', sprite: 'liora', x: 20, y: 11, dir: 'left', talk: 'meninaDesenho', cond: () => F().semNomeCidade && !F().estrelaVermelha },
       { id: 'mercS', sprite: 'mascate', x: 6, y: 11, dir: 'right', talk: 'mercadorSemNome', cond: () => F().semNomeCidade },
-      { id: 'azulF', sprite: 'azul', x: 15, y: 13, dir: 'down', talk: 'azulFinal', cond: () => F().ch41 && !F().l2fim },
-      { id: 'lioF', sprite: 'liora', x: 11, y: 13, dir: 'right', talk: 'lioraFinal', cond: () => F().ch41 && !F().l2fim },
-      { id: 'aveF', sprite: 'aveline', x: 18, y: 12, dir: 'left', talk: 'avelineFinal', cond: () => F().ch41 && !F().l2fim },
+      { id: 'azulF', sprite: 'azul', x: 15, y: 13, dir: 'down', talk: 'azulFinal', cond: () => F().ch41casa },
+      { id: 'lioF', sprite: 'liora', x: 11, y: 13, dir: 'right', talk: 'lioraFinal', cond: () => F().ch41casa },
+      { id: 'aveF', sprite: 'aveline', x: 18, y: 12, dir: 'left', talk: 'avelineFinal', cond: () => F().ch41casa },
+      { id: 'lyraF', sprite: 'lyra', x: 12, y: 9, dir: 'down', talk: 'lyraFinal', cond: () => F().l2fim },
+      { id: 'seraF', sprite: 'seraphyne', x: 16, y: 9, dir: 'down', talk: 'seraFinal', cond: () => F().l2fim },
+      { id: 'astF', sprite: 'aster', x: 17, y: 11, dir: 'left', talk: 'asterFinal', cond: () => F().l2fim },
+      { id: 'leiF', sprite: 'leitor', x: 9, y: 12, dir: 'right', talk: 'leitorCidade', cond: () => F().l2fim },
     ],
   };
   M.montanhas = {
