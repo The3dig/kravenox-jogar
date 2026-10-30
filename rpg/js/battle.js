@@ -612,6 +612,17 @@
     }
     drawHeroes(ctx);
     for (const f of B.fxs) if (!f.ui) f.draw(ctx);
+    // HP de cada inimigo, logo abaixo dele: o texto lá em cima nunca o cobre
+    for (const e of B.enemies) {
+      if (!e.alive || e.dying) continue;
+      const k = Math.min(1, Math.max(0, e.hp / e.maxhp)); e.hpShow = e.hpShow == null ? k : e.hpShow + (k - e.hpShow) * 0.12;
+      const w = Math.round(Math.min(e.boss ? 72 : 44, Math.max(26, e.w * 0.7))), x = Math.round(e.x - w / 2);
+      const y = Math.min(Math.round(e.by + Math.max(3, e.w * 0.12) + 3), VIEW_H - 8);
+      ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(x - 1, y - 1, w + 2, 5);
+      ctx.fillStyle = '#3a1418'; ctx.fillRect(x, y, w, 3);
+      if (e.hpShow > k + 0.005) { ctx.fillStyle = '#f1e6d2'; ctx.fillRect(x, y, Math.round(w * e.hpShow), 3); }
+      ctx.fillStyle = k > 0.5 ? '#c8a050' : k > 0.2 ? '#d07030' : '#d03030'; ctx.fillRect(x, y, Math.round(w * k), 3);
+    }
     ctx.restore();
     frame(ctx, VX, VY, VW, VH);
     drawParty(ctx);
