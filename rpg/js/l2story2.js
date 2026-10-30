@@ -279,7 +279,7 @@
     await L2.chapter(18, 'O Rei do Último Mundo');
     const Cn = C();
     await Cn.begin('tronoOssos', 'primeiro');
-    if (X.imgs.k_futuro) Cn.actor('rei', { img: () => X.imgs.k_futuro, x: 160, y: 168, z: 2, scale: 0.55, glow: 'rgba(255,60,20,0.5)', glowA: 0.3 });
+    if (X.imgs.e_kfuturo) Cn.actor('rei', { img: () => X.imgs.e_kfuturo, x: 160, y: 168, z: 2, scale: 1.7, glow: 'rgba(255,60,20,0.5)', glowA: 0.3 });
     await Cn.caption('Diante dele estava o próprio rosto — mais velho, mais marcado, mais vazio —, sentado num trono construído com ossos de mundos mortos. Atrás dele, milhares de estrelas desapareciam.');
     await say('O Rei do Último Mundo', '— Sou aquilo que acontece quando ele vence. A si mesmo. Não destruí nenhum mundo. Não consegui salvá-los.');
     await say('O Rei do Último Mundo', '— Thornox morreu primeiro. Na primeira tentativa de salvar o Reino Quebrado. Vocês não deveriam lembrar. Mas você sempre foi o último.');
