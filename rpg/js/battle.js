@@ -668,28 +668,38 @@
       const on = B.turnHero === i;
       G.win(ctx, x0, y0, w, h, on ? { border: '#ffcf6a', inner: 'rgba(255,207,106,0.5)', bg: 'rgba(30,18,10,0.96)' } : {});
       if (B.slotFlash[i] & 2) { ctx.fillStyle = 'rgba(255,40,40,0.35)'; ctx.fillRect(x0 + 2, y0 + 2, w - 4, h - 4); }
-      // retrato do herói (sprite do mapa)
-      const furious = hero.status.fury && hero.alive && X.imgs.k_furia;
-      if (furious) { X.glow(ctx, x0 + 19, y0 + h / 2, 30, 'rgba(255,30,10,0.9)', 0.35 + 0.2 * Math.sin(G.time / 6)); }
-      const desp = hero.id === 'kravenox' && G.state.flags.desperto && X.imgs.k_desperto;
-      const spr = furious ? X.imgs.k_furia : desp ? X.imgs.k_desperto : X.sprite(hero.id === 'kravenox' && G.state.flags.prata ? 'kravenoxP' : G.data.HEROES[hero.id].sprite, 'down', on && ((G.time >> 4) & 1) ? 1 : 0);
-      const pw = four ? 22 : 28, pcx = x0 + 5 + pw / 2;
-      const sc = Math.min(1, (furious ? 40 : desp ? 30 : four ? 22 : 26) / spr.height);
-      ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(x0 + 5, y0 + 5, pw, h - 10);
+      // rosto do herói, como no Phantasy Star IV: nome em cima, rosto à esquerda, HP e EP ao lado
+      const furious = hero.status.fury && hero.alive;
+      const ps = h - 16, px = x0 + 4, py = y0 + 13;
+      const face = faceOf(hero);
+      if (furious) X.glow(ctx, px + ps / 2, py + ps / 2, ps * 0.9, 'rgba(255,30,10,0.9)', 0.35 + 0.2 * Math.sin(G.time / 6));
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(px - 1, py - 1, ps + 2, ps + 2);
       if (!hero.alive) ctx.globalAlpha = 0.35;
-      ctx.drawImage(spr, Math.round(pcx - spr.width * sc / 2), Math.round(y0 + h - 7 - spr.height * sc), Math.round(spr.width * sc), Math.round(spr.height * sc));
+      if (face) ctx.drawImage(face, px, py, ps, ps);
+      else { const spr = X.sprite(G.data.HEROES[hero.id].sprite, 'down', 0), sc = Math.min(1, (ps - 4) / spr.height); ctx.drawImage(spr, Math.round(px + ps / 2 - spr.width * sc / 2), Math.round(py + ps - 2 - spr.height * sc), Math.round(spr.width * sc), Math.round(spr.height * sc)); }
       ctx.globalAlpha = 1;
-      const tx = x0 + pw + 9, bw = w - pw - 15;
+      if (!hero.alive) { ctx.fillStyle = 'rgba(60,0,0,0.45)'; ctx.fillRect(px, py, ps, ps); }
+      else if (furious) { ctx.fillStyle = `rgba(255,30,10,${0.18 + 0.12 * Math.sin(G.time / 6)})`; ctx.fillRect(px, py, ps, ps); }
+      else if (hero.status.sleep) { ctx.fillStyle = 'rgba(120,90,200,0.3)'; ctx.fillRect(px, py, ps, ps); }
+      if (on) { ctx.strokeStyle = '#ffcf6a'; ctx.lineWidth = 1; ctx.strokeRect(px - 0.5, py - 0.5, ps + 1, ps + 1); }
+      const tx = px + ps + 4, bw = x0 + w - 5 - tx;
       const nameCol = !hero.alive ? '#8a4a4a' : hero.hp < hero.maxhp * 0.25 ? '#ff9a6a' : '#ffcf6a';
-      G.text(ctx, hero.name, tx, y0 + 4, nameCol, four ? 7 : 8, 'left', true);
+      G.text(ctx, hero.name, x0 + 5, y0 + 3, nameCol, four ? 7 : 8, 'left', true);
       let st = ''; if (!hero.alive) st = 'Caído'; else if (hero.status.sleep) st = 'Lembr.'; else if (hero.status.guard) st = 'Defesa'; else if (hero.status.shield) st = 'Barreira'; else if (hero.status.fury) st = 'Fúria';
-      if (!four) G.text(ctx, st || 'Nv' + hero.lv, x0 + w - 6, y0 + 5, st ? '#e0c060' : '#a89a8a', 6.5, 'right');
+      if (!four) G.text(ctx, st || 'Nv' + hero.lv, x0 + w - 6, y0 + 4, st ? '#e0c060' : '#a89a8a', 6.5, 'right');
       else if (st && hero.alive) { ctx.fillStyle = hero.status.sleep ? '#c8a8ff' : hero.status.fury ? '#ff6a5a' : '#ffe08a'; ctx.fillRect(x0 + w - 8, y0 + 5, 3, 3); }
-      G.text(ctx, 'HP', tx, y0 + 16, '#a89a8a', 6.5); G.text(ctx, hero.hp + '', x0 + w - 6, y0 + 15, '#efe3cf', 8, 'right');
-      bar(ctx, tx, y0 + 25, bw, hero.hp / hero.maxhp, '#d84a3a', '#3a1214');
-      G.text(ctx, 'EP', tx, y0 + 31, '#a89a8a', 6.5); G.text(ctx, hero.ep + '', x0 + w - 6, y0 + 30, '#c8d4f0', 8, 'right');
-      bar(ctx, tx, y0 + 40, bw, hero.ep / Math.max(1, hero.mep), '#5a8ad8', '#141c3a');
+      G.text(ctx, 'HP', tx, py + 1, '#a89a8a', 6.5); G.text(ctx, hero.hp + '', x0 + w - 5, py, '#efe3cf', four ? 7 : 8, 'right');
+      bar(ctx, tx, py + 10, bw, hero.hp / hero.maxhp, '#d84a3a', '#3a1214');
+      G.text(ctx, 'EP', tx, py + 16, '#a89a8a', 6.5); G.text(ctx, hero.ep + '', x0 + w - 5, py + 15, '#c8d4f0', four ? 7 : 8, 'right');
+      bar(ctx, tx, py + 25, bw, hero.ep / Math.max(1, hero.mep), '#5a8ad8', '#141c3a');
     });
+  }
+  // o rosto de cada herói (o mesmo retrato das conversas), redesenhado num quadro de 48×48
+  const faces = {};
+  function faceOf(hero) {
+    const P = G.portraitFor && G.portraitFor(hero.name === 'Mãe' ? 'A Mãe' : hero.name); if (!P) return null;
+    const f = faces[hero.id] || (faces[hero.id] = X.canvas(48, 48));
+    f[1].clearRect(0, 0, 48, 48); P(f[1], 0, 0, G.time); return f[0];
   }
   function bar(ctx, x, y, w, k, c, bg) {
     const v = Math.max(0, Math.round(w * G.clamp(k, 0, 1)));
