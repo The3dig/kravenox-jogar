@@ -236,16 +236,17 @@
 
   // ---------- Comandos ----------
   async function chooseCommand(h, idx) {
+    let cur = 0;   // todo turno começa em Atacar; só dentro do mesmo turno a seta lembra onde estava
     for (;;) {
       const cmds = ['Atacar', 'Técnica', 'Item', 'Defender', 'Fugir'];
       const items = cmds.map((c, i) => ({ label: c, disabled: (i === 1 && D.techsOf(h).length === 0) || (i === 2 && !Object.keys(G.state.inv).some(k => G.state.inv[k] > 0)) || (i === 4 && B.opt.noEscape) }));
       // Escolher: em algumas batalhas a resposta não é a força (Livro II)
       const ch = B.opt.choose, canChoose = ch && (!ch.who || ch.who === h.id) && (!ch.when || ch.when(B));
       if (canChoose) items.splice(4, 1, { label: ch.label || 'Escolher' });
-      let pick = G.debug.auto ? (G.debug.battlePick ? G.debug.battlePick(h, B) : 0) : await G.menu({ x: 238, y: 12, w: 76, items, title: h.name, index: h.lastCmd || 0, cancel: idx > 0 });
+      let pick = G.debug.auto ? (G.debug.battlePick ? G.debug.battlePick(h, B) : 0) : await G.menu({ x: 238, y: 12, w: 76, items, title: h.name, index: cur, cancel: idx > 0 });
       if (typeof pick === 'object' && pick) return pick;
       if (pick < 0) return null; // volta para o anterior
-      h.lastCmd = pick;
+      cur = pick;
       if (pick === 0) { const t = await pickEnemy(); if (t) return { type: 'atk', target: t }; }
       else if (pick === 1) {
         const ts = D.techsOf(h);
