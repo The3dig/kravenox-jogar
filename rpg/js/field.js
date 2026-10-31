@@ -111,12 +111,12 @@
       talls.push({ y: n.y + 0.1, draw: () => { const sx = n.x * T - cx, sy = n.y * T - cy; X.drawShadow(ctx, sx, sy);
         const sp = X.SPEC[n.sprite];
         if (sp && sp.ghost) ctx.globalAlpha = 0.7 + 0.2 * Math.sin(G.time / 15);
-        const im = X.sprite(n.sprite, n.face || n.dir, (G.time >> 5) & 1 && sp && sp.ghost ? 1 : 0); ctx.drawImage(im, sx + 8 - (im.width >> 1), sy + 15 - im.height + (sp && sp.ghost ? Math.sin(G.time / 20) * 1.5 - 2 : 0)); ctx.globalAlpha = 1; } });
+        const im = X.fieldSprite(X.sprite(n.sprite, n.face || n.dir, (G.time >> 5) & 1 && sp && sp.ghost ? 1 : 0), n.sprite); ctx.drawImage(im, sx + 8 - (im.width >> 1), sy + 15 - im.height + (sp && sp.ghost ? Math.sin(G.time / 20) * 1.5 - 2 : 0)); ctx.globalAlpha = 1; } });
     }
     const lead = G.state.party[0];
     const spr = lead && lead.id !== 'kravenox' ? G.data.HEROES[lead.id].sprite : (G.state.flags.prata ? 'kravenoxP' : 'kravenox');
     const wf = this.mv ? [1, 0, 2, 0][this.walkF & 3] : 0;
-    talls.push({ y: fy + 0.2, draw: () => { const sx = Math.round(fx * T - cx), sy = Math.round(fy * T - cy); X.drawShadow(ctx, sx, sy); const im = X.sprite(spr, this.dir, wf, this.mv ? (this.walkF & 3) : -1); ctx.drawImage(im, sx + 8 - (im.width >> 1), sy + 15 - im.height); } });
+    talls.push({ y: fy + 0.2, draw: () => { const sx = Math.round(fx * T - cx), sy = Math.round(fy * T - cy); X.drawShadow(ctx, sx, sy); const im = X.fieldSprite(X.sprite(spr, this.dir, wf, this.mv ? (this.walkF & 3) : -1), spr); ctx.drawImage(im, sx + 8 - (im.width >> 1), sy + 15 - im.height); } });
     talls.sort((a, b) => a.y - b.y).forEach(t => t.draw());
     if (L) Wd.drawFx(ctx, L, cx, cy);
     // atmosfera

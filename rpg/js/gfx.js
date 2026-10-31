@@ -346,6 +346,20 @@
     outline(c, s.outline || '#000');
     return (cache[key] = c);
   };
+  // na exploração os irmãos andam num tamanho menor, na escala das casas e das pessoas
+  // (nas batalhas e nas cenas continuam com o desenho grande)
+  const small = new Map();
+  X.isBro = name => name === 'kravenox' || name === 'kravenoxP' || name === 'thornox';
+  X.fieldSprite = function (im, name) {
+    if (!im || !X.isBro(name) || im.width < 26) return im;
+    let c = small.get(im); if (c) return c;
+    const k = 0.74, w = Math.round(im.width * k), h = Math.round(im.height * k);
+    const [t, tg] = X.canvas(im.width * 2, im.height * 2); tg.imageSmoothingEnabled = false; tg.drawImage(im, 0, 0, im.width * 2, im.height * 2);
+    const [cc, g] = X.canvas(w, h); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(t, 0, 0, w, h);
+    const d = g.getImageData(0, 0, w, h), a = d.data;
+    for (let i = 0; i < a.length; i += 4) { if (a[i + 3] < 110) a[i + 3] = 0; else { const m = 255 / a[i + 3]; a[i] = Math.min(255, a[i] * m); a[i + 1] = Math.min(255, a[i + 1] * m); a[i + 2] = Math.min(255, a[i + 2] * m); a[i + 3] = 255; } }
+    g.putImageData(d, 0, 0); small.set(im, cc); return cc;
+  };
   X.drawShadow = function (ctx, x, y) { ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(x + 8, y + 15, 5, 2, 0, 0, 7); ctx.fill(); };
 
   // ---------- Retratos (48x48) ----------
