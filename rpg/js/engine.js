@@ -35,16 +35,54 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) { Input.held[k] = false; e.preventDefault(); } });
 addEventListener('blur', () => { Input.held = {}; });
+// ---------- Controle (Xbox, PlayStation, genéricos) ----------
+// A / X = confirmar · B / Y / Start / Select = voltar e menu · direcional ou analógico = andar.
+Input.pad = {}; Input.padOn = false;
+const PAD_BTN = { 0: 'a', 2: 'a', 1: 'b', 3: 'b', 8: 'b', 9: 'b', 12: 'up', 13: 'down', 14: 'left', 15: 'right' };
+Input.pollPad = function () {
+  const pad = {}; let found = false;
+  const list = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (const gp of list) {
+    if (!gp || !gp.connected) continue;
+    found = true;
+    gp.buttons.forEach((b, i) => { const k = PAD_BTN[i]; if (k && (b.pressed || b.value > 0.5)) pad[k] = true; });
+    const ax = gp.axes, dz = 0.5;
+    if (ax.length >= 2) {
+      if (ax[0] < -dz) pad.left = true; else if (ax[0] > dz) pad.right = true;
+      if (ax[1] < -dz) pad.up = true; else if (ax[1] > dz) pad.down = true;
+    }
+    if (gp.mapping !== 'standard') {
+      // controles sem mapeamento padrão: direcional costuma vir nos eixos 6/7 ou num "chapéu" no eixo 9
+      if (ax.length >= 8) {
+        if (ax[6] < -dz) pad.left = true; else if (ax[6] > dz) pad.right = true;
+        if (ax[7] < -dz) pad.up = true; else if (ax[7] > dz) pad.down = true;
+      }
+      if (ax.length >= 10 && ax[9] >= -1.05 && ax[9] <= 1.05) {
+        const h = Math.round((ax[9] + 1) * 3.5); // 0=cima 1=cima-dir 2=dir ... 7=cima-esq
+        if (h === 0 || h === 1 || h === 7) pad.up = true;
+        if (h === 3 || h === 4 || h === 5) pad.down = true;
+        if (h === 1 || h === 2 || h === 3) pad.right = true;
+        if (h === 5 || h === 6 || h === 7) pad.left = true;
+      }
+    }
+  }
+  if (Object.keys(pad).length) { this.any = true; G.Audio && G.Audio.unlock(); }
+  this.pad = pad;
+  if (found !== this.padOn) { this.padOn = found; G.onPadChange && G.onPadChange(found); }
+};
+addEventListener('gamepadconnected', () => Input.pollPad());
+addEventListener('gamepaddisconnected', () => Input.pollPad());
 Input.update = function () {
+  this.pollPad();
   for (const k of ['up', 'down', 'left', 'right', 'a', 'b']) {
-    const h = !!(this.held[k] || (k === this.touchDir));
+    const h = !!(this.held[k] || (k === this.touchDir) || this.pad[k]);
     this.pressed[k] = (h && !this.prev[k]) || !!this.latch[k];
     this.latch[k] = false;
     if (h) this.rep[k] = (this.rep[k] || 0) + 1; else this.rep[k] = 0;
     this.prev[k] = h;
   }
 };
-Input.down = function (k) { return !!(this.held[k] || this.touchDir === k); };
+Input.down = function (k) { return !!(this.held[k] || this.touchDir === k || this.pad[k]); };
 // pressionou, ou está segurando (com repetição) — para navegar em menus
 Input.nav = function (k) {
   if (this.pressed[k]) return true;
@@ -427,11 +465,14 @@ G.setupTouch = function () {
   const fit = () => {
     const land = innerWidth > innerHeight;
     document.body.classList.toggle('landscape', land);
-    const padH = document.body.classList.contains('touch') ? (land ? 0 : 190) : 26;
+    const cl = document.body.classList, padH = cl.contains('touch') && !cl.contains('gamepad') ? (land ? 0 : 190) : (cl.contains('touch') ? 4 : 26);
     const availW = innerWidth - (land && touch ? 0 : 0), availH = innerHeight - padH - 4;
     const s = Math.min(availW / G.W, availH / G.H);
     G.canvas.style.width = Math.floor(G.W * s) + 'px';
     G.canvas.style.height = Math.floor(G.H * s) + 'px';
   };
+  // com controle ligado, some o direcional da tela e o jogo ocupa a tela inteira (bom para espelhar na TV)
+  G.onPadChange = on => { document.body.classList.toggle('gamepad', on); fit(); };
+  if (Input.padOn) G.onPadChange(true);
   addEventListener('resize', fit); addEventListener('orientationchange', () => setTimeout(fit, 200)); fit();
 };
