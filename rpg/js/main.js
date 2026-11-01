@@ -105,8 +105,9 @@
     G.scene = Title; G.fadeA = 0; G.Audio.play('title');
     for (;;) {
       G.book = G.book || lastBook();
-      const b = await G.menu({ x: G.W / 2 - 78, y: 146, w: 156, items: [{ label: BOOKS[0] }, { label: BOOKS[1] }, { label: 'Passar registro' }], index: G.book - 1, cancel: false });
-      if (b === 2) { await G.transferSave(); continue; }
+      const b = await G.menu({ x: G.W / 2 - 78, y: 140, w: 156, items: [{ label: BOOKS[0] }, { label: BOOKS[1] }, { label: 'Controle' }, { label: 'Passar registro' }], index: G.book - 1, cancel: false });
+      if (b === 2) { await G.controlOptions(); continue; }
+      if (b === 3) { await G.transferSave(); continue; }
       G.book = b + 1; try { localStorage.setItem('kravenox_livro', String(G.book)); } catch (e) {}
       const has = D.hasSave();
       const i = await G.menu({ x: G.W / 2 - 50, y: 152, w: 100, title: G.book === 2 ? 'Livro II' : 'Livro I', items: [{ label: 'Novo jogo' }, { label: 'Continuar', disabled: !has }, { label: 'Voltar' }], index: has ? 1 : 0 });
@@ -116,6 +117,25 @@
         G.newGame(); return;
       }
       if (i === 1) { G.loadGame(); return; }
+    }
+  };
+  // Opções de controle: tipo do controle (muda a troca de botões da Nintendo e as dicas) e botões de toque.
+  G.controlOptions = async function () {
+    const TIPOS = ['auto', 'xbox', 'ps', 'nintendo'], TOQUE = ['auto', 'sempre', 'nunca'];
+    const TOQUE_N = { auto: 'Automático', sempre: 'Sempre', nunca: 'Esconder' };
+    let idx = 0;
+    for (;;) {
+      const I = G.Input, k = G.padKindNow();
+      const tipo = G.padType === 'auto' ? 'Automático' + (I.padOn ? ' (' + G.PADNAME[k] + ')' : '') : G.PADNAME[G.padType];
+      const i = await G.menu({ x: G.W / 2 - 95, y: 118, w: 190, title: I.padOn ? 'Controle ' + G.PADNAME[k] + ' conectado' : 'Nenhum controle conectado', index: idx,
+        items: [{ label: 'Tipo', right: tipo }, { label: 'Botões na tela', right: TOQUE_N[G.touchPref] }, { label: 'Voltar' }],
+        help: j => j === 0 ? (I.padOn || G.padType !== 'auto' ? G.padHelp(k) + ' · Start abre o menu' : 'Ligue o controle e aperte um botão.')
+          : j === 1 ? 'Automático: somem quando há controle ligado.' : '' });
+      if (i < 0 || i === 2) return;
+      idx = i;
+      if (i === 0) { G.padType = TIPOS[(TIPOS.indexOf(G.padType) + 1) % TIPOS.length]; G.setPref('kravenox_padtipo', G.padType); }
+      if (i === 1) { G.touchPref = TOQUE[(TOQUE.indexOf(G.touchPref) + 1) % TOQUE.length]; G.setPref('kravenox_toque', G.touchPref); G.applyTouch && G.applyTouch(); }
+      G.Audio.sfx('ok');
     }
   };
   // Passar o registro de um lugar para outro (do Safari para o app da tela de início, ou para outro aparelho):
