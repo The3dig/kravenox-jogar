@@ -55,7 +55,7 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
 .chip svg{width:18px;height:18px;flex:none}
 .chip.pw{color:var(--gold);font-size:13px;letter-spacing:.04em}
 .iconbtn{pointer-events:auto;width:40px;height:40px;border-radius:12px;border:2px solid rgba(255,255,255,.18);background:rgba(36,29,44,.85);color:var(--ink);display:grid;place-items:center;cursor:pointer;flex:none}
-.iconbtn:focus-visible,.btn:focus-visible,.buy:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.iconbtn:focus-visible,.btn:focus-visible,.buy:focus-visible,.btn:focus,.buy:focus{outline:3px solid var(--gold);outline-offset:2px}
 .bossbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(74px + env(safe-area-inset-top,0px));width:min(440px,72vw);z-index:5;pointer-events:none;text-align:center}
 .bossbar .name{font-family:var(--display);font-size:16px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);text-shadow:0 2px 0 rgba(0,0,0,.7)}
 .bossbar .track{height:14px;border-radius:8px;background:rgba(0,0,0,.6);border:2px solid rgba(255,255,255,.22);overflow:hidden;margin-top:3px}
@@ -166,7 +166,7 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
   </div>
   <div class="rec" id="recLbl"></div>
   <button class="btn" id="playBtn">JOGAR</button>
-  <div class="keys">Teclado: <b>← →</b> andar · <b>Z</b> ou <b>Espaço</b> pular (2× no ar) · <b>X</b> ou <b>J</b> atacar · <b>P</b> pausa · <b>M</b> som</div>
+  <div class="keys">Teclado: <b>← →</b> andar · <b>Z</b> ou <b>Espaço</b> pular (2× no ar) · <b>X</b> ou <b>J</b> atacar · <b>P</b> pausa · <b>M</b> som<br>Controle (Xbox/PlayStation): <b>analógico</b> andar · <b>A</b> pular · <b>X</b> ou <b>B</b> atacar · <b>Start</b> pausa</div>
 </div>
 
 <div class="overlay center" id="msg" hidden>
@@ -485,6 +485,7 @@ let flames=[], lights=[], boss=null, bossObj=null, gate=null, arenaOn=false, cp=
 const G={area:0,lives:3,score:0,coins:0,frags:[false,false,false,false,false],up:{vigor:0,sword:1,armor:0,boots:0},blade:0,round:1,aStart:null};
 const Emax=()=>100+20*G.up.vigor, armorF=()=>[1,.7,.5][G.up.armor], swordRange=()=>[0,1.05,1.3,1.45][G.up.sword];
 const keys={left:false,right:false,jump:false,atk:false}; let jumpPressed=false, atkPressed=false;
+const kb={left:false,right:false,jump:false,atk:false}, pad={left:false,right:false,jump:false,atk:false};
 
 /* ================= PHYSICS ================= */
 function isSolid(x,y){ if(x<0||x>=L.W) return true; if(y<0||y>=H) return false; const c=L.grid[y][x]; return c==='#'||c==='B'||c==='%'; }
@@ -763,11 +764,11 @@ function spawnPlayer(at){
 function hurt(dir,dmg=20){
   if(P.inv>0||P.dead) return; if(P.fairy>0) return;
   if(P.wolf){ P.wolf=false; burst(P.x,P.y+.5,0x8a5cff,18,4,4); P.inv=1.2; P.vy=7; P.vx=dir*5; P.knock=.25; sfx.hurt(); popText(P.x,P.y+1.4,'Lobo perdido','cur'); renderHUD(); return; }
-  P.E-=dmg*armorF(); P.inv=1.3; P.vy=8; P.vx=dir*6; P.knock=.25; sfx.hurt(); shake=.25; burst(P.x,P.y+.6,0xd4313f,8,3,3); popText(P.x,P.y+1.3,'-'+Math.round(dmg*armorF()),'bad');
+  P.E-=dmg*armorF(); rumble(.6,220); P.inv=1.3; P.vy=8; P.vx=dir*6; P.knock=.25; sfx.hurt(); shake=.25; burst(P.x,P.y+.6,0xd4313f,8,3,3); popText(P.x,P.y+1.3,'-'+Math.round(dmg*armorF()),'bad');
   if(P.E<=0) loseLife('hit'); renderHUD();
 }
 function loseLife(why){
-  if(P.dead) return; P.dead=true; P.E=0; state='dying'; endTimer=2; sfx.die(); G.lives--; stopMusic();
+  if(P.dead) return; P.dead=true; P.E=0; rumble(1,500); state='dying'; endTimer=2; sfx.die(); G.lives--; stopMusic();
   if(why==='pit'||why==='lava'){ hero.g.visible=false; burst(P.x,Math.max(P.y,.3)+.3,why==='lava'?0xff6a1a:0x5a2a6a,20,4,6); }
   else { hero.g.visible=true; P.deathVy=10; burst(P.x,P.y+.5,0x5a2a6a,14,4,5); }
   renderHUD();
@@ -961,7 +962,7 @@ function updateBoss(dt){
     case 'intro': if(b.t<=0){ b.state='walk'; b.t=1.2; } break;
     case 'walk': b.dir=Math.sign(P.x-b.x)||1; b.vx=b.dir*spd; if(b.t<=0){ b.vx=0; bossThink(); } break;
     case 'windup': b.vx=0; if(b.t<=0){ b.state='jump'; b.vy=14.5; b.vx=clamp((P.x-b.x)/1.05,-7.5,7.5); b.air=0; } break;
-    case 'jump': b.air+=dt; if(b.onGround&&b.air>.15){ b.vx=0; shake=.45; sfx.slam(); burst(b.x,b.y+.1,0xd9cbb0,16,4,3);
+    case 'jump': b.air+=dt; if(b.onGround&&b.air>.15){ b.vx=0; shake=.45; sfx.slam(); rumble(.4,250); burst(b.x,b.y+.1,0xd9cbb0,16,4,3);
         if(c.slam){ [-1,1].forEach(d=>{ const m=add(world,new THREE.BoxGeometry(.35,.55,1.2),B(c.proj==='shard'?0x6fe3ff:0xffb347),b.x,b.y+.25,0,false); waves.push({x:b.x+d*.9,y:b.y,dir:d,mesh:m,life:1.6}); }); }
         b.state='dazed'; b.t=(c.slam?2.0:1.3)-(ph2?.4:0); } break;
     case 'chargeWind': b.vx=0; if(Math.random()<.4) burst(b.x-b.dir*.6,b.y+.1,0xd9cbb0,1,1,1); if(b.t<=0){ b.state='charge'; b.t=2.6; } break;
@@ -1107,14 +1108,38 @@ addEventListener('keydown',e=>{ initAudio();
   if(e.code==='KeyM'){ setMute(!save.muted); return; }
   if(e.code==='KeyP'||e.code==='Escape'){ if(state==='playing') pause(); else if(state==='paused'){ hideMsg(); state='playing'; } return; }
   const k=KEYMAP[e.code]; if(!k) return; if(state==='playing') e.preventDefault(); if(e.repeat) return;
-  if(k==='jump') jumpPressed=true; if(k==='atk') atkPressed=true; keys[k]=true; });
-addEventListener('keyup',e=>{ const k=KEYMAP[e.code]; if(k) keys[k]=false; });
+  if(k==='jump') jumpPressed=true; if(k==='atk') atkPressed=true; kb[k]=true; mergeKeys(); });
+addEventListener('keyup',e=>{ const k=KEYMAP[e.code]; if(k){ kb[k]=false; mergeKeys(); } });
 function bindPad(id,k){ const el=$(id), act=new Set();
-  const on=e=>{ e.preventDefault(); initAudio(); act.add(e.pointerId); try{el.setPointerCapture(e.pointerId);}catch(_){} if(k==='jump'&&!keys.jump) jumpPressed=true; if(k==='atk'&&!keys.atk) atkPressed=true; keys[k]=true; el.classList.add('on'); };
-  const off=e=>{ act.delete(e.pointerId); if(!act.size){ keys[k]=false; el.classList.remove('on'); } };
+  const on=e=>{ e.preventDefault(); initAudio(); act.add(e.pointerId); try{el.setPointerCapture(e.pointerId);}catch(_){} if(k==='jump'&&!kb.jump) jumpPressed=true; if(k==='atk'&&!kb.atk) atkPressed=true; kb[k]=true; mergeKeys(); el.classList.add('on'); };
+  const off=e=>{ act.delete(e.pointerId); if(!act.size){ kb[k]=false; mergeKeys(); el.classList.remove('on'); } };
   el.addEventListener('pointerdown',on); ['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,off)); el.addEventListener('contextmenu',e=>e.preventDefault()); }
 bindPad('#tL','left'); bindPad('#tR','right'); bindPad('#tJ','jump'); bindPad('#tA','atk');
 const touchy=matchMedia('(pointer: coarse)').matches||'ontouchstart' in window;
+function mergeKeys(){ for(const k of ['left','right','jump','atk']) keys[k]=kb[k]||pad[k]; }
+let padPrev={}, padSeen=false, padGp=null;
+function rumble(m,ms){ try{ if(padGp&&padGp.vibrationActuator) padGp.vibrationActuator.playEffect('dual-rumble',{duration:ms,strongMagnitude:m,weakMagnitude:m*.6}); }catch(e){} }
+function pollPad(){
+  let gp=null; try{ const l=navigator.getGamepads?navigator.getGamepads():[]; for(const g of l) if(g&&g.connected){ gp=g; break; } }catch(e){}
+  padGp=gp; if(!gp){ if(pad.left||pad.right||pad.jump||pad.atk){ pad.left=pad.right=pad.jump=pad.atk=false; mergeKeys(); } padPrev={}; return; }
+  if(!padSeen){ padSeen=true; $('#pad').hidden=true; showToast('<small>Controle conectado</small>A pula · X ataca',1600); }
+  const b=i=>!!(gp.buttons[i]&&(gp.buttons[i].pressed||gp.buttons[i].value>.5)), ax=gp.axes[0]||0, ay=gp.axes[1]||0;
+  const now={left:ax<-.4||b(14),right:ax>.4||b(15),up:ay<-.6||b(12),down:ay>.6||b(13),a:b(0),b:b(1),x:b(2),y:b(3),rb:b(5)||b(7),start:b(9)||b(8)};
+  const hit=k=>now[k]&&!padPrev[k]; let used=false;
+  if(Object.keys(now).some(hit)) initAudio();
+  const rotOpen=!$('#rotate').hidden, menuOpen=!$('#menu').hidden, msgOpen=!$('#msg').hidden;
+  if(rotOpen){ if(hit('a')||hit('start')){ $('#rotOk').click(); used=true; } }
+  else if(menuOpen&&!msgOpen){ if(hit('a')||hit('start')){ $('#playBtn').click(); used=true; } }
+  else if(msgOpen){ used=true; const els=[...document.querySelectorAll('#msg button:not([disabled])')]; let i=els.indexOf(document.activeElement);
+    if(els.length){ if(hit('left')||hit('up')){ i=i<=0?els.length-1:i-1; els[i].focus(); } if(hit('right')||hit('down')){ i=(i+1)%els.length; els[i].focus(); }
+      if(hit('a')) (els[i]||els[0]).click(); }
+    if(hit('start')&&state==='paused'){ hideMsg(); state='playing'; } }
+  else if(state==='playing'&&hit('start')){ pause(); used=true; }
+  pad.left=now.left; pad.right=now.right; pad.jump=now.a||now.y; pad.atk=now.x||now.b||now.rb;
+  if(!used&&state==='playing'){ if(hit('a')||hit('y')) jumpPressed=true; if(hit('x')||hit('b')||hit('rb')) atkPressed=true; }
+  padPrev=now; mergeKeys();
+}
+addEventListener('gamepadconnected',()=>pollPad());
 $('#pauseBtn').onclick=()=>pause(); $('#muteBtn').onclick=()=>{ initAudio(); setMute(!save.muted); };
 $('#playBtn').onclick=()=>{ initAudio(); newGame(); };
 document.addEventListener('visibilitychange',()=>{ if(document.hidden&&state==='playing') pause(); if(!document.hidden&&ac&&ac.state!=='running') ac.resume().catch(()=>{}); });
@@ -1175,7 +1200,7 @@ function syncVisuals(dt,time){
 /* ================= LOOP ================= */
 let last=performance.now(), acc=0, time=0, hudT=0;
 function frame(now){
-  const dt=Math.min(.1,(now-last)/1000); last=now; time+=dt;
+  const dt=Math.min(.1,(now-last)/1000); last=now; time+=dt; pollPad();
   if(state==='playing'){ acc+=dt; const st=1/60; let n=0;
     while(acc>=st&&n<6&&state==='playing'){ updatePlatforms(st); updatePlayer(st); if(state!=='playing'&&state!=='dying') break; updateAttacks(st); updateEnemies(st); updateBoss(st); updateEProj(st); acc-=st; n++; }
     if(n>=6) acc=0; hudT-=dt; if(hudT<=0){ hudT=.1; renderHUD(); if(P.E<Emax()*.25) $('#vbar').classList.toggle('blink',Math.floor(time*4)%2===0); } }
