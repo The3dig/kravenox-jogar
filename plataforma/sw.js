@@ -5,7 +5,14 @@ const CACHE = 'kravenox-plataforma-' + (new URL(location.href).searchParams.get(
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).catch(() => {})); self.skipWaiting(); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('kravenox-plataforma-') && k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
+// Ao ativar uma versão nova: apaga o cache antigo e, se havia uma versão anterior aberta,
+// recarrega as janelas do app para que o ícone da Tela de Início já mostre o jogo novo.
+self.addEventListener('activate', e => { e.waitUntil((async () => {
+  const old = (await caches.keys()).filter(k => k.startsWith('kravenox-plataforma-') && k !== CACHE);
+  await Promise.all(old.map(k => caches.delete(k)));
+  await self.clients.claim();
+  if (old.length) for (const c of await self.clients.matchAll({ type: 'window' })) { try { c.navigate(c.url.split('?')[0] + '?u=' + Date.now()); } catch (err) {} }
+})()); });
 self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;
   const url = new URL(req.url);
