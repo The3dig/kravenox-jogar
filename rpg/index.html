@@ -68,6 +68,8 @@
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()).then(j => navigator.serviceWorker.register('sw.js?v=' + j.v)).catch(() => {});
     // versão nova assumiu o aparelho enquanto o jogo está aberto: se ainda estiver na tela de título, recarrega já
     const hadSW = !!navigator.serviceWorker.controller;
+    // completa o download para jogar sem internet, se da última vez o app foi fechado no meio
+    navigator.serviceWorker.ready.then(r => r.active && r.active.postMessage('fill')).catch(() => {});
     navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSW && atTitle()) location.reload(); });
   }
   // na tela de título (nada a perder) é seguro recarregar para pegar a versão nova
