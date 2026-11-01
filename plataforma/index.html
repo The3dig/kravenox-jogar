@@ -1240,8 +1240,8 @@ window.__kvx={G,get state(){return state},get P(){return P},get boss(){return bo
 const APP_V='2026-11-01-4';
 if('serviceWorker' in navigator) addEventListener('load',()=>navigator.serviceWorker.register('sw.js?v='+APP_V).catch(()=>{}));
 let updWaiting=false;
-function checkUpdate(){ fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(j=>{ if(j.v&&j.v!==APP_V){ updWaiting=true; tryReload(); } }).catch(()=>{}); }
-function tryReload(){ if(!updWaiting) return; const st=window.__kvx&&window.__kvx.state; if(!st||st==='menu'||st==='paused'||st==='over'||st==='victory'){ location.reload(); } }
+function checkUpdate(){ fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(j=>{ if(j.v&&j.v!==APP_V){ let done=null; try{ done=sessionStorage.getItem('kvx-upd'); }catch(e){} if(done===j.v) return; updWaiting=j.v; tryReload(); } }).catch(()=>{}); }
+function tryReload(){ if(!updWaiting) return; const st=window.__kvx&&window.__kvx.state; if(!st||st==='menu'||st==='paused'||st==='over'||st==='victory'){ try{ sessionStorage.setItem('kvx-upd',updWaiting); }catch(e){} location.replace(location.pathname+'?u='+encodeURIComponent(updWaiting)); } }
 addEventListener('load',checkUpdate);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkUpdate(); });
 addEventListener('pageshow',checkUpdate);
