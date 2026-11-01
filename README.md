@@ -28,6 +28,22 @@ roteiros, `data.js` os personagens/inimigos/itens e `mapdata.js` os mapas.
 
 ---
 
+## Kravenox: Plataforma
+
+**Jogar:** https://the3dig.github.io/kravenox-jogar/plataforma/
+
+Plataforma 2.5D em estilo diorama, inspirado no Wonder Boy: Kravenox cruza cinco áreas
+(Floresta Sombria, Caverna de Cristal, Vila Queimada, Muralhas do Castelo e Salão do Trono),
+cada uma com um chefe. A vitalidade cai sem parar e os cristais recarregam; ovos dão poderes
+e as moedas compram melhorias na loja. Usa as músicas do RPG (`rpg/music`).
+
+No iPhone, abra no Safari e toque em **Compartilhar → Adicionar à Tela de Início**.
+
+O jogo inteiro fica em `plataforma/index.html` (HTML + JavaScript, three.js pelo CDN).
+
+
+---
+
 ## Kravenox: Cratera do Cisma
 
 **Jogar:** https://the3dig.github.io/kravenox-jogar
