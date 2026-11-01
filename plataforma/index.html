@@ -1284,7 +1284,7 @@ function pollPad(){
   const b=i=>!!(gp.buttons[i]&&(gp.buttons[i].pressed||gp.buttons[i].value>.5)), ax=gp.axes[0]||0, ay=gp.axes[1]||0;
   const now={left:ax<-.4||b(14),right:ax>.4||b(15),up:ay<-.6||b(12),down:ay>.6||b(13),a:b(0),b:b(1),x:b(2),y:b(3),rb:b(5)||b(7),start:b(9)||b(8)};
   const hit=k=>now[k]&&!padPrev[k]; let used=false;
-  if(Object.keys(now).some(hit)) initAudio();
+  if(Object.keys(now).some(hit)){ initAudio(); keepAwake(); }
   const rotOpen=!$('#rotate').hidden, menuOpen=!$('#menu').hidden, msgOpen=!$('#msg').hidden;
   if(rotOpen){ if(hit('a')||hit('start')){ $('#rotOk').click(); used=true; } }
   else if(menuOpen&&!msgOpen){ if(hit('a')||hit('start')){ $('#playBtn').click(); used=true; } }
@@ -1306,6 +1306,12 @@ try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e
 function unlockAudio(){ initAudio(); if(!ac) return; if(ac.state!=='running') ac.resume().catch(()=>{});
   try{ const bf=ac.createBuffer(1,1,22050), sr=ac.createBufferSource(); sr.buffer=bf; sr.connect(ac.destination); sr.start(0); }catch(e){} }
 ['pointerdown','touchend','click','keydown'].forEach(ev=>addEventListener(ev,unlockAudio,{passive:true}));
+// Mantém a tela acesa enquanto o jogo está aberto (jogando com controle o iPhone não vê toques e bloqueia a tela).
+let wakeLock=null;
+async function keepAwake(){ try{ if(!wakeLock&&'wakeLock' in navigator&&document.visibilityState==='visible'){ wakeLock=await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release',()=>{ wakeLock=null; }); } }catch(e){} }
+['pointerdown','touchend','keydown','click'].forEach(ev=>addEventListener(ev,keepAwake,{passive:true}));
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) keepAwake(); });
+addEventListener('gamepadconnected',keepAwake); setInterval(keepAwake,15000);
 setInterval(()=>{ const h=$('#sndHint'); if(h) h.hidden=!!(ac&&ac.state==='running'); },500);
 
 /* ================= RENDER SYNC ================= */
@@ -1393,14 +1399,14 @@ document.addEventListener('gesturestart',e=>e.preventDefault());
 document.addEventListener('dblclick',e=>e.preventDefault());
 buildMenu();
 requestAnimationFrame(frame);
-window.__kvx={G,get state(){return state},get P(){return P},get boss(){return boss},loadArea,newGame,startArena:()=>startArena()};
+window.__kvx={G,openShop:()=>openShop(),areaClear:()=>areaClear(),get state(){return state},get P(){return P},get boss(){return boss},loadArea,newGame,startArena:()=>startArena()};
 })();
 </script>
 
 <script>
 // Atualização automática: confere version.json (sem cache) ao abrir e sempre que o app volta para a tela.
 // No menu recarrega na hora; durante a partida espera a próxima vez que o jogo estiver no menu ou pausado.
-const APP_V='2026-11-01-7';
+const APP_V='2026-11-01-8';
 if('serviceWorker' in navigator) addEventListener('load',()=>navigator.serviceWorker.register('sw.js?v='+APP_V).catch(()=>{}));
 let updWaiting=false;
 function checkUpdate(){ fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(j=>{ if(j.v&&j.v!==APP_V){ let done=null; try{ done=sessionStorage.getItem('kvx-upd'); }catch(e){} if(done===j.v) return; updWaiting=j.v; tryReload(); } }).catch(()=>{}); }
