@@ -66,7 +66,26 @@
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.offline) try { localStorage.setItem('kravenox_offline', e.data.offline); } catch (err) {} });
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()).then(j => navigator.serviceWorker.register('sw.js?v=' + j.v)).catch(() => {});
+    // versão nova assumiu o aparelho enquanto o jogo está aberto: se ainda estiver na tela de título, recarrega já
+    const hadSW = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSW && atTitle()) location.reload(); });
   }
+  // na tela de título (nada a perder) é seguro recarregar para pegar a versão nova
+  function atTitle() { const G = window.G; return !G || !G.scene || (G.isTitle && G.isTitle()); }
+  // app que ficou em segundo plano: ao voltar para ele, confere se saiu versão nova
+  let checking = false;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || checking || !atTitle()) return;
+    checking = true;
+    fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()).then(j => {
+      checking = false;
+      if (j.v && j.v !== window.KRAVENOX_V && atTitle()) {
+        if (navigator.serviceWorker) navigator.serviceWorker.register('sw.js?v=' + j.v).catch(() => {});
+        try { localStorage.setItem('kravenox_lastv', j.v); } catch (e) {}
+        location.reload();
+      }
+    }).catch(() => { checking = false; });
+  });
 })();
 </script>
 </body>

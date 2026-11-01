@@ -28,6 +28,12 @@ self.addEventListener('fetch', e => {
       try { const r = await fetch(req); if (r.ok) c.put(req.mode === 'navigate' ? 'index.html' : req, r.clone()); return r; }
       catch (err) { return (await c.match(req.mode === 'navigate' ? 'index.html' : req, { ignoreSearch: true })) || (await caches.match('index.html', { ignoreSearch: true })) || Response.error(); }
     }
+    // arquivo de uma versão mais nova do que este cache (?v= diferente): busca na internet primeiro,
+    // senão o aparelho continuaria rodando o jogo antigo até abrir o app duas vezes
+    const qv = url.searchParams.get('v');
+    if (qv && qv !== V && qv !== 'offline') {
+      try { const r = await fetch(req); if (r.ok) return r; } catch (err) {}
+    }
     const hit = await c.match(req, { ignoreSearch: true }) || await caches.match(req, { ignoreSearch: true });
     if (hit) return hit;
     try { const r = await fetch(req); if (r.ok && !req.headers.get('range')) c.put(req, r.clone()); return r; } catch (err) { return Response.error(); }

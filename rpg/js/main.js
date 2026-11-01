@@ -99,6 +99,7 @@
   // Tela título: primeiro escolhe o livro, depois começa ou continua. Cada livro tem seu registro.
   const BOOKS = ['Livro I — O Reino Quebrado', 'Livro II — O Reino da Escolha'];
   const lastBook = () => { try { return +localStorage.getItem('kravenox_livro') === 2 ? 2 : 1; } catch (e) { return 1; } };
+  G.isTitle = () => G.scene === Title;
   G.titleScreen = async function () {
     G.overlays.length = 0; G.lock = 0;
     G.scene = Title; G.fadeA = 0; G.Audio.play('title');
