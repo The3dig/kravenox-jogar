@@ -37,7 +37,23 @@ addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) { Input.held[k
 addEventListener('blur', () => { Input.held = {}; });
 // ---------- Controle (Xbox, PlayStation, genéricos) ----------
 // A / X = confirmar · B / Y / Start / Select = voltar e menu · direcional ou analógico = andar.
-Input.pad = {}; Input.padOn = false;
+Input.pad = {}; Input.padOn = false; Input.padKind = null;
+// preferências (tela de título → Controle): tipo do controle e botões de toque na tela
+const pref = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
+G.padType = pref('kravenox_padtipo', 'auto');      // auto | xbox | ps | nintendo
+G.touchPref = pref('kravenox_toque', 'auto');      // auto | sempre | nunca
+G.setPref = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+// reconhece o controle pelo nome que o aparelho informa
+G.padKindOf = id => {
+  id = (id || '').toLowerCase();
+  if (/xbox|xinput|045e/.test(id)) return 'xbox';
+  if (/playstation|dualsense|dualshock|wireless controller|054c/.test(id)) return 'ps';
+  if (/nintendo|pro controller|joy-con|057e/.test(id)) return 'nintendo';
+  return 'xbox';
+};
+G.padKindNow = () => G.padType !== 'auto' ? G.padType : (Input.padKind || 'xbox');
+G.PADNAME = { xbox: 'Xbox', ps: 'PlayStation', nintendo: 'Nintendo' };
+G.padHelp = k => k === 'ps' ? 'Xis confirma · Bola volta' : 'A confirma · B volta';
 const PAD_BTN = { 0: 'a', 2: 'a', 1: 'b', 3: 'b', 8: 'b', 9: 'b', 12: 'up', 13: 'down', 14: 'left', 15: 'right' };
 Input.pollPad = function () {
   const pad = {}; let found = false;
@@ -45,7 +61,10 @@ Input.pollPad = function () {
   for (const gp of list) {
     if (!gp || !gp.connected) continue;
     found = true;
-    gp.buttons.forEach((b, i) => { const k = PAD_BTN[i]; if (k && (b.pressed || b.value > 0.5)) pad[k] = true; });
+    if (!this.padKind) this.padKind = G.padKindOf(gp.id);
+    // no controle da Nintendo o A fica à direita: troca confirmar e voltar para bater com o que está escrito
+    const swap = G.padKindNow() === 'nintendo';
+    gp.buttons.forEach((b, i) => { let k = PAD_BTN[i]; if (swap && i < 4) k = k === 'a' ? 'b' : 'a'; if (k && (b.pressed || b.value > 0.5)) pad[k] = true; });
     const ax = gp.axes, dz = 0.5;
     if (ax.length >= 2) {
       if (ax[0] < -dz) pad.left = true; else if (ax[0] > dz) pad.right = true;
@@ -68,7 +87,11 @@ Input.pollPad = function () {
   }
   if (Object.keys(pad).length) { this.any = true; G.Audio && G.Audio.unlock(); }
   this.pad = pad;
-  if (found !== this.padOn) { this.padOn = found; G.onPadChange && G.onPadChange(found); }
+  if (found !== this.padOn) {
+    this.padOn = found; if (!found) this.padKind = null;
+    G.onPadChange && G.onPadChange(found);
+    if (G.toast && G.time > 0) G.toast(found ? 'Controle ' + G.PADNAME[G.padKindNow()] + ' conectado: ' + G.padHelp(G.padKindNow()) : 'Controle desconectado.', 150);
+  }
 };
 addEventListener('gamepadconnected', () => Input.pollPad());
 addEventListener('gamepaddisconnected', () => Input.pollPad());
@@ -472,7 +495,14 @@ G.setupTouch = function () {
     G.canvas.style.height = Math.floor(G.H * s) + 'px';
   };
   // com controle ligado, some o direcional da tela e o jogo ocupa a tela inteira (bom para espelhar na TV)
-  G.onPadChange = on => { document.body.classList.toggle('gamepad', on); fit(); };
-  if (Input.padOn) G.onPadChange(true);
+  // botões de toque: automático (somem com controle ligado), sempre, ou nunca
+  G.applyTouch = () => {
+    const cl = document.body.classList, tp = G.touchPref;
+    cl.toggle('touch', tp === 'sempre' || touch);
+    cl.toggle('gamepad', tp === 'nunca' || (tp === 'auto' && Input.padOn));
+    fit();
+  };
+  G.onPadChange = () => G.applyTouch();
+  G.applyTouch();
   addEventListener('resize', fit); addEventListener('orientationchange', () => setTimeout(fit, 200)); fit();
 };
