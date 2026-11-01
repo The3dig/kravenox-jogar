@@ -97,6 +97,7 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
 .tally b{color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;font-family:var(--display);font-weight:400;letter-spacing:.03em}
 .keys{color:var(--muted);font-size:13px;text-align:center;max-width:60ch}
 .keys b{color:var(--ink);font-weight:700}
+.sndhint{font-family:var(--display);font-size:14px;letter-spacing:.06em;color:var(--ink);background:rgba(255,154,60,.18);border:2px solid rgba(255,154,60,.5);border-radius:14px;padding:5px 12px}
 .rec{font-family:var(--display);color:var(--gold);letter-spacing:.08em;font-size:15px}
 .shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;width:min(680px,100%)}
 .item{display:flex;gap:10px;align-items:center;background:var(--panel);border:2px solid rgba(255,255,255,.1);border-radius:14px;padding:10px;min-width:0}
@@ -165,6 +166,7 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
     </div>
   </div>
   <div class="rec" id="recLbl"></div>
+  <div class="sndhint" id="sndHint">Toque na tela para ligar o som</div>
   <button class="btn" id="playBtn">JOGAR</button>
   <div class="keys">Teclado: <b>← →</b> andar · <b>Z</b> ou <b>Espaço</b> pular (2× no ar) · <b>X</b> ou <b>J</b> atacar · <b>P</b> pausa · <b>M</b> som<br>Controle (Xbox/PlayStation): <b>analógico</b> andar · <b>A</b> pular · <b>X</b> ou <b>B</b> atacar · <b>Start</b> pausa</div>
 </div>
@@ -1299,7 +1301,12 @@ addEventListener('gamepadconnected',()=>pollPad());
 $('#pauseBtn').onclick=()=>pause(); $('#muteBtn').onclick=()=>{ initAudio(); setMute(!save.muted); };
 $('#playBtn').onclick=()=>{ initAudio(); newGame(); };
 document.addEventListener('visibilitychange',()=>{ if(document.hidden&&state==='playing') pause(); if(!document.hidden&&ac&&ac.state!=='running') ac.resume().catch(()=>{}); });
-addEventListener('pointerdown',()=>{ if(ac&&ac.state!=='running') ac.resume().catch(()=>{}); });
+// iPhone: o som só pode começar depois de um toque. Qualquer toque liga o áudio (e a música do menu).
+try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
+function unlockAudio(){ initAudio(); if(!ac) return; if(ac.state!=='running') ac.resume().catch(()=>{});
+  try{ const bf=ac.createBuffer(1,1,22050), sr=ac.createBufferSource(); sr.buffer=bf; sr.connect(ac.destination); sr.start(0); }catch(e){} }
+['pointerdown','touchend','click','keydown'].forEach(ev=>addEventListener(ev,unlockAudio,{passive:true}));
+setInterval(()=>{ const h=$('#sndHint'); if(h) h.hidden=!!(ac&&ac.state==='running'); },500);
 
 /* ================= RENDER SYNC ================= */
 function syncVisuals(dt,time){
@@ -1393,7 +1400,7 @@ window.__kvx={G,get state(){return state},get P(){return P},get boss(){return bo
 <script>
 // Atualização automática: confere version.json (sem cache) ao abrir e sempre que o app volta para a tela.
 // No menu recarrega na hora; durante a partida espera a próxima vez que o jogo estiver no menu ou pausado.
-const APP_V='2026-11-01-6';
+const APP_V='2026-11-01-7';
 if('serviceWorker' in navigator) addEventListener('load',()=>navigator.serviceWorker.register('sw.js?v='+APP_V).catch(()=>{}));
 let updWaiting=false;
 function checkUpdate(){ fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(j=>{ if(j.v&&j.v!==APP_V){ let done=null; try{ done=sessionStorage.getItem('kvx-upd'); }catch(e){} if(done===j.v) return; updWaiting=j.v; tryReload(); } }).catch(()=>{}); }
