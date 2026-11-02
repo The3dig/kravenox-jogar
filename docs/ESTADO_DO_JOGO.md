@@ -266,9 +266,11 @@ raízes, partículas e legendas.
 ---
 
 ## 6. Vídeos
-- **Vídeo de abertura** (85 s), gravado do próprio jogo com a trilha nova. Mostra o desenho de escola, o
-  despertar, o mapa, a masmorra e as batalhas. **Passa sozinho depois de 25 s parado na tela título**;
-  qualquer toque volta ao menu.
+- **Vídeo de abertura** (85 s), gravado do jogo atual (refeito em 02/11 com o visual novo): o desenho de
+  escola, a tela título dos dois livros, o mapa, a masmorra, batalhas do Livro I e do Livro II (Erya e a Mãe,
+  o Rei do Último Mundo) e o cartão final. **Passa sozinho depois de 25 s parado na tela título**; qualquer
+  toque volta ao menu. Para refazer depois de mudar o visual: `tools/video_abertura.js` (grava quadro a
+  quadro) e `tools/video_abertura.py` (junta com as músicas e gera mp4/webm).
 - **Trailer com metal ópera** e **filme do Cap. 13**, feitos antes das últimas melhorias visuais.
 
 ![Vídeo de abertura rodando na tela título](estado/21-video-abertura.jpg)
