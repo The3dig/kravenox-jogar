@@ -5,3 +5,4 @@
 - `play.js` / `play2.js` — testes automáticos que jogam a história inteira da Parte 1 e da Parte 2 (servidor local na porta 8765).
 - `shots2.js` — tira fotos das telas novas.
 - `precache.py` — gera `rpg/precache.json` (a lista do que fica guardado no aparelho para jogar sem internet). Rodar sempre que entrar arquivo novo.
+- `video_abertura.js` + `video_abertura.py` — gravam o vídeo de abertura (tela título) direto do jogo atual e juntam com as músicas (rodar com o servidor local na porta 8765, na raiz do repositório).
