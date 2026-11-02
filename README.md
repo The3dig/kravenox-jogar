@@ -6,6 +6,17 @@ O link é sempre o mesmo e o jogo se atualiza sozinho: **https://the3dig.github.
 
 # Kravenox
 
+## Kravenox: Quadros do Cisma (jogo casual)
+
+**Jogar:** https://the3dig.github.io/kravenox-jogar/quadros/
+
+O Kravenox anda sem parar por um anel de quadros e ativa o poder de cada quadro
+onde pisa. Compre os poderes na loja, funda itens iguais e sobreviva às 15 ondas
+de monstros do livro. Feito em Godot 4.5; o projeto fica em
+`The3dig/kravenox-jogo-casual` (pasta `godot/`).
+
+---
+
 ## Kravenox: O Reino Quebrado (RPG) — Parte 1
 
 **Jogar:** https://the3dig.github.io/kravenox-jogar/rpg/
