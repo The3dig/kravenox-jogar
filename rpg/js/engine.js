@@ -56,47 +56,51 @@ G.PADNAME = { xbox: 'Xbox', ps: 'PlayStation', nintendo: 'Nintendo' };
 G.padHelp = k => k === 'ps' ? 'Xis confirma · Bola volta' : 'A confirma · B volta';
 const PAD_BTN = { 0: 'a', 2: 'a', 1: 'b', 3: 'b', 8: 'b', 9: 'b', 12: 'up', 13: 'down', 14: 'left', 15: 'right' };
 Input.pollPad = function () {
-  const pad = {}; let found = false;
-  const list = navigator.getGamepads ? navigator.getGamepads() : [];
-  for (const gp of list) {
-    if (!gp || !gp.connected) continue;
-    found = true;
+  const pad = {};
+  // usa um controle só (o primeiro conectado; de preferência um com mapeamento padrão): alguns aparelhos
+  // mostram "controles fantasmas" com eixos parados fora do centro, que fariam o herói andar sozinho
+  let gp = null;
+  try { for (const g of (navigator.getGamepads ? navigator.getGamepads() : [])) if (g && g.connected && (!gp || (g.mapping === 'standard' && gp.mapping !== 'standard'))) gp = g; } catch (e) {}
+  const found = !!gp;
+  if (gp) {
     if (!this.padKind) this.padKind = G.padKindOf(gp.id);
     // no controle da Nintendo o A fica à direita: troca confirmar e voltar para bater com o que está escrito
     const swap = G.padKindNow() === 'nintendo';
     gp.buttons.forEach((b, i) => { let k = PAD_BTN[i]; if (swap && i < 4) k = k === 'a' ? 'b' : 'a'; if (k && (b.pressed || b.value > 0.5)) pad[k] = true; });
-    const ax = gp.axes, dz = 0.5;
+    const ax = gp.axes;
     if (ax.length >= 2) {
-      if (ax[0] < -dz) pad.left = true; else if (ax[0] > dz) pad.right = true;
-      if (ax[1] < -dz) pad.up = true; else if (ax[1] > dz) pad.down = true;
+      if (ax[0] < -0.45) pad.left = true; else if (ax[0] > 0.45) pad.right = true;
+      if (ax[1] < -0.55) pad.up = true; else if (ax[1] > 0.55) pad.down = true;
     }
-    if (gp.mapping !== 'standard') {
-      // controles sem mapeamento padrão: direcional costuma vir nos eixos 6/7 ou num "chapéu" no eixo 9
-      if (ax.length >= 8) {
-        if (ax[6] < -dz) pad.left = true; else if (ax[6] > dz) pad.right = true;
-        if (ax[7] < -dz) pad.up = true; else if (ax[7] > dz) pad.down = true;
-      }
-      if (ax.length >= 10 && ax[9] >= -1.05 && ax[9] <= 1.05) {
-        const h = Math.round((ax[9] + 1) * 3.5); // 0=cima 1=cima-dir 2=dir ... 7=cima-esq
-        if (h === 0 || h === 1 || h === 7) pad.up = true;
-        if (h === 3 || h === 4 || h === 5) pad.down = true;
-        if (h === 1 || h === 2 || h === 3) pad.right = true;
-        if (h === 5 || h === 6 || h === 7) pad.left = true;
-      }
+    // controle sem mapeamento padrão: o direcional costuma vir num "chapéu" no eixo 9 (parado fica fora de -1..1)
+    if (gp.mapping !== 'standard' && ax.length >= 10 && ax[9] >= -1.05 && ax[9] <= 1.05) {
+      const h = Math.round((ax[9] + 1) * 3.5); // 0=cima 1=cima-dir 2=dir ... 7=cima-esq
+      if (h === 0 || h === 1 || h === 7) pad.up = true;
+      if (h === 3 || h === 4 || h === 5) pad.down = true;
+      if (h === 1 || h === 2 || h === 3) pad.right = true;
+      if (h === 5 || h === 6 || h === 7) pad.left = true;
     }
   }
-  if (Object.keys(pad).length) { this.any = true; G.Audio && G.Audio.unlock(); }
+  // apertou agora: fica guardado até o jogo ler (como no teclado), para toque rápido não se perder
+  for (const k in pad) if (!this.pad[k]) this.latch[k] = true;
+  if (Object.keys(pad).length) { this.any = true; G.Audio && G.Audio.unlock(); G.keepAwake && G.keepAwake(); }
   this.pad = pad;
   if (found !== this.padOn) {
     this.padOn = found; if (!found) this.padKind = null;
     G.onPadChange && G.onPadChange(found);
+    if (found) G.keepAwake && G.keepAwake();
     if (G.toast && G.time > 0) G.toast(found ? 'Controle ' + G.PADNAME[G.padKindNow()] + ' conectado: ' + G.padHelp(G.padKindNow()) : 'Controle desconectado.', 150);
   }
 };
+// jogando só com o controle a tela não recebe toques e o celular apagaria a tela: mantém acesa
+let wake = null;
+G.keepAwake = async function () {
+  try { if (!wake && Input.padOn && 'wakeLock' in navigator && document.visibilityState === 'visible') { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } } catch (e) {}
+};
+document.addEventListener('visibilitychange', () => { if (!document.hidden) G.keepAwake(); });
 addEventListener('gamepadconnected', () => Input.pollPad());
 addEventListener('gamepaddisconnected', () => Input.pollPad());
 Input.update = function () {
-  this.pollPad();
   for (const k of ['up', 'down', 'left', 'right', 'a', 'b']) {
     const h = !!(this.held[k] || (k === this.touchDir) || this.pad[k]);
     this.pressed[k] = (h && !this.prev[k]) || !!this.latch[k];
@@ -421,6 +425,7 @@ G.start = function () {
 // Velocidade da batalha: em 1x a batalha anda na metade do ritmo; 2x é o ritmo rápido.
 G.fastBattle = false; try { G.fastBattle = localStorage.getItem('kravenox_vel') === '2'; } catch (e) {}
 G.update = function () {
+  Input.pollPad();   // todo quadro, mesmo quando a batalha em 1x pula um
   if (G.scene === G.Battle && !G.fastBattle && !G.debug.auto && !G.debug.fast) { G._half = !G._half; if (G._half) return; }
   G.time++;
   Input.update();
