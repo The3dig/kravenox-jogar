@@ -98,6 +98,7 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
 .keys{color:var(--muted);font-size:13px;text-align:center;max-width:60ch}
 .keys b{color:var(--ink);font-weight:700}
 .sndhint{font-family:var(--display);font-size:14px;letter-spacing:.06em;color:var(--ink);background:rgba(255,154,60,.18);border:2px solid rgba(255,154,60,.5);border-radius:14px;padding:5px 12px}
+.savetog{font-size:14px;padding:7px 16px;box-shadow:0 4px 0 #120e17}
 .rec{font-family:var(--display);color:var(--gold);letter-spacing:.08em;font-size:15px}
 .shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;width:min(680px,100%)}
 .item{display:flex;gap:10px;align-items:center;background:var(--panel);border:2px solid rgba(255,255,255,.1);border-radius:14px;padding:10px;min-width:0}
@@ -168,6 +169,7 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
   <div class="rec" id="recLbl"></div>
   <div class="sndhint" id="sndHint">Toque na tela para ligar o som</div>
   <div class="row"><button class="btn" id="contBtn" hidden>CONTINUAR</button><button class="btn" id="playBtn">JOGAR</button></div>
+  <button class="btn ghost savetog" id="saveTog">SAVE: DESLIGADO</button>
   <div class="keys">Teclado: <b>← →</b> andar · <b>Z</b> ou <b>Espaço</b> pular (2× no ar) · <b>X</b> ou <b>J</b> atacar · <b>P</b> pausa · <b>M</b> som<br>Controle (Xbox/PlayStation): <b>analógico</b> andar · <b>A</b> pular · <b>X</b> ou <b>B</b> atacar · <b>Start</b> pausa</div>
 </div>
 
@@ -965,7 +967,7 @@ function updatePlayer(dt){
   for(const fr of frags){ if(!fr.got&&Math.abs(fr.x-P.x)<.7&&fr.y>P.y-.3&&fr.y<P.y+P.h+.4){ fr.got=true; fr.g.visible=false; G.frags[G.area]=true; G.score+=2000; sfx.power(); burst(fr.x,fr.y,0xf2c14e,26,4,5);
     popText(fr.x,fr.y+.5,'+2000','big'); showToast('<small>Segredo encontrado</small>Fragmento do Reino'); renderHUD(); } }
   for(const f of flags){ if(!f.on&&P.x>f.x-.3){ f.on=true; cp={x:f.x,y:f.y}; f.ban.material.color.setHex(0xd4313f); sfx.flag(); burst(f.x+.3,f.y+1.4,0xf2c14e,12,2.5,3);
-    G.round++; $('#areaLbl').textContent=`Área ${G.area+1}-${G.round}`; showToast(`<small>Rodada ${G.round}</small>Jogo salvo`,1200); saveRun({x:f.x,y:f.y}); } }
+    G.round++; $('#areaLbl').textContent=`Área ${G.area+1}-${G.round}`; showToast(`<small>Rodada ${G.round}</small>${save.saving?'Jogo salvo':'Ponto de retorno'}`,1200); saveRun({x:f.x,y:f.y}); } }
   for(const e of eggs){ if(!e.broken&&overlap(P,e)) crackEgg(e); }
   for(let i=items.length-1;i>=0;i--){ const it=items[i]; it.t+=dt;
     if(it.kind==='curse'){ const dx=P.x-it.x, dy=P.y+.6-it.y, d=Math.hypot(dx,dy)||1; it.x+=dx/d*2.3*dt; it.y+=dy/d*2.3*dt; it.life-=dt;
@@ -1224,16 +1226,17 @@ function victory(){
    [['JOGAR DE NOVO',()=>{ hideMsg(); newGame(); }],['MENU',goMenu,true]]);
 }
 // Save automático: começo de cada área, cada bandeira e a entrada do chefe (fica no aparelho).
-function saveRun(at){ try{ localStorage.setItem('kvx-run',JSON.stringify({v:1,area:G.area,lives:Math.max(1,G.lives),score:G.score,coins:G.coins,frags:G.frags,up:G.up,blade:G.blade,cp:at||null})); }catch(e){} }
-function loadRun(){ try{ const r=JSON.parse(localStorage.getItem('kvx-run')||'null'); return r&&r.v===1&&AREAS[r.area]?r:null; }catch(e){ return null; } }
+function saveRun(at){ if(!save.saving) return; try{ localStorage.setItem('kvx-run',JSON.stringify({v:1,area:G.area,lives:Math.max(1,G.lives),score:G.score,coins:G.coins,frags:G.frags,up:G.up,blade:G.blade,cp:at||null})); }catch(e){} }
+function loadRun(){ if(!save.saving) return null; try{ const r=JSON.parse(localStorage.getItem('kvx-run')||'null'); return r&&r.v===1&&AREAS[r.area]?r:null; }catch(e){ return null; } }
 function clearRun(){ try{ localStorage.removeItem('kvx-run'); }catch(e){} }
 function continueRun(){ const r=loadRun(); if(!r){ newGame(); return; }
   Object.assign(G,{area:r.area,lives:r.lives,score:r.score,coins:r.coins,frags:r.frags,up:r.up,blade:r.blade,round:1});
   $('#menu').hidden=true; $('#hud').hidden=false; $('#pad').hidden=!touchy||padSeen; hero.g.scale.setScalar(1); loadArea(r.area,r.cp||null); }
+function buildMenuButtons(){ $('#saveTog').textContent=save.saving?'SAVE: LIGADO':'SAVE: DESLIGADO · FLIPERAMA'; const r=loadRun(), cb=$('#contBtn'); cb.hidden=!r; if(r) cb.textContent=`CONTINUAR · ÁREA ${r.area+1}`; $('#playBtn').textContent=r?'NOVO JOGO':'JOGAR'; $('#playBtn').classList.toggle('ghost',!!r); }
 function hiCheck(){ if(G.score>save.hi){ save.hi=G.score; persist(); } }
 function gameOver(){
   state='over'; hiCheck(); playSong('over');
-  showMsg('Fim de jogo',`<div class="info">Kravenox caiu em ${L.def.name}.<br>Pontos: <b>${G.score}</b> · Recorde: <b>${save.hi}</b></div><div class="info" style="font-size:14px">Continuar volta ao último ponto salvo com 3 vidas. Moedas e melhorias ficam; a pontuação zera.</div>`,
+  showMsg('Fim de jogo',`<div class="info">Kravenox caiu em ${L.def.name}.<br>Pontos: <b>${G.score}</b> · Recorde: <b>${save.hi}</b></div><div class="info" style="font-size:14px">Continuar volta com 3 vidas, mas a pontuação zera. Moedas e melhorias ficam; a pontuação zera.</div>`,
    [['CONTINUAR',()=>{ hideMsg(); G.lives=3; G.score=0; const r=loadRun(); loadArea(G.area,r&&r.area===G.area?r.cp:null); }],['MENU',goMenu,true]]);
 }
 function respawn(){ if(G.lives<0){ gameOver(); return; } G.blade=0; loadArea(G.area,cp&&cp!==L.start?{x:cp.x,y:cp.y}:null); showToast(`<small>Vidas: ${G.lives}</small>De volta à luta`,1400); }
@@ -1247,7 +1250,7 @@ function pause(){ if(state!=='playing') return; state='paused';
   showMsg('Pausado',`<div class="info">Modo leve tira sombras e chuva e baixa a resolução. Ajuda quando a tela está espelhada na TV.</div>`,[['CONTINUAR',()=>{ hideMsg(); state='playing'; }],[save.lite?'MODO LEVE: LIGADO':'MODO LEVE: DESLIGADO',()=>{ setLite(!save.lite); hideMsg(); state='playing'; pause(); },true],['REINICIAR ÁREA',()=>{ hideMsg(); loadArea(G.area); },true],['MENU',goMenu,true]]); }
 function newGame(){ clearRun(); Object.assign(G,{area:0,lives:3,score:0,coins:0,frags:[false,false,false,false,false],up:{vigor:0,sword:1,armor:0,boots:0},blade:0,round:1});
   $('#menu').hidden=true; $('#hud').hidden=false; $('#pad').hidden=!touchy; hero.g.scale.setScalar(1); loadArea(0); }
-function goMenu(){ hideMsg(); state='menu'; $('#menu').hidden=false; $('#hud').hidden=true; $('#pad').hidden=true; $('#bossbar').hidden=true; buildMenu(); playSong('menu'); }
+function goMenu(){ hideMsg(); clearTimeout(toastT); $('#toast').classList.remove('show'); state='menu'; $('#menu').hidden=false; $('#hud').hidden=true; $('#pad').hidden=true; $('#bossbar').hidden=true; buildMenu(); playSong('menu'); }
 
 /* ================= MENU STAGE ================= */
 let menuT=0, menuBits={};
@@ -1267,6 +1270,7 @@ function buildMenu(){
   const eg=makeEgg(); world.add(eg.g); eg.g.position.set(1.6,0,.6);
   const cr=add(world,GEO.crystal,MAT.crystal,-1.0,.6,.9);
   menuBits={g,bt,cr}; P=null; makeAmbient('embers',0xffa040);
+  $('#saveTog').textContent=save.saving?'SAVE: LIGADO':'SAVE: DESLIGADO · FLIPERAMA';
   { const r=loadRun(), cb=$('#contBtn'); cb.hidden=!r; if(r) cb.textContent=`CONTINUAR · ÁREA ${r.area+1}`; $('#playBtn').textContent=r?'NOVO JOGO':'JOGAR'; $('#playBtn').classList.toggle('ghost',!!r); }
   $('#recLbl').textContent=save.hi?`Recorde: ${String(save.hi).padStart(6,'0')}`:'';
 }
@@ -1314,6 +1318,7 @@ addEventListener('gamepadconnected',()=>pollPad());
 $('#pauseBtn').onclick=()=>pause(); $('#muteBtn').onclick=()=>{ initAudio(); setMute(!save.muted); };
 $('#playBtn').onclick=()=>{ initAudio(); newGame(); };
 $('#contBtn').onclick=()=>{ initAudio(); continueRun(); };
+$('#saveTog').onclick=()=>{ save.saving=!save.saving; if(!save.saving) clearRun(); persist(); buildMenuButtons(); };
 document.addEventListener('visibilitychange',()=>{ if(document.hidden&&state==='playing') pause(); if(!document.hidden&&ac&&ac.state!=='running') ac.resume().catch(()=>{}); });
 // iPhone: o som só pode começar depois de um toque. Qualquer toque liga o áudio (e a música do menu).
 try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
@@ -1420,7 +1425,7 @@ window.__kvx={G,loadRun:()=>loadRun(),goMenu:()=>goMenu(),openShop:()=>openShop(
 <script>
 // Atualização automática: confere version.json (sem cache) ao abrir e sempre que o app volta para a tela.
 // No menu recarrega na hora; durante a partida espera a próxima vez que o jogo estiver no menu ou pausado.
-const APP_V='2026-11-01-9';
+const APP_V='2026-11-01-10';
 if('serviceWorker' in navigator) addEventListener('load',()=>navigator.serviceWorker.register('sw.js?v='+APP_V).catch(()=>{}));
 let updWaiting=false;
 function checkUpdate(){ fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(j=>{ if(j.v&&j.v!==APP_V){ let done=null; try{ done=sessionStorage.getItem('kvx-upd'); }catch(e){} if(done===j.v) return; updWaiting=j.v; tryReload(); } }).catch(()=>{}); }
