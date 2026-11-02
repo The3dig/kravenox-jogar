@@ -75,7 +75,8 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
 .overlay{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:12px;overflow-y:auto;
   padding-block:calc(20px + env(safe-area-inset-top,0px)) calc(22px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   background:linear-gradient(180deg,rgba(21,18,28,0) 25%,rgba(21,18,28,.88) 70%)}
-.overlay.center{justify-content:center;background:rgba(15,12,20,.78)}
+.overlay.center{justify-content:flex-start;background:rgba(15,12,20,.78)}
+.overlay.center>:first-child{margin-top:auto}.overlay.center>:last-child{margin-bottom:auto}
 .title{font-family:var(--display);font-size:clamp(46px,12vw,96px);line-height:.9;letter-spacing:.02em;color:var(--ink);text-align:center;
   text-shadow:0 5px 0 #4a1820,0 9px 0 #1b0c10,0 0 40px rgba(212,49,63,.5)}
 .subtitle{font-family:var(--display);color:var(--ember);letter-spacing:.24em;text-transform:uppercase;font-size:14px;text-align:center}
@@ -113,6 +114,7 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
 .wallet{font-family:var(--display);font-size:20px;color:var(--gold);display:flex;align-items:center;gap:6px}
 @media (max-height:620px){.title{font-size:44px}.card p{display:none}.legend{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .rotate{position:fixed;inset:0;z-index:20;background:rgba(15,12,20,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-family:var(--display);font-size:22px;text-align:center;color:var(--ink);padding-inline:16px}
+@media (max-height:540px){.overlay{gap:7px;padding-block:calc(8px + env(safe-area-inset-top,0px)) calc(10px + env(safe-area-inset-bottom,0px))}.big{font-size:28px}.shop{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:min(760px,100%)}.item{padding:6px 8px;gap:6px;border-radius:10px}.item svg{width:26px;height:26px}.item h3{font-size:13px}.item p{font-size:10.5px}.buy{font-size:13px;padding:5px 8px}.info{font-size:13px;line-height:1.35}.shopinfo{display:none}.wallet{font-size:16px}.btn{font-size:16px;padding:8px 20px;box-shadow:0 4px 0 #9a4a10}.btn.ghost{box-shadow:0 4px 0 #120e17}.tally{font-size:14px;gap:2px 14px}}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
 </style>
 </head>
@@ -1220,7 +1222,7 @@ const SHOP=[
 function openShop(){ state='shop'; playSong('menu'); drawShop(); }
 function drawShop(){
   const html=`<div class="wallet"><svg width="22" height="22" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#f2c14e" stroke="#9a6a10" stroke-width="2"/></svg>${G.coins} moedas</div>
-  <div class="info">O Mercador das Sombras abre a tenda entre as áreas. Gaste as moedas dos inimigos.</div>
+  <div class="info shopinfo">O Mercador das Sombras abre a tenda entre as áreas. Gaste as moedas dos inimigos.</div>
   <div class="shop">${SHOP.map((s,i)=>{ const mx=s.max(), pr=s.price(); return `<div class="item">${s.ico}<div class="txt"><h3>${s.name()}</h3><p>${mx?'Já comprado':s.desc()}</p></div>
    <button class="buy" data-i="${i}" ${mx||G.coins<pr?'disabled':''}>${mx?'OK':pr}</button></div>`; }).join('')}</div>`;
   showMsg('Loja',html,[['SEGUIR VIAGEM',()=>{ hideMsg(); loadArea(G.area+1); }]]);
@@ -1243,8 +1245,8 @@ function buildMenuButtons(){ $('#saveTog').textContent=save.saving?'SAVE: LIGADO
 function hiCheck(){ if(G.score>save.hi){ save.hi=G.score; persist(); } }
 function gameOver(){
   state='over'; hiCheck(); playSong('over');
-  showMsg('Fim de jogo',`<div class="info">Kravenox caiu em ${L.def.name}.<br>Pontos: <b>${G.score}</b> · Recorde: <b>${save.hi}</b></div><div class="info" style="font-size:14px">Continuar volta com 3 vidas, mas a pontuação zera. Moedas e melhorias ficam; a pontuação zera.</div>`,
-   [['CONTINUAR',()=>{ hideMsg(); G.lives=3; G.score=0; const r=loadRun(); loadArea(G.area,r&&r.area===G.area?r.cp:null); }],['MENU',goMenu,true]]);
+  showMsg('Fim de jogo',`<div class="info">Kravenox caiu em ${L.def.name}.<br>Pontos: <b>${G.score}</b> · Recorde: <b>${save.hi}</b></div><div class="info" style="font-size:14px">Continuar volta com 3 vidas, mas a pontuação e as compras da loja zeram. Moedas e melhorias ficam; a pontuação zera.</div>`,
+   [['CONTINUAR',()=>{ hideMsg(); G.lives=3; G.score=0; G.up={vigor:0,sword:1,armor:0,boots:0}; G.blade=0; const r=loadRun(); loadArea(G.area,r&&r.area===G.area?r.cp:null); }],['MENU',goMenu,true]]);
 }
 function respawn(){ if(G.lives<0){ gameOver(); return; } G.blade=0; loadArea(G.area,cp&&cp!==L.start?{x:cp.x,y:cp.y}:null); showToast(`<small>Vidas: ${G.lives}</small>De volta à luta`,1400); }
 function showMsg(title,body,buttons){
@@ -1440,7 +1442,7 @@ window.__kvx={G,loadRun:()=>loadRun(),goMenu:()=>goMenu(),openShop:()=>openShop(
 <script>
 // Atualização automática: confere version.json (sem cache) ao abrir e sempre que o app volta para a tela.
 // No menu recarrega na hora; durante a partida espera a próxima vez que o jogo estiver no menu ou pausado.
-const APP_V='2026-11-01-13';
+const APP_V='2026-11-02-1';
 if('serviceWorker' in navigator) addEventListener('load',()=>navigator.serviceWorker.register('sw.js?v='+APP_V).catch(()=>{}));
 let updWaiting=false;
 function checkUpdate(){ fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(j=>{ if(j.v&&j.v!==APP_V){ let done=null; try{ done=sessionStorage.getItem('kvx-upd'); }catch(e){} if(done===j.v) return; updWaiting=j.v; tryReload(); } }).catch(()=>{}); }
