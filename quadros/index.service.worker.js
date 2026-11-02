@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1793648321|13379954';
+const CACHE_VERSION = '1793651109|8471270';
 /** @type {string} */
 const CACHE_PREFIX = 'Kravenox: Quadro-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
