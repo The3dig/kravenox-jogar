@@ -435,6 +435,7 @@ function makeItem(kind){ const g=new THREE.Group();
   else if(kind==='fairy'){ const f=makeFairy(); f.g.scale.setScalar(1.8); g.add(f.g); g.userData.f=f; }
   else if(kind==='curse'){ const m=M(0xa35cff,{emissive:0x5a1fb0,emissiveIntensity:.9}); addS(g,GEO.sph,m,0,0,0,.26,.24,.24); addS(g,GEO.box,m,0,-.17,.06,.22,.1,.18);
     const k=B(0x120818); addS(g,GEO.sph,k,-.09,.02,.2,.07,.08,.04,false); addS(g,GEO.sph,k,.09,.02,.2,.07,.08,.04,false); }
+  else if(kind==='thorns'){ const m=M(0x3a1a4a,{emissive:0x8a3aff,emissiveIntensity:.7,metalness:.4}); for(let i=0;i<8;i++){ const a=i/8*Math.PI*2, c=addS(g,GEO.cone,m,Math.cos(a)*.28,Math.sin(a)*.28,0,.05,.22,.05); c.rotation.z=a-Math.PI/2; } add(g,new THREE.TorusGeometry(.28,.03,6,20),B(0xb07aff),0,0,0,false); }
   else if(kind==='bigc'){ addS(g,GEO.crystal,MAT.crystal,0,0,0,2,2.4,2); add(g,new THREE.TorusGeometry(.42,.03,6,24),B(0xb9f3ff),0,0,0,false); }
   return g; }
 function makeBossModel(kind){
@@ -610,7 +611,7 @@ function updateStorm(dt){ updateBells(dt); const on=(state==='menu')||(L&&L.T&&L
   hemi.intensity=hemiBase+storm.flash*1.4; flashLight.intensity=storm.flash*1.6; if(skyMesh) skyMesh.material.color.setScalar(1+storm.flash*1.8); }
 
 /* ================= STATE ================= */
-let state='menu', world=null, para=null, L=null, hero=null, wolf=null, fairy=null, slashMesh=null, skyMesh=null, moon=null;
+let auraMesh=null, state='menu', world=null, para=null, L=null, hero=null, wolf=null, fairy=null, slashMesh=null, skyMesh=null, moon=null;
 let P=null, enemies=[], crystals=[], coins=[], eggs=[], items=[], flags=[], plats=[], springs=[], fires=[], skulls=[], spikes=[], blades=[], eproj=[], waves=[], frags=[];
 let flames=[], lights=[], boss=null, bossObj=null, gate=null, arenaOn=false, cp=null, shake=0, camX=0, camY=4, endTimer=0, warnT=0, clouds=[];
 const G={area:0,lives:3,score:0,coins:0,frags:[false,false,false,false,false],up:{vigor:0,sword:1,armor:0,boots:0},blade:0,round:1,aStart:null};
@@ -896,11 +897,12 @@ function spawnCoin(x,y,vx,vy,fixed=false,val=1){ const m=add(world,GEO.coin,MAT.
 /* ================= PLAYER ================= */
 function spawnPlayer(at){
   P={x:at.x,y:at.y,w:.6,h:1.0,vx:0,vy:0,onGround:false,coyote:0,jumpBuf:0,canDbl:true,face:1,inv:1.2,prevY:at.y,dead:false,squash:0,walk:0,
-     E:Emax(),atkCD:0,slash:0,slashHit:null,swing:0,knock:0,wolf:false,fairy:0,curse:0,plat:null,deathVy:0};
+     E:Emax(),atkCD:0,slash:0,slashHit:null,swing:0,knock:0,wolf:false,aura:false,fairy:0,curse:0,plat:null,deathVy:0};
   camX=P.x; camY=P.y; hero.g.visible=true; hero.g.rotation.set(0,.6,0);
 }
 function hurt(dir,dmg=20){
   if(P.inv>0||P.dead) return; if(P.fairy>0) return;
+  if(P.aura){ P.aura=false; burst(P.x,P.y+.6,0x9a5aff,20,4,4); P.inv=1.2; P.vy=7; P.vx=dir*5; P.knock=.25; sfx.clang(); popText(P.x,P.y+1.4,'Aura quebrou','cur'); renderHUD(); return; }
   if(P.wolf){ P.wolf=false; burst(P.x,P.y+.5,0x8a5cff,18,4,4); P.inv=1.2; P.vy=7; P.vx=dir*5; P.knock=.25; sfx.hurt(); popText(P.x,P.y+1.4,'Lobo perdido','cur'); renderHUD(); return; }
   P.E-=dmg*armorF(); rumble(.6,220); P.inv=1.3; P.vy=8; P.vx=dir*6; P.knock=.25; sfx.hurt(); shake=.25; burst(P.x,P.y+.6,0xd4313f,8,3,3); popText(P.x,P.y+1.3,'-'+Math.round(dmg*armorF()),'bad');
   if(P.E<=0) loseLife('hit'); renderHUD();
@@ -984,12 +986,13 @@ function updatePlayer(dt){
 }
 function crackEgg(e){ e.broken=true; sfx.egg(); burst(e.x,e.y+.4,0xf4efe6,14,3,4); e.o.g.visible=false;
   let kind=e.kind; if(!kind){ const pool=[]; const add_=(k,n)=>{ for(let i=0;i<n;i++) pool.push(k); };
-    add_(G.blade?'fire':'blade',G.blade===2?0:G.blade?2:4); add_('fairy',2); add_('curse',3); add_('bigc',3); if(G.blade===2) add_('bigc',2); kind=pick(pool); }
+    add_(G.blade?'fire':'blade',G.blade===2?0:G.blade?2:4); add_('fairy',2); add_('thorns',3); add_('curse',3); add_('bigc',3); if(G.blade===2) add_('bigc',2); kind=pick(pool); }
   const m=makeItem(kind); world.add(m); items.push({kind,x:e.x,y:e.y+.4,y0:e.y+.4,t:0,mesh:m,life:5.5}); if(kind==='curse') sfx.curse(); }
 function applyItem(k,x,y){
   if(k==='blade'){ G.blade=Math.max(G.blade,1); sfx.power(); popText(x,y+.4,'Lâmina Sombria','gold'); }
   else if(k==='fire'){ G.blade=2; sfx.power(); popText(x,y+.4,'Lâmina de Fogo','gold'); }
   else if(k==='wolf'){ P.wolf=true; sfx.power(); popText(x,y+.4,'Espírito Lobo','gold'); burst(P.x,P.y+.5,0x8a5cff,16,3,3); }
+  else if(k==='thorns'){ P.aura=true; sfx.power(); popText(x,y+.4,'Aura de Espinhos','gold'); burst(P.x,P.y+.6,0x9a5aff,16,3,3); }
   else if(k==='fairy'){ P.fairy=10; sfx.power(); popText(x,y+.4,'Fada protetora','gold'); }
   else if(k==='curse'){ if(P.fairy>0){ popText(x,y,'Bloqueado','gold'); return; } P.curse=6; sfx.curse(); popText(x,y+.4,'Maldição!','cur'); }
   else if(k==='bigc'){ P.E=Math.min(Emax(),P.E+40); sfx.gem(); popText(x,y+.4,'+40','vit'); }
@@ -1042,7 +1045,7 @@ function updateEnemies(dt){
     if(e.y<-2) e.alive=false;
     e.o.g.position.set(e.x,e.y,0); e.o.g.visible=!(e.hit>0&&Math.floor(e.t*20)%2);
     if(e.harmless||P.dead||!overlap(P,e)) continue;
-    if(P.fairy>0){ killEnemy(e); continue; }
+    if(P.fairy>0||P.aura){ killEnemy(e); burst(e.x,e.y+.5,0x9a5aff,6,2,2); continue; }
     if(P.vy<0&&P.prevY>=e.y+e.h*.45){ P.vy=keys.jump?13:10; P.canDbl=true; if(e.hp>2) damageEnemy(e,2,P.face); else killEnemy(e); shake=.08; }
     else hurt(P.x<e.x?-1:1);
   }
@@ -1142,7 +1145,7 @@ function updateBoss(dt){
     if(P.vy<0&&P.prevY>=b.y+b.h*.6){
       if(b.state==='dazed'){ const inv=b.inv; b.inv=0; hitBoss(3); if(inv<=0) b.state=b.hp>0?'walk':b.state; if(b.state==='walk') b.t=.9; P.vy=12.5; P.canDbl=true; P.inv=Math.max(P.inv,.8); sfx.stomp(); shake=.3; burst(b.x,b.y+b.h,0xf2c14e,16,4,5); }
       else { P.vy=11; P.vx=(P.x<b.x?-1:1)*6; P.knock=.2; P.canDbl=true; P.inv=Math.max(P.inv,.35); hitBoss(1); }
-    } else if(b.state!=='dazed') hurt(P.x<b.x?-1:1,25);
+    } else if(b.state!=='dazed'){ if(P.aura) hitBoss(2); hurt(P.x<b.x?-1:1,25); }
     else P.x+=(P.x<b.x?-1:1)*4*dt;
   }
   waves=waves.filter(w=>{ w.x+=w.dir*8.5*dt; w.life-=dt; w.mesh.position.set(w.x,w.y+.27,0); w.mesh.scale.y=.6+Math.sin(w.life*30)*.3;
@@ -1176,7 +1179,7 @@ function renderHUD(){
   bar.classList.toggle('low',P.E<Emax()*.25); bar.classList.toggle('cursed',P.curse>0);
   $('#scoreLbl').textContent=String(G.score).padStart(6,'0'); $('#livesLbl').textContent=Math.max(0,G.lives); $('#coinLbl').textContent=G.coins;
   $('#fragLbl').textContent=G.frags.filter(Boolean).length+'/5';
-  const pw=[]; if(G.blade===1) pw.push('Lâmina'); if(G.blade===2) pw.push('Lâmina de fogo'); if(P.wolf) pw.push('Lobo'); if(P.fairy>0) pw.push('Fada '+Math.ceil(P.fairy)+'s'); if(P.curse>0) pw.push('Maldição');
+  const pw=[]; if(G.blade===1) pw.push('Lâmina'); if(G.blade===2) pw.push('Lâmina de fogo'); if(P.wolf) pw.push('Lobo'); if(P.aura) pw.push('Aura de Espinhos'); if(P.fairy>0) pw.push('Fada '+Math.ceil(P.fairy)+'s'); if(P.curse>0) pw.push('Maldição');
   const chip=$('#pwChip'); chip.hidden=!pw.length; chip.textContent=pw.join(' · ');
   if(boss) $('#bossFill').style.width=(Math.max(0,boss.hp)/boss.cfg.hp*100)+'%';
 }
@@ -1349,7 +1352,7 @@ function syncVisuals(dt,time){
     hero.inner.position.y=Math.abs(Math.sin(menuT*2.2))*.15; hero.g.rotation.y=Math.sin(menuT*.7)*.5; hero.cape.rotation.x=.12+Math.sin(menuT*3)*.08; hero.pivot.rotation.z=-.3+Math.sin(menuT*1.3)*.15;
     const {bt,g,cr}=menuBits; if(bt){ bt.g.position.y=.9+Math.sin(menuT*2)*.2; bt.hem.rotation.y=Math.sin(menuT*3)*.3; }
     if(g&&g.segs) g.segs.forEach((m,i)=>{ m.position.y=m.userData.y+Math.max(0,Math.sin(menuT*6-i*.95))*.08; }); if(cr){ cr.rotation.y=menuT*2; cr.position.y=.6+Math.sin(menuT*3)*.08; }
-    sun.position.set(-4,9,8); sun.target.position.set(0,0,0); wolf.g.visible=false; fairy.g.visible=false; slashMesh.visible=false;
+    sun.position.set(-4,9,8); sun.target.position.set(0,0,0); wolf.g.visible=false; auraMesh.visible=false; fairy.g.visible=false; slashMesh.visible=false;
   } else if(P&&L&&L.def){
     const hg=hero.g;
     if(P.dead&&state==='dying'&&P.deathVy){ P.deathVy-=GRAV*.6*dt; P.y+=P.deathVy*dt; hg.position.set(P.x,P.y,0); hg.rotation.z+=dt*8; }
@@ -1363,6 +1366,8 @@ function syncVisuals(dt,time){
     if(!P.dead||state!=='dying') hg.visible=!P.dead&&(P.inv<=0||P.fairy>0||Math.floor(time*16)%2===0);
     // wolf
     wolf.g.visible=P.wolf&&hg.visible; if(P.wolf){ wolf.g.position.set(P.x,P.y,0); wolf.g.rotation.y=P.face>0?-.3:Math.PI+.3; wolf.legs.forEach((l,i)=>l.rotation.z=moving?Math.sin(P.walk*3+i*1.6)*.7:0); }
+    // aura de espinhos
+    auraMesh.visible=!!P.aura&&hg.visible; if(P.aura){ auraMesh.position.set(P.x,P.y+.6+Math.sin(time*3)*.05,0); auraMesh.rotation.y=time*2.5; if(Math.random()<.15) burst(P.x+rand(-.7,.7),P.y+rand(.2,1.2),0x9a5aff,1,.3,.3); }
     // fairy
     fairy.g.visible=P.fairy>0&&(P.fairy>2.5||Math.floor(time*10)%2===0); if(fairy.g.visible){ const a=time*4; fairy.g.position.set(P.x+Math.cos(a)*.8,P.y+1+Math.sin(a*1.7)*.3,Math.sin(a)*.6);
       fairy.wl.rotation.y=Math.sin(time*30)*.8; fairy.wr.rotation.y=-Math.sin(time*30)*.8; if(Math.random()<.4) burst(fairy.g.position.x,fairy.g.position.y,0xffd6f0,1,.3,.3,fairy.g.position.z); }
@@ -1416,6 +1421,8 @@ function updatePlayerPassive(dt){ // after boss: let Kravenox land and collect c
 hero=makeKravenox(); scene.add(hero.g);
 wolf=makeWolf(); scene.add(wolf.g); wolf.g.visible=false;
 fairy=makeFairy(); scene.add(fairy.g); fairy.g.visible=false;
+auraMesh=new THREE.Group(); { const m=M(0x3a1a4a,{emissive:0x8a3aff,emissiveIntensity:.8,metalness:.4}); for(let i=0;i<10;i++){ const a=i/10*Math.PI*2, c=addS(auraMesh,GEO.cone,m,Math.cos(a)*.75,0,Math.sin(a)*.75,.06,.32,.06,false); c.rotation.z=-Math.cos(a)*1.2; c.rotation.x=Math.sin(a)*1.2; }
+  add(auraMesh,new THREE.TorusGeometry(.75,.025,6,32),new THREE.MeshBasicMaterial({color:0xb07aff,transparent:true,opacity:.6}),0,0,0,false).rotation.x=Math.PI/2; } scene.add(auraMesh); auraMesh.visible=false;
 slashMesh=new THREE.Mesh(new THREE.TorusGeometry(.9,.08,6,18,Math.PI*.9),new THREE.MeshBasicMaterial({color:0xc08aff,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false}));
 scene.add(slashMesh); slashMesh.visible=false;
 let rotDismissed=false;
@@ -1433,7 +1440,7 @@ window.__kvx={G,loadRun:()=>loadRun(),goMenu:()=>goMenu(),openShop:()=>openShop(
 <script>
 // Atualização automática: confere version.json (sem cache) ao abrir e sempre que o app volta para a tela.
 // No menu recarrega na hora; durante a partida espera a próxima vez que o jogo estiver no menu ou pausado.
-const APP_V='2026-11-01-12';
+const APP_V='2026-11-01-13';
 if('serviceWorker' in navigator) addEventListener('load',()=>navigator.serviceWorker.register('sw.js?v='+APP_V).catch(()=>{}));
 let updWaiting=false;
 function checkUpdate(){ fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(j=>{ if(j.v&&j.v!==APP_V){ let done=null; try{ done=sessionStorage.getItem('kvx-upd'); }catch(e){} if(done===j.v) return; updWaiting=j.v; tryReload(); } }).catch(()=>{}); }
