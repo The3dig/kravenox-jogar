@@ -38,11 +38,10 @@ addEventListener('blur', () => { Input.held = {}; });
 // ---------- Controle (Xbox, PlayStation, genéricos) ----------
 // A / X = confirmar · B / Y / Start / Select = voltar e menu · direcional ou analógico = andar.
 Input.pad = {}; Input.padOn = false; Input.padKind = null;
-// preferências (tela de título → Controle): tipo do controle e botões de toque na tela
-const pref = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
-G.padType = pref('kravenox_padtipo', 'auto');      // auto | xbox | ps | nintendo
-G.touchPref = pref('kravenox_toque', 'auto');      // auto | sempre | nunca
-G.setPref = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+// tudo automático, como no jogo de plataforma: reconhece o controle sozinho e os botões de toque
+// somem enquanto há controle ligado
+G.padType = 'auto';
+G.touchPref = 'auto';
 // reconhece o controle pelo nome que o aparelho informa
 G.padKindOf = id => {
   id = (id || '').toLowerCase();
