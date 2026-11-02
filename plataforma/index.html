@@ -167,7 +167,7 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
   </div>
   <div class="rec" id="recLbl"></div>
   <div class="sndhint" id="sndHint">Toque na tela para ligar o som</div>
-  <button class="btn" id="playBtn">JOGAR</button>
+  <div class="row"><button class="btn" id="contBtn" hidden>CONTINUAR</button><button class="btn" id="playBtn">JOGAR</button></div>
   <div class="keys">Teclado: <b>← →</b> andar · <b>Z</b> ou <b>Espaço</b> pular (2× no ar) · <b>X</b> ou <b>J</b> atacar · <b>P</b> pausa · <b>M</b> som<br>Controle (Xbox/PlayStation): <b>analógico</b> andar · <b>A</b> pular · <b>X</b> ou <b>B</b> atacar · <b>Start</b> pausa</div>
 </div>
 
@@ -272,17 +272,19 @@ function parseLevel(def){
 /* ================= RENDERER ================= */
 const canvas=$('#c');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
-renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.setPixelRatio(save.lite?1:Math.min(window.devicePixelRatio||1,2));
+renderer.shadowMap.enabled=!save.lite; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputEncoding=THREE.sRGBEncoding;
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(36,1,0.1,220);
 const hemi=new THREE.HemisphereLight(0xffe7c4,0x2a2233,.8); scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xfff0dc,.85);
-sun.castShadow=true; sun.shadow.mapSize.set(1024,1024);
+sun.castShadow=!save.lite; sun.shadow.mapSize.set(1024,1024);
 Object.assign(sun.shadow.camera,{left:-15,right:15,top:13,bottom:-9,near:1,far:60}); sun.shadow.bias=-.0008;
 scene.add(sun); scene.add(sun.target);
 const lightPool=[]; for(let i=0;i<6;i++){ const l=new THREE.PointLight(0xff9a40,1,7.5,2); scene.add(l); lightPool.push(l); }
+function setLite(on){ save.lite=on; persist(); renderer.setPixelRatio(on?1:Math.min(window.devicePixelRatio||1,2)); renderer.shadowMap.enabled=!on; sun.castShadow=!on;
+  scene.traverse(o=>{ if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.needsUpdate=true); } }); if(typeof rain!=='undefined'&&rain) rain.mesh.visible=!on; resize(); }
 function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize();
 
@@ -578,7 +580,7 @@ let rain=null;
 function makeRain(on){ if(rain){ scene.remove(rain.mesh); rain=null; } if(!on) return; const N=420, pos=new Float32Array(N*6);
   for(let i=0;i<N;i++){ const x=rand(-18,18), y=rand(-1,16), z=rand(-3,3); pos.set([x,y,z,x-.08,y+.55,z],i*6); }
   const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
-  const mesh=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({color:0x9aa8d8,transparent:true,opacity:.32,depthWrite:false})); mesh.frustumCulled=false; scene.add(mesh); rain={mesh,pos,geo,N}; }
+  const mesh=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({color:0x9aa8d8,transparent:true,opacity:.32,depthWrite:false})); mesh.frustumCulled=false; mesh.visible=!save.lite; scene.add(mesh); rain={mesh,pos,geo,N}; }
 function updateRain(dt){ if(!rain) return; const {pos,N}=rain, base=camX;
   for(let i=0;i<N;i++){ const k=i*6; let dy=-20*dt; pos[k+1]+=dy; pos[k+4]+=dy; pos[k]+=dt*2.2; pos[k+3]+=dt*2.2;
     if(pos[k+1]<-1){ const x=base+rand(-18,18), y=16+rand(0,3), z=rand(-3,3); pos.set([x,y,z,x-.08,y+.55,z],k); }
@@ -963,7 +965,7 @@ function updatePlayer(dt){
   for(const fr of frags){ if(!fr.got&&Math.abs(fr.x-P.x)<.7&&fr.y>P.y-.3&&fr.y<P.y+P.h+.4){ fr.got=true; fr.g.visible=false; G.frags[G.area]=true; G.score+=2000; sfx.power(); burst(fr.x,fr.y,0xf2c14e,26,4,5);
     popText(fr.x,fr.y+.5,'+2000','big'); showToast('<small>Segredo encontrado</small>Fragmento do Reino'); renderHUD(); } }
   for(const f of flags){ if(!f.on&&P.x>f.x-.3){ f.on=true; cp={x:f.x,y:f.y}; f.ban.material.color.setHex(0xd4313f); sfx.flag(); burst(f.x+.3,f.y+1.4,0xf2c14e,12,2.5,3);
-    G.round++; $('#areaLbl').textContent=`Área ${G.area+1}-${G.round}`; showToast(`<small>Rodada ${G.round}</small>Ponto de retorno`,1200); } }
+    G.round++; $('#areaLbl').textContent=`Área ${G.area+1}-${G.round}`; showToast(`<small>Rodada ${G.round}</small>Jogo salvo`,1200); saveRun({x:f.x,y:f.y}); } }
   for(const e of eggs){ if(!e.broken&&overlap(P,e)) crackEgg(e); }
   for(let i=items.length-1;i>=0;i--){ const it=items[i]; it.t+=dt;
     if(it.kind==='curse'){ const dx=P.x-it.x, dy=P.y+.6-it.y, d=Math.hypot(dx,dy)||1; it.x+=dx/d*2.3*dt; it.y+=dy/d*2.3*dt; it.life-=dt;
@@ -1086,7 +1088,7 @@ function updateAttacks(dt){
 
 /* ================= BOSS ================= */
 function startArena(){
-  arenaOn=true; const gx=L.def.gateX; cp={x:gx+2,y:3};
+  arenaOn=true; const gx=L.def.gateX; cp={x:gx+2,y:3}; saveRun(cp);
   for(let y=3;y<=10;y++) L.grid[y][gx]='#';
   gate=new THREE.Group(); gate.position.set(gx+.5,11,0); world.add(gate); const bm=M(0x3a3640,{metalness:.7,roughness:.4});
   for(let i=0;i<4;i++) add(gate,new THREE.CylinderGeometry(.06,.06,8,6),bm,0,4,-.6+i*.4); for(let j=0;j<3;j++) add(gate,new THREE.BoxGeometry(.14,.14,1.5),bm,0,1+j*2.8,0);
@@ -1179,6 +1181,7 @@ function loadArea(i,at){
   makeAmbient(L.T.parts[0],L.T.parts[1]);
   state='playing'; endTimer=0; renderHUD(); $('#bossbar').hidden=true; playSong(L.T.song);
   if(!at) showToast(`<small>${L.def.cap||('Área '+(i+1))}</small>${L.def.name}`,2600);
+  saveRun(at);
 }
 function bossDefeated(){
   state='bossdown'; endTimer=2.4; G.score+=5000; popText(boss.x,boss.y+boss.h+.5,'+5000','big'); $('#bossbar').hidden=true; playSong('victory');
@@ -1215,16 +1218,23 @@ function drawShop(){
   document.querySelectorAll('.buy').forEach(b=>b.onclick=()=>{ const s=SHOP[+b.dataset.i]; if(s.max()||G.coins<s.price()) return; G.coins-=s.price(); s.buy(); sfx.buy(); drawShop(); });
 }
 function victory(){
-  state='victory'; hiCheck(); const n=G.frags.filter(Boolean).length; playSong('victory');
+  state='victory'; hiCheck(); clearRun(); const n=G.frags.filter(Boolean).length; playSong('victory');
   showMsg('Vitória!',`<div class="info">Kravenox atravessou o Vale dos Mortos e derrotou O Primeiro Guardião.${n===5?' Todos os Fragmentos do Reino foram reunidos!':''}</div>
    <div class="tally"><span>Pontos</span><b>${String(G.score).padStart(6,'0')}</b><span>Fragmentos do Reino</span><b>${n}/5</b><span>Recorde</span><b>${String(save.hi).padStart(6,'0')}</b></div>`,
    [['JOGAR DE NOVO',()=>{ hideMsg(); newGame(); }],['MENU',goMenu,true]]);
 }
+// Save automático: começo de cada área, cada bandeira e a entrada do chefe (fica no aparelho).
+function saveRun(at){ try{ localStorage.setItem('kvx-run',JSON.stringify({v:1,area:G.area,lives:Math.max(1,G.lives),score:G.score,coins:G.coins,frags:G.frags,up:G.up,blade:G.blade,cp:at||null})); }catch(e){} }
+function loadRun(){ try{ const r=JSON.parse(localStorage.getItem('kvx-run')||'null'); return r&&r.v===1&&AREAS[r.area]?r:null; }catch(e){ return null; } }
+function clearRun(){ try{ localStorage.removeItem('kvx-run'); }catch(e){} }
+function continueRun(){ const r=loadRun(); if(!r){ newGame(); return; }
+  Object.assign(G,{area:r.area,lives:r.lives,score:r.score,coins:r.coins,frags:r.frags,up:r.up,blade:r.blade,round:1});
+  $('#menu').hidden=true; $('#hud').hidden=false; $('#pad').hidden=!touchy||padSeen; hero.g.scale.setScalar(1); loadArea(r.area,r.cp||null); }
 function hiCheck(){ if(G.score>save.hi){ save.hi=G.score; persist(); } }
 function gameOver(){
   state='over'; hiCheck(); playSong('over');
-  showMsg('Fim de jogo',`<div class="info">Kravenox caiu em ${L.def.name}.<br>Pontos: <b>${G.score}</b> · Recorde: <b>${save.hi}</b></div><div class="info" style="font-size:14px">Continuar recomeça esta área com 3 vidas. Moedas e melhorias ficam; a pontuação zera.</div>`,
-   [['CONTINUAR',()=>{ hideMsg(); G.lives=3; G.score=0; loadArea(G.area); }],['MENU',goMenu,true]]);
+  showMsg('Fim de jogo',`<div class="info">Kravenox caiu em ${L.def.name}.<br>Pontos: <b>${G.score}</b> · Recorde: <b>${save.hi}</b></div><div class="info" style="font-size:14px">Continuar volta ao último ponto salvo com 3 vidas. Moedas e melhorias ficam; a pontuação zera.</div>`,
+   [['CONTINUAR',()=>{ hideMsg(); G.lives=3; G.score=0; const r=loadRun(); loadArea(G.area,r&&r.area===G.area?r.cp:null); }],['MENU',goMenu,true]]);
 }
 function respawn(){ if(G.lives<0){ gameOver(); return; } G.blade=0; loadArea(G.area,cp&&cp!==L.start?{x:cp.x,y:cp.y}:null); showToast(`<small>Vidas: ${G.lives}</small>De volta à luta`,1400); }
 function showMsg(title,body,buttons){
@@ -1234,8 +1244,8 @@ function showMsg(title,body,buttons){
 }
 const hideMsg=()=>{ $('#msg').hidden=true; };
 function pause(){ if(state!=='playing') return; state='paused';
-  showMsg('Pausado','',[['CONTINUAR',()=>{ hideMsg(); state='playing'; }],['REINICIAR ÁREA',()=>{ hideMsg(); loadArea(G.area); },true],['MENU',goMenu,true]]); }
-function newGame(){ Object.assign(G,{area:0,lives:3,score:0,coins:0,frags:[false,false,false,false,false],up:{vigor:0,sword:1,armor:0,boots:0},blade:0,round:1});
+  showMsg('Pausado',`<div class="info">Modo leve tira sombras e chuva e baixa a resolução. Ajuda quando a tela está espelhada na TV.</div>`,[['CONTINUAR',()=>{ hideMsg(); state='playing'; }],[save.lite?'MODO LEVE: LIGADO':'MODO LEVE: DESLIGADO',()=>{ setLite(!save.lite); hideMsg(); state='playing'; pause(); },true],['REINICIAR ÁREA',()=>{ hideMsg(); loadArea(G.area); },true],['MENU',goMenu,true]]); }
+function newGame(){ clearRun(); Object.assign(G,{area:0,lives:3,score:0,coins:0,frags:[false,false,false,false,false],up:{vigor:0,sword:1,armor:0,boots:0},blade:0,round:1});
   $('#menu').hidden=true; $('#hud').hidden=false; $('#pad').hidden=!touchy; hero.g.scale.setScalar(1); loadArea(0); }
 function goMenu(){ hideMsg(); state='menu'; $('#menu').hidden=false; $('#hud').hidden=true; $('#pad').hidden=true; $('#bossbar').hidden=true; buildMenu(); playSong('menu'); }
 
@@ -1257,6 +1267,7 @@ function buildMenu(){
   const eg=makeEgg(); world.add(eg.g); eg.g.position.set(1.6,0,.6);
   const cr=add(world,GEO.crystal,MAT.crystal,-1.0,.6,.9);
   menuBits={g,bt,cr}; P=null; makeAmbient('embers',0xffa040);
+  { const r=loadRun(), cb=$('#contBtn'); cb.hidden=!r; if(r) cb.textContent=`CONTINUAR · ÁREA ${r.area+1}`; $('#playBtn').textContent=r?'NOVO JOGO':'JOGAR'; $('#playBtn').classList.toggle('ghost',!!r); }
   $('#recLbl').textContent=save.hi?`Recorde: ${String(save.hi).padStart(6,'0')}`:'';
 }
 
@@ -1287,7 +1298,9 @@ function pollPad(){
   if(Object.keys(now).some(hit)){ initAudio(); keepAwake(); }
   const rotOpen=!$('#rotate').hidden, menuOpen=!$('#menu').hidden, msgOpen=!$('#msg').hidden;
   if(rotOpen){ if(hit('a')||hit('start')){ $('#rotOk').click(); used=true; } }
-  else if(menuOpen&&!msgOpen){ if(hit('a')||hit('start')){ $('#playBtn').click(); used=true; } }
+  else if(menuOpen&&!msgOpen){ used=true; const els=[...document.querySelectorAll('#menu button:not([hidden])')]; let i=els.indexOf(document.activeElement);
+    if(hit('left')||hit('up')){ i=i<=0?els.length-1:i-1; els[i].focus(); } if(hit('right')||hit('down')){ i=(i+1)%els.length; els[i].focus(); }
+    if(hit('a')||hit('start')) (els[i]||els[0]).click(); }
   else if(msgOpen){ used=true; const els=[...document.querySelectorAll('#msg button:not([disabled])')]; let i=els.indexOf(document.activeElement);
     if(els.length){ if(hit('left')||hit('up')){ i=i<=0?els.length-1:i-1; els[i].focus(); } if(hit('right')||hit('down')){ i=(i+1)%els.length; els[i].focus(); }
       if(hit('a')) (els[i]||els[0]).click(); }
@@ -1300,6 +1313,7 @@ function pollPad(){
 addEventListener('gamepadconnected',()=>pollPad());
 $('#pauseBtn').onclick=()=>pause(); $('#muteBtn').onclick=()=>{ initAudio(); setMute(!save.muted); };
 $('#playBtn').onclick=()=>{ initAudio(); newGame(); };
+$('#contBtn').onclick=()=>{ initAudio(); continueRun(); };
 document.addEventListener('visibilitychange',()=>{ if(document.hidden&&state==='playing') pause(); if(!document.hidden&&ac&&ac.state!=='running') ac.resume().catch(()=>{}); });
 // iPhone: o som só pode começar depois de um toque. Qualquer toque liga o áudio (e a música do menu).
 try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
@@ -1399,14 +1413,14 @@ document.addEventListener('gesturestart',e=>e.preventDefault());
 document.addEventListener('dblclick',e=>e.preventDefault());
 buildMenu();
 requestAnimationFrame(frame);
-window.__kvx={G,openShop:()=>openShop(),areaClear:()=>areaClear(),get state(){return state},get P(){return P},get boss(){return boss},loadArea,newGame,startArena:()=>startArena()};
+window.__kvx={G,loadRun:()=>loadRun(),goMenu:()=>goMenu(),openShop:()=>openShop(),areaClear:()=>areaClear(),get state(){return state},get P(){return P},get boss(){return boss},loadArea,newGame,startArena:()=>startArena()};
 })();
 </script>
 
 <script>
 // Atualização automática: confere version.json (sem cache) ao abrir e sempre que o app volta para a tela.
 // No menu recarrega na hora; durante a partida espera a próxima vez que o jogo estiver no menu ou pausado.
-const APP_V='2026-11-01-8';
+const APP_V='2026-11-01-9';
 if('serviceWorker' in navigator) addEventListener('load',()=>navigator.serviceWorker.register('sw.js?v='+APP_V).catch(()=>{}));
 let updWaiting=false;
 function checkUpdate(){ fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(j=>{ if(j.v&&j.v!==APP_V){ let done=null; try{ done=sessionStorage.getItem('kvx-upd'); }catch(e){} if(done===j.v) return; updWaiting=j.v; tryReload(); } }).catch(()=>{}); }
