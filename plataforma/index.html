@@ -586,7 +586,7 @@ function gothicCastle(parent,x,z,sc){ const g=new THREE.Group(); g.position.set(
   for(let k=0;k<5;k++) addS(g,GEO.box,win,rand(-3,3),rand(4,6.5),1.02,.25,.45,.05,false);
 }
 let rain=null;
-function makeRain(on){ if(rain){ scene.remove(rain.mesh); rain=null; } if(!on) return; const N=420, pos=new Float32Array(N*6);
+function makeRain(on){ if(rain){ disposeObj(rain.mesh); rain=null; } if(!on) return; const N=420, pos=new Float32Array(N*6);
   for(let i=0;i<N;i++){ const x=rand(-18,18), y=rand(-1,16), z=rand(-3,3); pos.set([x,y,z,x-.08,y+.55,z],i*6); }
   const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
   const mesh=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({color:0x9aa8d8,transparent:true,opacity:.32,depthWrite:false})); mesh.frustumCulled=false; mesh.visible=!save.lite; scene.add(mesh); rain={mesh,pos,geo,N}; }
@@ -602,14 +602,14 @@ function thunder(delay,vol){ if(!ac) return; if(!noiseBuf){ noiseBuf=ac.createBu
   const src=ac.createBufferSource(); src.buffer=noiseBuf; const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=380; const g=ac.createGain(); const t=ac.currentTime+delay;
   g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.06); g.gain.linearRampToValueAtTime(vol*.6,t+.4); g.gain.exponentialRampToValueAtTime(.001,t+2.8); src.connect(f); f.connect(g); g.connect(master); src.start(t); src.stop(t+3); }
 function strike(){ storm.flash=1; storm.re=rand(.1,.18); const near=Math.random()<.4; thunder(near?.05:rand(.4,1.1),near?1.1:.7);
-  if(skyMesh&&L&&L.T&&!L.T.ceil){ if(storm.bolt) scene.remove(storm.bolt); const path=new THREE.CurvePath(); let px=camX*.85+rand(-22,22), py=camY+22;
+  if(skyMesh&&L&&L.T&&!L.T.ceil){ if(storm.bolt) disposeObj(storm.bolt); const path=new THREE.CurvePath(); let px=camX*.85+rand(-22,22), py=camY+22;
     for(let i=0;i<9;i++){ const nx=px+rand(-1.6,1.6), ny=py-rand(1.6,2.6); path.add(new THREE.LineCurve3(new THREE.Vector3(px,py,-15),new THREE.Vector3(nx,ny,-15))); px=nx; py=ny; }
     storm.bolt=new THREE.Mesh(new THREE.TubeGeometry(path,40,.14,4,false),new THREE.MeshBasicMaterial({color:0xe8ecff,fog:false})); scene.add(storm.bolt); storm.boltT=.22; } }
 let bellT=6; function updateBells(dt){ if(!(L&&L.T&&L.T.bells)||state!=='playing') return; bellT-=dt; if(bellT<=0){ bellT=rand(9,16); [196,392,294].forEach((f,i)=>tone('sine',f,f*.995,3.2-i*.6,.07-i*.015,i*.02)); } }
 function updateStorm(dt){ updateBells(dt); const on=(state==='menu')||(L&&L.T&&L.T.storm); storm.t-=dt;
   if(on&&storm.t<=0){ storm.t=rand(5,11); strike(); }
   if(storm.re>0){ storm.re-=dt; if(storm.re<=0) storm.flash=Math.max(storm.flash,.8); }
-  storm.flash=Math.max(0,storm.flash-dt*3.2); if(storm.boltT>0){ storm.boltT-=dt; storm.bolt.visible=Math.random()<.8; if(storm.boltT<=0){ scene.remove(storm.bolt); storm.bolt=null; } }
+  storm.flash=Math.max(0,storm.flash-dt*3.2); if(storm.boltT>0){ storm.boltT-=dt; storm.bolt.visible=Math.random()<.8; if(storm.boltT<=0){ disposeObj(storm.bolt); storm.bolt=null; } }
   hemi.intensity=hemiBase+storm.flash*1.4; flashLight.intensity=storm.flash*1.6; if(skyMesh) skyMesh.material.color.setScalar(1+storm.flash*1.8); }
 
 /* ================= STATE ================= */
@@ -649,7 +649,7 @@ function updateParticles(dt){ for(const p of pool){ if(p.life<=0) continue; p.li
   p.mesh.scale.setScalar(Math.max(.01,p.life/p.max)); if(p.life<=0) p.mesh.visible=false; } }
 let amb=null;
 function makeAmbient(mode,color){
-  if(amb) scene.remove(amb.pts); const N=mode==='fireflies'?70:120, pos=new Float32Array(N*3), v=[];
+  if(amb) disposeObj(amb.pts); const N=mode==='fireflies'?70:120, pos=new Float32Array(N*3), v=[];
   for(let i=0;i<N;i++){ pos[i*3]=camX+rand(-16,16); pos[i*3+1]=rand(0,H); pos[i*3+2]=rand(-2.5,1.4); v.push({ph:Math.random()*9,s:rand(.4,1)}); }
   const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
   const mat=new THREE.PointsMaterial({color,size:mode==='fireflies'?.17:mode==='embers'?.12:.07,transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending});
@@ -724,7 +724,14 @@ drawMute();
 /* ================= LEVEL BUILD ================= */
 function resetLists(){ enemies=[]; crystals=[]; coins=[]; eggs=[]; items=[]; flags=[]; plats=[]; springs=[]; fires=[]; skulls=[]; spikes=[]; blades=[]; eproj=[]; waves=[]; frags=[];
   flames=[]; lights=[]; boss=null; bossObj=null; gate=null; arenaOn=false; clouds=[]; }
-function clearWorld(){ if(world) scene.remove(world); if(para) scene.remove(para); if(skyMesh) scene.remove(skyMesh); if(moon) scene.remove(moon); world=new THREE.Group(); para=new THREE.Group(); scene.add(world); scene.add(para); skyMesh=null; moon=null; }
+// Libera da memória da placa de vídeo tudo que não é compartilhado (evita o jogo ficar lento depois de várias fases e mortes)
+let SHARED=null;
+function sharedSet(){ if(SHARED) return SHARED; SHARED=new Set(); const addAll=o=>Object.values(o).forEach(v=>v&&SHARED.add(v));
+  addAll(GEO); addAll(MAT); if(typeof MATX!=='undefined') addAll(MATX); [stoneTex,woodTex,lavaTex,wallTex,pGeo].forEach(v=>SHARED.add(v)); return SHARED; }
+function disposeObj(o){ if(!o) return; const S=sharedSet(); o.traverse(n=>{ if(n.geometry&&!S.has(n.geometry)) n.geometry.dispose();
+  if(n.material){ (Array.isArray(n.material)?n.material:[n.material]).forEach(m=>{ if(S.has(m)) return; if(m.map&&!S.has(m.map)) m.map.dispose(); m.dispose(); }); } });
+  if(o.parent) o.parent.remove(o); }
+function clearWorld(){ [world,para,skyMesh,moon].forEach(disposeObj); world=new THREE.Group(); para=new THREE.Group(); scene.add(world); scene.add(para); skyMesh=null; moon=null; }
 
 function buildLevel(i){
   clearWorld(); resetLists(); clearPops();
@@ -979,10 +986,10 @@ function updatePlayer(dt){
   for(const e of eggs){ if(!e.broken&&overlap(P,e)) crackEgg(e); }
   for(let i=items.length-1;i>=0;i--){ const it=items[i]; it.t+=dt;
     if(it.kind==='curse'){ const dx=P.x-it.x, dy=P.y+.6-it.y, d=Math.hypot(dx,dy)||1; it.x+=dx/d*2.3*dt; it.y+=dy/d*2.3*dt; it.life-=dt;
-      if(it.life<=0){ world.remove(it.mesh); items.splice(i,1); burst(it.x,it.y,0xa35cff,8,2,2); continue; } }
+      if(it.life<=0){ disposeObj(it.mesh); items.splice(i,1); burst(it.x,it.y,0xa35cff,8,2,2); continue; } }
     else it.y=it.y0+Math.min(.6,it.t*2)+Math.sin(it.t*4)*.08;
     it.mesh.position.set(it.x,it.y,0); it.mesh.rotation.y+=dt*2.5;
-    if(it.t>.25&&Math.abs(it.x-P.x)<.65&&it.y>P.y-.2&&it.y<P.y+P.h+.4){ applyItem(it.kind,it.x,it.y); world.remove(it.mesh); items.splice(i,1); } }
+    if(it.t>.25&&Math.abs(it.x-P.x)<.65&&it.y>P.y-.2&&it.y<P.y+P.h+.4){ applyItem(it.kind,it.x,it.y); disposeObj(it.mesh); items.splice(i,1); } }
   // arena
   if(boss&&!arenaOn&&P.x>L.def.gateX+3) startArena();
 }
@@ -1073,14 +1080,14 @@ function updateEProj(dt){
     if(f.kind==='fire'&&Math.random()<.5) burst(f.x,f.y,0xff6a2a,1,.5,.5);
     if(!P.dead&&Math.abs(f.x-P.x)<.45&&f.y>P.y-.15&&f.y<P.y+P.h+.15){ hurt(f.vx>0?1:-1,f.kind==='rock'?22:18); f.life=0; }
     if(isSolid(Math.floor(f.x),Math.floor(f.y))){ f.life=0; burst(f.x,f.y,f.kind==='shard'?0x6fe3ff:f.kind==='fire'?0xff8a2a:0x9a8a7a,6,2,2); }
-    if(f.life<=0||f.y<-2){ world.remove(f.mesh); return false; } return true; });
+    if(f.life<=0||f.y<-2){ disposeObj(f.mesh); return false; } return true; });
 }
 function updateAttacks(dt){
   // melee
   if(P.slash>0){ const r=swordRange(), box={x:P.x+P.face*(.3+r/2),y:P.y+.05,w:r,h:1.0}, dmg=G.up.sword;
     for(const e of enemies) if(e.alive&&!e.harmless&&!P.slashHit.has(e)&&overlap(box,e)){ P.slashHit.add(e); damageEnemy(e,dmg,P.face); }
     for(const e of eggs) if(!e.broken&&overlap(box,e)) crackEgg(e);
-    eproj=eproj.filter(f=>{ if(Math.abs(f.x-box.x)<box.w/2+.2&&f.y>box.y&&f.y<box.y+box.h){ burst(f.x,f.y,0xffffff,6,3,2); world.remove(f.mesh); G.score+=50; popText(f.x,f.y,'+50'); sfx.clang(); return false; } return true; });
+    eproj=eproj.filter(f=>{ if(Math.abs(f.x-box.x)<box.w/2+.2&&f.y>box.y&&f.y<box.y+box.h){ burst(f.x,f.y,0xffffff,6,3,2); disposeObj(f.mesh); G.score+=50; popText(f.x,f.y,'+50'); sfx.clang(); return false; } return true; });
     if(boss&&boss.state!=='dead'&&!P.slashHit.has(boss)&&overlap(box,boss)){ P.slashHit.add(boss); hitBoss(dmg); } }
   // thrown blades
   blades=blades.filter(b=>{ b.vy-=b.g*dt; b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt; b.mesh.position.set(b.x,b.y,.1); b.mesh.rotation.z-=dt*18*Math.sign(b.vx);
@@ -1090,7 +1097,7 @@ function updateAttacks(dt){
     for(const e of eggs) if(!e.broken&&overlap(box,e)){ crackEgg(e); if(!b.fire) b.life=0; }
     if(boss&&boss.state!=='dead'&&!b.hit.has(boss)&&overlap(box,boss)){ b.hit.add(boss); hitBoss(dmg); b.life=0; }
     if(isSolid(Math.floor(b.x),Math.floor(b.y))){ b.life=0; burst(b.x,b.y,b.fire?0xff8a2a:0x9a6cff,5,2,2); }
-    if(b.life<=0||b.y<-2){ world.remove(b.mesh); return false; } return true; });
+    if(b.life<=0||b.y<-2){ disposeObj(b.mesh); return false; } return true; });
   // coins physics
   for(const c of coins){ if(c.got) continue; c.mesh.rotation.z+=dt*4;
     if(!c.fixed){ c.vy-=GRAV*.8*dt; const vy0=c.vy; moveBody(c,dt); if(c.onGround){ c.vx*=.9; if(vy0<-3) c.vy=-vy0*.45; } c.life-=dt;
@@ -1108,7 +1115,7 @@ function startArena(){
 }
 function hitBoss(dmg){ const b=boss; if(b.inv>0||b.state==='dead'||b.state==='intro'||b.state==='idle') return;
   b.hp-=dmg; b.inv=.22; b.flash=.3; sfx.clang(); burst(b.x,b.y+b.h*.7,0xffffff,6,3,3); popText(b.x,b.y+b.h+.3,'-'+dmg,'bad'); G.score+=50*dmg;
-  if(b.hp<=0){ b.hp=0; b.state='dead'; b.t=2.6; b.vx=0; sfx.roar(); shake=.5; eproj.forEach(f=>world.remove(f.mesh)); eproj=[]; waves.forEach(w=>world.remove(w.mesh)); waves=[]; }
+  if(b.hp<=0){ b.hp=0; b.state='dead'; b.t=2.6; b.vx=0; sfx.roar(); shake=.5; eproj.forEach(f=>disposeObj(f.mesh)); eproj=[]; waves.forEach(w=>disposeObj(w.mesh)); waves=[]; }
   renderHUD(); }
 function bossThink(){ const b=boss, c=b.cfg, ph2=b.hp<=c.hp/2, far=Math.abs(P.x-b.x)>7;
   let mv=pick(c.moves); if(far&&c.moves.includes('throw')&&Math.random()<.5) mv='throw'; if(mv==='spawn'&&enemies.filter(e=>e.alive&&e.kind==='larva').length>=4) mv='jump';
@@ -1154,7 +1161,7 @@ function updateBoss(dt){
     if(Math.random()<.4) burst(w.x,w.y+.1,0xd9cbb0,1,1,2);
     if(!P.dead&&P.y<w.y+.5&&Math.abs(P.x-w.x)<.5) hurt(w.dir,20);
     if(isSolid(Math.floor(w.x),Math.floor(w.y+.2))) w.life=0;
-    if(w.life<=0){ world.remove(w.mesh); return false; } return true; });
+    if(w.life<=0){ disposeObj(w.mesh); return false; } return true; });
   // visuals
   const bg=bossObj.g; bg.position.set(b.x,b.y,0); const facing=bossObj.side?(b.state==='dead'?-.3:(b.dir>0?-.3:Math.PI+.3)):(b.state==='dead'?0:(b.dir>0?.55:-.55)); bg.rotation.y+=(facing-bg.rotation.y)*Math.min(1,dt*6);
   const inr=bossObj.inner; bossObj.stars.visible=b.state==='dazed'; bossObj.stars.position.y=b.h+.2; bossObj.stars.rotation.y+=dt*5;
@@ -1215,7 +1222,7 @@ const SHOP=[
  {id:'boots',ico:'<svg viewBox="0 0 40 40"><path d="M10 6h10v18l12 4v6H8z" fill="#2b2433" stroke="#9a6cff" stroke-width="2"/><path d="M6 14l4-2M6 20l4-2" stroke="#9a6cff" stroke-width="2"/></svg>',
   name:()=>'Botas Sombrias',desc:()=>'Pulo mais alto',price:()=>35,max:()=>G.up.boots>=1,buy:()=>G.up.boots++},
  {id:'blade',ico:'<svg viewBox="0 0 40 40"><g transform="translate(20 20)"><path d="M-2-16h4v32h-4z" fill="#9a6cff"/><path d="M-16-2h32v4h-32z" fill="#9a6cff"/><circle r="4" fill="#f2c14e"/></g></svg>',
-  name:()=>'Lâmina Sombria',desc:()=>'Arremesse lâminas desde o início da área',price:()=>25,max:()=>G.blade>=1,buy:()=>{G.blade=1}},
+  name:()=>G.blade>=1?'Lâmina de Fogo':'Lâmina Sombria',desc:()=>G.blade>=1?'Lâminas de fogo atravessam os inimigos':'Arremesse lâminas desde o início da área',price:()=>G.blade>=1?50:25,max:()=>G.blade>=2,buy:()=>{G.blade=Math.min(2,G.blade+1)}},
  {id:'life',ico:'<svg viewBox="0 0 40 40"><path d="M6 18a14 14 0 0 1 28 0v8H6z" fill="#2b2433"/><path d="M5 16L2 4l9 8M35 16l3-12-9 8" fill="#e9dcc3"/><circle cx="14" cy="20" r="3" fill="#ff3a3a"/><circle cx="26" cy="20" r="3" fill="#ff3a3a"/></svg>',
   name:()=>'Vida extra',desc:()=>'+1 vida para Kravenox',price:()=>60,max:()=>G.lives>=9,buy:()=>G.lives++}
 ];
@@ -1223,7 +1230,7 @@ function openShop(){ state='shop'; playSong('menu'); drawShop(); }
 function drawShop(){
   const html=`<div class="wallet"><svg width="22" height="22" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#f2c14e" stroke="#9a6a10" stroke-width="2"/></svg>${G.coins} moedas</div>
   <div class="info shopinfo">O Mercador das Sombras abre a tenda entre as áreas. Gaste as moedas dos inimigos.</div>
-  <div class="shop">${SHOP.map((s,i)=>{ const mx=s.max(), pr=s.price(); return `<div class="item">${s.ico}<div class="txt"><h3>${s.name()}</h3><p>${mx?'Já comprado':s.desc()}</p></div>
+  <div class="shop">${SHOP.map((s,i)=>{ const mx=s.max(), pr=s.price(); return `<div class="item">${s.ico}<div class="txt"><h3>${s.name()}</h3><p>${mx?'Você já tem':s.desc()}</p></div>
    <button class="buy" data-i="${i}" ${mx||G.coins<pr?'disabled':''}>${mx?'OK':pr}</button></div>`; }).join('')}</div>`;
   showMsg('Loja',html,[['SEGUIR VIAGEM',()=>{ hideMsg(); loadArea(G.area+1); }]]);
   document.querySelectorAll('.buy').forEach(b=>b.onclick=()=>{ const s=SHOP[+b.dataset.i]; if(s.max()||G.coins<s.price()) return; G.coins-=s.price(); s.buy(); sfx.buy(); drawShop(); });
@@ -1435,14 +1442,14 @@ document.addEventListener('gesturestart',e=>e.preventDefault());
 document.addEventListener('dblclick',e=>e.preventDefault());
 buildMenu();
 requestAnimationFrame(frame);
-window.__kvx={G,loadRun:()=>loadRun(),goMenu:()=>goMenu(),openShop:()=>openShop(),areaClear:()=>areaClear(),get state(){return state},get P(){return P},get boss(){return boss},loadArea,newGame,startArena:()=>startArena()};
+window.__kvx={G,info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls}),loadRun:()=>loadRun(),goMenu:()=>goMenu(),openShop:()=>openShop(),areaClear:()=>areaClear(),get state(){return state},get P(){return P},get boss(){return boss},loadArea,newGame,startArena:()=>startArena()};
 })();
 </script>
 
 <script>
 // Atualização automática: confere version.json (sem cache) ao abrir e sempre que o app volta para a tela.
 // No menu recarrega na hora; durante a partida espera a próxima vez que o jogo estiver no menu ou pausado.
-const APP_V='2026-11-02-1';
+const APP_V='2026-11-03-1';
 if('serviceWorker' in navigator) addEventListener('load',()=>navigator.serviceWorker.register('sw.js?v='+APP_V).catch(()=>{}));
 let updWaiting=false;
 function checkUpdate(){ fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(j=>{ if(j.v&&j.v!==APP_V){ let done=null; try{ done=sessionStorage.getItem('kvx-upd'); }catch(e){} if(done===j.v) return; updWaiting=j.v; tryReload(); } }).catch(()=>{}); }
