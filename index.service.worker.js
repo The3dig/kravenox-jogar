@@ -1,166 +1,74 @@
-// This service worker is required to expose an exported Godot project as a
-// Progressive Web App. It provides an offline fallback page telling the user
-// that they need an Internet connection to run the project if desired.
-// Incrementing CACHE_VERSION will kick off the install event and force
-// previously cached resources to be updated from the network.
-/** @type {string} */
-const CACHE_VERSION = '1790277833|6572300';
-/** @type {string} */
-const CACHE_PREFIX = 'Kravenox: Crater-sw-cache-';
-const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
-/** @type {string} */
-const OFFLINE_URL = 'index.offline.html';
-/** @type {boolean} */
-const ENSURE_CROSSORIGIN_ISOLATION_HEADERS = false;
-// Files that will be cached on load.
-/** @type {string[]} */
-const CACHED_FILES = ["index.html","index.js","index.offline.html","index.icon.png","index.apple-touch-icon.png","index.audio.worklet.js","index.audio.position.worklet.js"];
-// Files that we might not want the user to preload, and will only be cached on first load.
-/** @type {string[]} */
-const CACHEABLE_FILES = ["index.wasm","index.pck"];
-const FULL_CACHE = CACHED_FILES.concat(CACHEABLE_FILES);
+// Guarda o jogo no celular para não baixar tudo de novo a cada vez que abre.
+// Gerado por ferramentas/versionar.py (versão 8e15a4e598-a3f5a1a816).
+//
+// - Os arquivos grandes têm a impressão digital no nome (kx-....wasm,
+//   jogo-....pck): se estão guardados, saem do celular, sem internet.
+// - A página (index.html) sai da cópia guardada na hora; a versão nova é
+//   buscada por trás e vale na próxima vez que o jogo abrir.
+// - Numa versão nova, só os arquivos que mudaram são baixados; os que saíram
+//   da lista são apagados.
+const CAIXA = 'kravenox-cratera';
+const ARQUIVOS = ["jogo-a3f5a1a816.pck", "kx-8e15a4e598.audio.position.worklet.js", "kx-8e15a4e598.audio.worklet.js", "kx-8e15a4e598.js", "kx-8e15a4e598.wasm", "index.png", "index.icon.png", "index.apple-touch-icon.png"];
 
-self.addEventListener('install', (event) => {
-	event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CACHED_FILES)));
+self.addEventListener('install', (ev) => {
+	ev.waitUntil((async () => {
+		const c = await caches.open(CAIXA);
+		for (const a of ARQUIVOS) {
+			if (!(await c.match(a))) {
+				try { await c.add(a); } catch (e) { /* baixa depois, quando o jogo pedir */ }
+			}
+		}
+		self.skipWaiting();
+	})());
 });
 
-self.addEventListener('activate', (event) => {
-	event.waitUntil(caches.keys().then(
-		function (keys) {
-			// Remove old caches.
-			return Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key)));
+self.addEventListener('activate', (ev) => {
+	ev.waitUntil((async () => {
+		const c = await caches.open(CAIXA);
+		const fica = new Set(ARQUIVOS.map((a) => new URL(a, self.registration.scope).href));
+		fica.add(new URL('index.html', self.registration.scope).href);
+		fica.add(self.registration.scope);
+		for (const req of await c.keys()) {
+			if (!fica.has(req.url.split('?')[0])) await c.delete(req);
 		}
-	).then(function () {
-		// Enable navigation preload if available.
-		return ('navigationPreload' in self.registration) ? self.registration.navigationPreload.enable() : Promise.resolve();
-	}));
+		// caixas do service worker antigo do Godot
+		for (const k of await caches.keys()) {
+			if (k.startsWith('Kravenox: Crater')) await caches.delete(k);
+		}
+		await self.clients.claim();
+	})());
 });
 
-/**
- * Ensures that the response has the correct COEP/COOP headers
- * @param {Response} response
- * @returns {Response}
- */
-function ensureCrossOriginIsolationHeaders(response) {
-	if (response.headers.get('Cross-Origin-Embedder-Policy') === 'require-corp'
-		&& response.headers.get('Cross-Origin-Opener-Policy') === 'same-origin') {
-		return response;
-	}
-
-	const crossOriginIsolatedHeaders = new Headers(response.headers);
-	crossOriginIsolatedHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
-	crossOriginIsolatedHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
-	const newResponse = new Response(response.body, {
-		status: response.status,
-		statusText: response.statusText,
-		headers: crossOriginIsolatedHeaders,
-	});
-
-	return newResponse;
-}
-
-/**
- * Calls fetch and cache the result if it is cacheable
- * @param {FetchEvent} event
- * @param {Cache} cache
- * @param {boolean} isCacheable
- * @returns {Response}
- */
-async function fetchAndCache(event, cache, isCacheable) {
-	// Use the preloaded response, if it's there
-	/** @type { Response } */
-	let response = await event.preloadResponse;
-	if (response == null) {
-		// Or, go over network.
-		response = await self.fetch(event.request);
-	}
-
-	if (ENSURE_CROSSORIGIN_ISOLATION_HEADERS) {
-		response = ensureCrossOriginIsolationHeaders(response);
-	}
-
-	if (isCacheable) {
-		// And update the cache
-		cache.put(event.request, response.clone());
-	}
-
-	return response;
-}
-
-self.addEventListener(
-	'fetch',
-	/**
-	 * Triggered on fetch
-	 * @param {FetchEvent} event
-	 */
-	(event) => {
-		const isNavigate = event.request.mode === 'navigate';
-		const url = event.request.url || '';
-		const referrer = event.request.referrer || '';
-		const base = referrer.slice(0, referrer.lastIndexOf('/') + 1);
-		const local = url.startsWith(base) ? url.replace(base, '') : '';
-		const isCacheable = FULL_CACHE.some((v) => v === local) || (base === referrer && base.endsWith(CACHED_FILES[0]));
-		if (isNavigate || isCacheable) {
-			event.respondWith((async () => {
-				// Try to use cache first
-				const cache = await caches.open(CACHE_NAME);
-				if (isNavigate) {
-					// Check if we have full cache during HTML page request.
-					/** @type {Response[]} */
-					const fullCache = await Promise.all(FULL_CACHE.map((name) => cache.match(name)));
-					const missing = fullCache.some((v) => v === undefined);
-					if (missing) {
-						try {
-							// Try network if some cached file is missing (so we can display offline page in case).
-							const response = await fetchAndCache(event, cache, isCacheable);
-							return response;
-						} catch (e) {
-							// And return the hopefully always cached offline page in case of network failure.
-							console.error('Network error: ', e); // eslint-disable-line no-console
-							return caches.match(OFFLINE_URL);
-						}
-					}
-				}
-				let cached = await cache.match(event.request);
-				if (cached != null) {
-					if (ENSURE_CROSSORIGIN_ISOLATION_HEADERS) {
-						cached = ensureCrossOriginIsolationHeaders(cached);
-					}
-					return cached;
-				}
-				// Try network if don't have it in cache.
-				const response = await fetchAndCache(event, cache, isCacheable);
-				return response;
-			})());
-		} else if (ENSURE_CROSSORIGIN_ISOLATION_HEADERS) {
-			event.respondWith((async () => {
-				let response = await fetch(event.request);
-				response = ensureCrossOriginIsolationHeaders(response);
-				return response;
-			})());
-		}
-	}
-);
-
-self.addEventListener('message', (event) => {
-	// No cross origin
-	if (event.origin !== self.origin) {
+self.addEventListener('fetch', (ev) => {
+	const url = new URL(ev.request.url);
+	if (ev.request.method !== 'GET' || !url.href.startsWith(self.registration.scope)) return;
+	const nome = url.pathname.split('/').pop();
+	// só a página deste jogo (outros jogos em subpastas cuidam das suas)
+	const pagina = url.href.split('?')[0];
+	if (pagina === self.registration.scope || pagina === self.registration.scope + 'index.html') {
+		// Abre na hora com a cópia guardada (funciona sem internet e com a internet
+		// lenta da franquia acabada). Por trás, busca a página nova para a próxima vez.
+		const caixa = caches.open(CAIXA);
+		const nova = fetch(ev.request, { cache: 'no-store' }).then(async (r) => {
+			if (r.ok && (r.headers.get('content-type') || '').includes('text/html')) await (await caixa).put('index.html', r.clone());
+			return r;
+		});
+		ev.waitUntil(nova.then(() => {}, () => {}));
+		ev.respondWith((async () => {
+			const guardada = await (await caixa).match('index.html');
+			if (guardada) return guardada;
+			try { return await nova; } catch (e) { return Response.error(); }
+		})());
 		return;
 	}
-	const id = event.source.id || '';
-	const msg = event.data || '';
-	// Ensure it's one of our clients.
-	self.clients.get(id).then(function (client) {
-		if (!client) {
-			return; // Not a valid client.
-		}
-		if (msg === 'claim') {
-			self.skipWaiting().then(() => self.clients.claim());
-		} else if (msg === 'clear') {
-			caches.delete(CACHE_NAME);
-		} else if (msg === 'update') {
-			self.skipWaiting().then(() => self.clients.claim()).then(() => self.clients.matchAll()).then((all) => all.forEach((c) => c.navigate(c.url)));
-		}
-	});
+	if (ARQUIVOS.includes(nome)) {
+		ev.respondWith((async () => {
+			const c = await caches.open(CAIXA);
+			const guardado = await c.match(nome);
+			if (guardado) return guardado;
+			const r = await fetch(ev.request);
+			if (r.ok) c.put(nome, r.clone());
+			return r;
+		})());
+	}
 });
-

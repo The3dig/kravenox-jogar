@@ -49,12 +49,22 @@ self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET' || req.headers.get('range')) return;
   const url = new URL(req.url); if (url.origin !== location.origin) return;
   const fresh = req.mode === 'navigate' || url.pathname.endsWith('version.json') || url.pathname.endsWith('precache.json');
+  if (fresh) {   // página e versão: da internet quando ela responde rápido; lenta ou cortada, a cópia guardada em 2,5 s
+    const chave = req.mode === 'navigate' ? 'index.html' : req;
+    const caixa = caches.open(CACHE);
+    const rede = fetch(req, { cache: 'no-store' }).then(async r => { if (r.ok) await (await caixa).put(chave, r.clone()); return r; });
+    e.waitUntil(rede.then(() => {}, () => {}));
+    e.respondWith((async () => {
+      const c = await caixa;
+      const guardada = (await c.match(chave, { ignoreSearch: true })) || (req.mode === 'navigate' ? await caches.match('index.html', { ignoreSearch: true }) : null);
+      if (!guardada) { try { return await rede; } catch (err) { return Response.error(); } }
+      const prazo = new Promise(res => setTimeout(() => res(null), 2500));
+      try { const r = await Promise.race([rede, prazo]); return (r && r.ok) ? r : guardada; } catch (err) { return guardada; }
+    })());
+    return;
+  }
   e.respondWith((async () => {
     const c = await caches.open(CACHE);
-    if (fresh) {   // página e versão: sempre da internet (sem cache do navegador); sem internet, a cópia guardada
-      try { const r = await fetch(req, { cache: 'no-store' }); if (r.ok) c.put(req.mode === 'navigate' ? 'index.html' : req, r.clone()); return r; }
-      catch (err) { return (await c.match(req.mode === 'navigate' ? 'index.html' : req, { ignoreSearch: true })) || (await caches.match('index.html', { ignoreSearch: true })) || Response.error(); }
-    }
     // código de outra versão (?v= diferente deste cache): internet primeiro. Imagens e músicas quase nunca
     // mudam: essas continuam vindo do aparelho (a versão nova assume em segundos e recarrega a página)
     const qv = url.searchParams.get('v');

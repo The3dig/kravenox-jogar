@@ -61,7 +61,12 @@
   }
   // sem internet: usa a última versão que ficou guardada no aparelho
   const last = () => { try { return localStorage.getItem('kravenox_lastv'); } catch (e) { return null; } };
-  fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()).then(j => { try { localStorage.setItem('kravenox_lastv', j.v); } catch (e) {} go(j.v); }).catch(() => go(last() || 'offline'));
+  // com a internet lenta (franquia acabada) ou cortada, não espera: em 2,5 s abre com a versão guardada
+  const prazo = (p, ms) => Promise.race([p, new Promise((_, n) => setTimeout(() => n(new Error('lento')), ms))]);
+  const guardada = last();
+  prazo(fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()), guardada ? 2500 : 15000)
+    .then(j => { try { localStorage.setItem('kravenox_lastv', j.v); } catch (e) {} go(j.v); })
+    .catch(() => go(guardada || 'offline'));
   // instala o jogo no aparelho para funcionar offline (tela de início do iPhone/Android)
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.offline) try { localStorage.setItem('kravenox_offline', e.data.offline); } catch (err) {} });
