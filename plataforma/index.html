@@ -184,7 +184,7 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
   <div class="row" id="msgBtns"></div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="three.min.js"></script>
 <script>
 (() => {
 'use strict';
@@ -1449,10 +1449,10 @@ window.__kvx={G,info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info
 <script>
 // Atualização automática: confere version.json (sem cache) ao abrir e sempre que o app volta para a tela.
 // No menu recarrega na hora; durante a partida espera a próxima vez que o jogo estiver no menu ou pausado.
-const APP_V='2026-11-03-1';
+const APP_V='2026-11-05-1';
 if('serviceWorker' in navigator) addEventListener('load',()=>navigator.serviceWorker.register('sw.js?v='+APP_V).catch(()=>{}));
 let updWaiting=false;
-function checkUpdate(){ fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(j=>{ if(j.v&&j.v!==APP_V){ let done=null; try{ done=sessionStorage.getItem('kvx-upd'); }catch(e){} if(done===j.v) return; updWaiting=j.v; tryReload(); } }).catch(()=>{}); }
+function checkUpdate(){ const ctl=('AbortController' in window)?new AbortController():null; if(ctl) setTimeout(()=>ctl.abort(),2500); fetch('version.json?t='+Date.now(),{cache:'no-store',signal:ctl?ctl.signal:undefined}).then(r=>r.json()).then(j=>{ if(j.v&&j.v!==APP_V){ let done=null; try{ done=sessionStorage.getItem('kvx-upd'); }catch(e){} if(done===j.v) return; updWaiting=j.v; tryReload(); } }).catch(()=>{}); }
 function tryReload(){ if(!updWaiting) return; const st=window.__kvx&&window.__kvx.state; if(!st||st==='menu'||st==='paused'||st==='over'||st==='victory'){ try{ sessionStorage.setItem('kvx-upd',updWaiting); }catch(e){} location.replace(location.pathname+'?u='+encodeURIComponent(updWaiting)); } }
 addEventListener('load',checkUpdate);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkUpdate(); });
