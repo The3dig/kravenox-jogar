@@ -7,8 +7,15 @@ const V = new URL(location.href).searchParams.get('v') || 'dev';
 const CACHE = 'kravenox-' + V;
 const CORE = u => /^(\.\/$|index\.html|js\/|fonts\/|manifest|icon-|music\/index\.json)/.test(u);
 let list = null;
+// espera a internet no máximo `ms`; lenta (franquia acabada) ou cortada, devolve null
+const prazo = (p, ms = 2500) => Promise.race([p.catch(() => null), new Promise(res => setTimeout(() => res(null), ms))]);
+// a lista de arquivos desta versão fica guardada: abrir o jogo de novo não baixa a lista outra vez
 async function getList() {
-  if (!list) list = await (await fetch('precache.json?v=' + V, { cache: 'no-store' })).json();
+  if (list) return list;
+  const c = await caches.open(CACHE), key = 'lista-precache?v=' + V;
+  let r = await c.match(key);
+  if (!r) { r = await fetch('precache.json?v=' + V, { cache: 'no-store' }); if (!r.ok) throw new Error('lista'); await c.put(key, r.clone()); }
+  list = await r.json();
   return list;
 }
 async function others() {
@@ -17,7 +24,9 @@ async function others() {
   return out;
 }
 async function fill(onlyCore) {
-  const all = await getList(), c = await caches.open(CACHE), old = await others(), todo = [];
+  const c = await caches.open(CACHE);
+  if (!onlyCore && await c.match('completo')) return true;   // já guardou tudo: não gasta nada
+  const all = await getList(), old = await others(), todo = [];
   for (const u of all) {
     if (onlyCore && !CORE(u)) continue;
     if (await c.match(u)) continue;
@@ -28,6 +37,7 @@ async function fill(onlyCore) {
   // baixa em pequenos grupos para não engasgar a conexão do celular
   for (let i = 0; i < todo.length; i += 6) await Promise.all(todo.slice(i, i + 6).map(u => c.add(new Request(u, { cache: 'reload' })).catch(() => {})));
   for (const u of all) if (!(await c.match(u))) return false;
+  if (!onlyCore) await c.put('completo', new Response('1'));
   return true;
 }
 let filling = null;
@@ -52,7 +62,7 @@ self.addEventListener('fetch', e => {
   if (fresh) {   // página e versão: da internet quando ela responde rápido; lenta ou cortada, a cópia guardada em 2,5 s
     const chave = req.mode === 'navigate' ? 'index.html' : req;
     const caixa = caches.open(CACHE);
-    const rede = fetch(req, { cache: 'no-store' }).then(async r => { if (r.ok) await (await caixa).put(chave, r.clone()); return r; });
+    const rede = fetch(req, { cache: 'no-cache' }).then(async r => { if (r.ok) await (await caixa).put(chave, r.clone()); return r; });
     e.waitUntil(rede.then(() => {}, () => {}));
     e.respondWith((async () => {
       const c = await caixa;
@@ -68,17 +78,19 @@ self.addEventListener('fetch', e => {
     // código de outra versão (?v= diferente deste cache): internet primeiro. Imagens e músicas quase nunca
     // mudam: essas continuam vindo do aparelho (a versão nova assume em segundos e recarrega a página)
     const qv = url.searchParams.get('v');
-    if (qv && qv !== V && qv !== 'offline' && /\.(js|json)$/.test(url.pathname)) { try { const r = await fetch(req); if (r.ok) return r; } catch (err) {} }
+    if (qv && qv !== V && qv !== 'offline' && /\.(js|json)$/.test(url.pathname)) { const r = await prazo(fetch(req)); if (r && r.ok) return r; }
     const mine = await c.match(req, { ignoreSearch: true });
     if (mine) return mine;
     // mesmo arquivo (mesmo hash) guardado pela versão anterior: copia em vez de baixar
     try {
       const rel = url.pathname.slice(new URL('./', location.href).pathname.length);
-      const key = (await getList()).find(u => u.split('?h=')[0] === rel);
+      const lst = await prazo(getList()), key = lst && lst.find(u => u.split('?h=')[0] === rel);
       if (key && key.includes('?h=')) for (const o of await others()) { const r = await o.match(key); if (r) { c.put(key, r.clone()); return r; } }
     } catch (err) {}
     // ainda não está no cache novo: internet (e guarda); sem internet, o cache antigo
-    try { const r = await fetch(req); if (r.ok) { c.put(req, r.clone()); } return r; }
-    catch (err) { return (await caches.match(req, { ignoreSearch: true })) || Response.error(); }
+    const rede = fetch(req).then(r => { if (r.ok) c.put(req, r.clone()); return r; });
+    const antiga = await caches.match(req, { ignoreSearch: true });
+    if (!antiga) { try { return await rede; } catch (err) { return Response.error(); } }
+    const r = await prazo(rede); return (r && r.ok) ? r : antiga;
   })());
 });
