@@ -1,5 +1,5 @@
 // Guarda o jogo no celular para não baixar tudo de novo a cada vez que abre.
-// Gerado por ferramentas/versionar.py (versão 8e15a4e598-fe9c921aa7).
+// Gerado por ferramentas/versionar.py (versão 8e15a4e598-1a08b5d86d).
 //
 // - Os arquivos grandes têm a impressão digital no nome (kx-....wasm,
 //   jogo-....pck): se estão guardados, saem do celular, sem internet.
@@ -8,7 +8,7 @@
 // - Numa versão nova, só os arquivos que mudaram são baixados; os que saíram
 //   da lista são apagados.
 const CAIXA = 'kravenox-quadros';
-const ARQUIVOS = ["jogo-fe9c921aa7.pck", "kx-8e15a4e598.audio.position.worklet.js", "kx-8e15a4e598.audio.worklet.js", "kx-8e15a4e598.js", "kx-8e15a4e598.wasm", "index.png", "index.icon.png", "index.apple-touch-icon.png"];
+const ARQUIVOS = ["jogo-1a08b5d86d.pck", "kx-8e15a4e598.audio.position.worklet.js", "kx-8e15a4e598.audio.worklet.js", "kx-8e15a4e598.js", "kx-8e15a4e598.wasm", "index.png", "index.icon.png", "index.apple-touch-icon.png"];
 
 self.addEventListener('install', (ev) => {
 	ev.waitUntil((async () => {
@@ -46,8 +46,9 @@ self.addEventListener('fetch', (ev) => {
 	// só a página deste jogo (outros jogos em subpastas cuidam das suas)
 	const pagina = url.href.split('?')[0];
 	if (pagina === self.registration.scope || pagina === self.registration.scope + 'index.html') {
-		// Abre na hora com a cópia guardada (funciona sem internet e com a internet
-		// lenta da franquia acabada). Por trás, busca a página nova para a próxima vez.
+		// A página é pequena: tenta a nova primeiro (assim a versão nova já vale
+		// nesta abertura). Se a internet não responder em 2,5 s, ou não houver
+		// internet, abre a cópia guardada. A nova continua sendo guardada por trás.
 		const caixa = caches.open(CAIXA);
 		const nova = fetch(ev.request, { cache: 'no-store' }).then(async (r) => {
 			if (r.ok && (r.headers.get('content-type') || '').includes('text/html')) await (await caixa).put('index.html', r.clone());
@@ -55,6 +56,9 @@ self.addEventListener('fetch', (ev) => {
 		});
 		ev.waitUntil(nova.then(() => {}, () => {}));
 		ev.respondWith((async () => {
+			const prazo = new Promise((ok) => setTimeout(() => ok(null), 2500));
+			const r = await Promise.race([nova.then((x) => (x.ok ? x.clone() : null), () => null), prazo]);
+			if (r) return r;
 			const guardada = await (await caixa).match('index.html');
 			if (guardada) return guardada;
 			try { return await nova; } catch (e) { return Response.error(); }
