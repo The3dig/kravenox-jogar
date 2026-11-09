@@ -1,7 +1,7 @@
 {
-  "name": "Crônicas de Solmira",
-  "short_name": "Solmira",
-  "description": "RPG da dançarina Lyra, em 2D e no spin-off 3D Ritmo Perdido.",
+  "name": "Reino Quebrado Online",
+  "short_name": "Reino Quebrado",
+  "description": "MMORPG 3D do universo Kravenox: raças, classes, a Torre do Cisma e o Kravenox gigante.",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",
