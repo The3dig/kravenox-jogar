@@ -67,13 +67,6 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
 .pad{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-end;z-index:5;pointer-events:none;
   padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .pad .grp{display:flex;gap:12px;align-items:flex-end}
-.pad{justify-content:flex-end}
-.stickzone{position:fixed;left:0;bottom:0;width:50vw;height:72vh;pointer-events:auto;touch-action:none}
-.stick{position:absolute;width:124px;height:124px;margin:-62px 0 0 -62px;border-radius:50%;background:rgba(36,29,44,.45);border:3px solid rgba(255,255,255,.18);left:calc(max(16px,env(safe-area-inset-left,0px)) + 80px);top:calc(100% - 90px - env(safe-area-inset-bottom,0px));transition:opacity .2s}
-.stick.on{background:rgba(36,29,44,.6);border-color:rgba(255,154,60,.7)}
-.stick::before,.stick::after{content:'';position:absolute;top:50%;width:0;height:0;margin-top:-8px;border:8px solid transparent;opacity:.45}
-.stick::before{left:10px;border-right-color:var(--ink)}.stick::after{right:10px;border-left-color:var(--ink)}
-.knob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffc37a,var(--ember));box-shadow:0 4px 10px rgba(0,0,0,.45);will-change:transform}
 .pbtn{pointer-events:auto;width:72px;height:72px;border-radius:50%;background:rgba(36,29,44,.6);border:3px solid rgba(255,255,255,.22);display:grid;place-items:center;color:var(--ink);touch-action:none;
   font-family:var(--display);font-size:15px;letter-spacing:.04em}
 .pbtn.on{background:rgba(255,154,60,.55);border-color:var(--ember)}
@@ -152,8 +145,9 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
 <div class="rotate" id="rotate" hidden><svg width="64" height="64" viewBox="0 0 64 64"><rect x="20" y="6" width="24" height="44" rx="4" fill="none" stroke="currentColor" stroke-width="3"/><path d="M48 46a18 18 0 0 1-10 12M38 52l0 6 6 0" stroke="#ff9a3c" stroke-width="3" fill="none" stroke-linecap="round"/></svg><div>Gire o celular para jogar melhor</div><button class="btn ghost" id="rotOk">Jogar assim mesmo</button></div>
 
 <div class="pad" id="pad" hidden>
-  <div class="stickzone" id="stickZone" aria-label="Joystick: arraste para andar">
-    <div class="stick" id="stick"><div class="knob" id="knob"></div></div>
+  <div class="grp">
+    <button class="pbtn" id="tL" aria-label="Esquerda"><svg width="28" height="28" viewBox="0 0 30 30"><path d="M20 4L8 15l12 11" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button class="pbtn" id="tR" aria-label="Direita"><svg width="28" height="28" viewBox="0 0 30 30"><path d="M10 4l12 11-12 11" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
   <div class="grp">
     <button class="pbtn atk" id="tA" aria-label="Atacar">ATACAR</button>
@@ -1309,21 +1303,9 @@ function bindPad(id,k){ const el=$(id), act=new Set();
   const on=e=>{ e.preventDefault(); initAudio(); act.add(e.pointerId); try{el.setPointerCapture(e.pointerId);}catch(_){} if(k==='jump'&&!kb.jump) jumpPressed=true; if(k==='atk'&&!kb.atk) atkPressed=true; kb[k]=true; mergeKeys(); el.classList.add('on'); };
   const off=e=>{ act.delete(e.pointerId); if(!act.size){ kb[k]=false; mergeKeys(); el.classList.remove('on'); } };
   el.addEventListener('pointerdown',on); ['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,off)); el.addEventListener('contextmenu',e=>e.preventDefault()); }
-// Joystick virtual: toque em qualquer lugar da metade esquerda, arraste para os lados; a base segue o dedo.
-const stick={left:false,right:false};
-(()=>{ const zone=$('#stickZone'), base=$('#stick'), knob=$('#knob'), RAD=50; let id=null, cx=0, cy=0, rest=null;
-  const place=(x,y)=>{ const r=zone.getBoundingClientRect(); base.style.left=(x-r.left)+'px'; base.style.top=(y-r.top)+'px'; };
-  const move=e=>{ let dx=e.clientX-cx, dy=e.clientY-cy; const d=Math.hypot(dx,dy);
-    if(d>RAD){ cx+=dx*(1-RAD/d); cy+=dy*(1-RAD/d); place(cx,cy); dx=e.clientX-cx; dy=e.clientY-cy; }
-    knob.style.transform=`translate(${dx}px,${dy}px)`; stick.left=dx<-RAD*.28; stick.right=dx>RAD*.28; mergeKeys(); };
-  zone.addEventListener('pointerdown',e=>{ if(id!==null) return; e.preventDefault(); id=e.pointerId; try{ zone.setPointerCapture(id); }catch(_){}
-    if(rest===null) rest=[base.style.left,base.style.top]; cx=e.clientX; cy=e.clientY; place(cx,cy); base.classList.add('on'); move(e); });
-  zone.addEventListener('pointermove',e=>{ if(e.pointerId===id) move(e); });
-  const end=e=>{ if(e.pointerId!==id) return; id=null; stick.left=stick.right=false; mergeKeys(); knob.style.transform=''; base.classList.remove('on'); base.style.left=rest[0]; base.style.top=rest[1]; };
-  ['pointerup','pointercancel','lostpointercapture'].forEach(t=>zone.addEventListener(t,end)); zone.addEventListener('contextmenu',e=>e.preventDefault()); })();
-bindPad('#tJ','jump'); bindPad('#tA','atk');
+bindPad('#tL','left'); bindPad('#tR','right'); bindPad('#tJ','jump'); bindPad('#tA','atk');
 const touchy=matchMedia('(pointer: coarse)').matches||'ontouchstart' in window;
-function mergeKeys(){ for(const k of ['left','right','jump','atk']) keys[k]=kb[k]||pad[k]||(typeof stick!=='undefined'&&!!stick[k]); }
+function mergeKeys(){ for(const k of ['left','right','jump','atk']) keys[k]=kb[k]||pad[k]; }
 let padPrev={}, padSeen=false, padGp=null;
 function rumble(m,ms){ try{ if(padGp&&padGp.vibrationActuator) padGp.vibrationActuator.playEffect('dual-rumble',{duration:ms,strongMagnitude:m,weakMagnitude:m*.6}); }catch(e){} }
 function pollPad(){
@@ -1467,7 +1449,7 @@ window.__kvx={G,info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info
 <script>
 // Atualização automática: confere version.json (sem cache) ao abrir e sempre que o app volta para a tela.
 // No menu recarrega na hora; durante a partida espera a próxima vez que o jogo estiver no menu ou pausado.
-const APP_V='2026-11-09-1';
+const APP_V='2026-11-09-2';
 if('serviceWorker' in navigator) addEventListener('load',()=>navigator.serviceWorker.register('sw.js?v='+APP_V).catch(()=>{}));
 let updWaiting=false;
 function checkUpdate(){ const ctl=('AbortController' in window)?new AbortController():null; if(ctl) setTimeout(()=>ctl.abort(),2500); fetch('version.json?t='+Date.now(),{cache:'no-store',signal:ctl?ctl.signal:undefined}).then(r=>r.json()).then(j=>{ if(j.v&&j.v!==APP_V){ let done=null; try{ done=sessionStorage.getItem('kvx-upd'); }catch(e){} if(done===j.v) return; updWaiting=j.v; tryReload(); } }).catch(()=>{}); }
