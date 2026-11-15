@@ -328,7 +328,7 @@ function bevelBox(w,h,d,b){ const s=new THREE.Shape(), hw=w/2-b, hh=h/2-b;
 const GEO={ stone:bevelBox(1,1,1.4,.07), toy:bevelBox(.98,.98,1.0,.12), top:bevelBox(1.02,.2,1.46,.06), plank:bevelBox(1,.22,1.1,.05), mplat:bevelBox(1,.3,1.1,.06),
   crystal:new THREE.OctahedronGeometry(.22), coin:new THREE.CylinderGeometry(.2,.2,.06,18), spike:new THREE.ConeGeometry(.12,.46,6), tuft:new THREE.ConeGeometry(.05,.22,4),
   sph:new THREE.SphereGeometry(1,14,10), box:new THREE.BoxGeometry(1,1,1), cone:new THREE.ConeGeometry(1,1,8), cyl:new THREE.CylinderGeometry(1,1,1,10) };
-const M=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.75,metalness:0},o));
+const M=(c,o={})=>{ if(save.lite){ const q=Object.assign({color:c},o); delete q.roughness; delete q.metalness; return new THREE.MeshLambertMaterial(q); } return new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.75,metalness:0},o)); };
 const B=c=>new THREE.MeshBasicMaterial({color:c});
 const MAT={ crystal:M(0x6fe3ff,{emissive:0x1c8fb0,emissiveIntensity:.9,roughness:.15,metalness:.2}), coin:M(0xf2c14e,{metalness:.8,roughness:.25,emissive:0x5a3a00,emissiveIntensity:.4}),
   spike:M(0xb9c0cc,{metalness:.7,roughness:.3}), wood:M(0xc98a4b,{map:woodTex,roughness:.7}), plank:M(0xb87a40,{map:woodTex}), flame:B(0xff8a2a), flameCore:B(0xffe08a) };
@@ -1263,7 +1263,7 @@ function showMsg(title,body,buttons){
 }
 const hideMsg=()=>{ $('#msg').hidden=true; };
 function pause(){ if(state!=='playing') return; state='paused';
-  showMsg('Pausado',`<div class="info">Modo leve tira sombras e chuva e baixa a resolução. Ajuda quando a tela está espelhada na TV.</div>`,[['CONTINUAR',()=>{ hideMsg(); state='playing'; }],[save.lite?'MODO LEVE: LIGADO':'MODO LEVE: DESLIGADO',()=>{ setLite(!save.lite); hideMsg(); state='playing'; pause(); },true],['REINICIAR ÁREA',()=>{ hideMsg(); loadArea(G.area); },true],['MENU',goMenu,true]]); }
+  showMsg('Pausado',`<div class="info">Modo leve tira sombras e chuva e baixa a resolução. Ajuda quando a tela está espelhada na TV.</div>`,[['CONTINUAR',()=>{ hideMsg(); state='playing'; }],[save.lite?'MODO LEVE: LIGADO':'MODO LEVE: DESLIGADO',()=>{ save.liteManual=true; setLite(!save.lite); hideMsg(); state='playing'; pause(); },true],['REINICIAR ÁREA',()=>{ hideMsg(); loadArea(G.area); },true],['MENU',goMenu,true]]); }
 function newGame(){ clearRun(); Object.assign(G,{area:0,lives:3,score:0,coins:0,frags:[false,false,false,false,false],up:{vigor:0,sword:1,armor:0,boots:0},blade:0,round:1});
   $('#menu').hidden=true; $('#hud').hidden=false; $('#pad').hidden=!touchy; hero.g.scale.setScalar(1); loadArea(0); }
 function goMenu(){ hideMsg(); clearTimeout(toastT); $('#toast').classList.remove('show'); state='menu'; $('#menu').hidden=false; $('#hud').hidden=true; $('#pad').hidden=true; $('#bossbar').hidden=true; buildMenu(); playSong('menu'); }
@@ -1404,16 +1404,23 @@ function syncVisuals(dt,time){
   for(const f of flames){ const s=1+Math.sin(time*13+f.ph)*.12+Math.sin(time*7.3+f.ph)*.08; if(!f.bs) f.bs=f.m.scale.clone(); f.m.scale.set(f.bs.x*s,f.bs.y*(1+(s-1)*1.6),f.bs.z*s); }
   if(L&&L.T&&L.T.lava) lavaTex.offset.x=time*.05, lavaTex.offset.y=Math.sin(time*.3)*.1;
   const cx=state==='menu'?0:camera.position.x; const near=lights.slice().sort((p,q)=>Math.abs(p.x-cx)-Math.abs(q.x-cx));
-  lightPool.forEach((l,i)=>{ const s=near[i]; if(s){ l.visible=true; l.color.setHex(s.color); l.position.set(s.x,s.y,s.z); l.intensity=s.base+Math.sin(time*11+s.ph)*.15; } else l.visible=false; });
+  lightPool.forEach((l,i)=>{ const s=i<(save.lite?2:6)?near[i]:null; if(s){ l.visible=true; l.color.setHex(s.color); l.position.set(s.x,s.y,s.z); l.intensity=s.base+Math.sin(time*11+s.ph)*.15; } else l.visible=false; });
 }
 
 /* ================= LOOP ================= */
 let last=performance.now(), acc=0, time=0, hudT=0;
+// Celular mais fraco: se o jogo rodar abaixo de ~40 quadros por segundo por alguns segundos, liga o Modo leve sozinho (uma vez; quem desligar na pausa manda).
+const fpsMon={t0:0,n:0,start:0,done:false};
+function watchFps(){ if(fpsMon.done||save.lite||save.liteManual||state!=='playing'){ fpsMon.t0=0; return; } const now=performance.now();
+  if(!fpsMon.start) fpsMon.start=now; if(now-fpsMon.start<3000) return;   // espera 3 s de jogo
+  if(!fpsMon.t0){ fpsMon.t0=now; fpsMon.n=0; return; } fpsMon.n++;
+  if(now-fpsMon.t0>=3000){ const fps=fpsMon.n*1000/(now-fpsMon.t0); fpsMon.t0=now; fpsMon.n=0;
+    if(fps<40){ fpsMon.done=true; setLite(true); showToast('<small>Celular mais lento</small>Modo leve ligado',2200); } else if(now-fpsMon.start>25000) fpsMon.done=true; } }
 function frame(now){
   const dt=Math.min(.1,(now-last)/1000); last=now; time+=dt; pollPad();
   if(state==='playing'){ acc+=dt; const st=1/60; let n=0;
     while(acc>=st&&n<6&&state==='playing'){ updatePlatforms(st); updatePlayer(st); if(state!=='playing'&&state!=='dying') break; updateAttacks(st); updateEnemies(st); updateBoss(st); updateEProj(st); acc-=st; n++; }
-    if(n>=6) acc=0; hudT-=dt; if(hudT<=0){ hudT=.1; renderHUD(); if(P.E<Emax()*.25) $('#vbar').classList.toggle('blink',Math.floor(time*4)%2===0); } }
+    if(n>=6) acc=0; watchFps(); hudT-=dt; if(hudT<=0){ hudT=.1; renderHUD(); if(P.E<Emax()*.25) $('#vbar').classList.toggle('blink',Math.floor(time*4)%2===0); } }
   else if(state==='dying'){ endTimer-=dt; updateParticles(0); if(endTimer<=0){ hero.g.rotation.z=0; respawn(); } }
   else if(state==='bossdown'){ endTimer-=dt; const st=Math.min(dt,1/30); updatePlayerPassive(st); updateAttacks(st); if(endTimer<=0) areaClear(); }
   updateParticles(dt); updateAmbient(dt,time); updatePops(dt); musicTick(); updateStorm(dt); updateRain(dt);
@@ -1449,7 +1456,7 @@ window.__kvx={G,info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info
 <script>
 // Atualização automática: confere version.json (sem cache) ao abrir e sempre que o app volta para a tela.
 // No menu recarrega na hora; durante a partida espera a próxima vez que o jogo estiver no menu ou pausado.
-const APP_V='2026-11-09-2';
+const APP_V='2026-11-13-1';
 if('serviceWorker' in navigator) addEventListener('load',()=>navigator.serviceWorker.register('sw.js?v='+APP_V).catch(()=>{}));
 let updWaiting=false;
 function checkUpdate(){ const ctl=('AbortController' in window)?new AbortController():null; if(ctl) setTimeout(()=>ctl.abort(),2500); fetch('version.json?t='+Date.now(),{cache:'no-store',signal:ctl?ctl.signal:undefined}).then(r=>r.json()).then(j=>{ if(j.v&&j.v!==APP_V){ let done=null; try{ done=sessionStorage.getItem('kvx-upd'); }catch(e){} if(done===j.v) return; updWaiting=j.v; tryReload(); } }).catch(()=>{}); }

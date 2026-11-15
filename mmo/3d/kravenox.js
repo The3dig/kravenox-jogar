@@ -101,6 +101,7 @@ const Kvx = (() => {
   const DAY = 6, START = 20, HORAS = 6;            // sábado 20h → domingo 2h (passa da meia-noite)
   const ALLY_NAMES = ['Bruna Ferro', 'Tião do Arco', 'Zéfiro', 'Nanda Lumen', 'Grum Pedrabarba', 'Selvyn', 'Morgana Cinza', 'Duda Faísca', 'Otávio Brasa', 'Lia Sereno'];
   const AR = () => FLOORS[TOP];                                   // topo da Torre do Cisma
+  const naArena = () => inTower(P.z) && Tower.floor === TOP && Math.hypot(P.x - AR().x, P.z - AR().z) < 40;   // golpes, sons e avisos só valem para quem está lá em cima
   let boss = null, allies = [], teles = [], active = false, forced = false, checkT = 0, phaseT = 0, lastMsg = '';
   const forcedByLink = () => /kravenox/i.test(location.hash);
 
@@ -115,7 +116,20 @@ const Kvx = (() => {
   function nextStart(d = new Date()) { const s = ultimoInicio(d); s.setDate(s.getDate() + 7); return s; }
   function endTime(d = new Date()) { return new Date(ultimoInicio(d).getTime() + HORAS * 3600e3); }
   const fmt = ms => { const s = Math.max(0, Math.floor(ms / 1000)), dd = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60; return dd ? `${dd}d ${h}h ${m}min` : h ? `${h}h ${m}min` : `${m}min ${ss}s`; };
-  const killedThisWeek = () => P.kvxWeek === (forced ? 'teste' : weekId());
+  // horário oficial e quem já derrubou nesta semana: vêm do servidor (todo mundo vê igual)
+  let srv = null, srvT = 0, mortoPor = '';
+  async function sincronizar() {
+    if (typeof Nuvem === 'undefined' || !Nuvem.logado) return;
+    try { const r = await Nuvem.api('GET', '/conta/kvx'); r.dif = r.agora - Date.now(); srv = r; } catch (e) { }
+  }
+  const agoraSrv = () => srv ? Date.now() + srv.dif : Date.now();
+  const semanaAtual = () => forced ? 'teste' : srv ? srv.semana : weekId();
+  const acordadoAgora = () => srv ? agoraSrv() >= srv.inicio && agoraSrv() < srv.fim : windowNow();
+  const fimAgora = () => srv ? srv.fim - srv.dif : endTime().getTime();
+  const proximoAgora = () => srv ? (agoraSrv() < srv.inicio ? srv.inicio : srv.proximo) - srv.dif : nextStart().getTime();
+  const mortoNoServidor = () => !forced && srv && srv.morto;
+  const killedThisWeek = () => P.kvxWeek === semanaAtual() || !!mortoNoServidor();
+  const MIN_DANO = 1500;                                        // só ganha o prêmio quem lutou (0,5% da vida dele)
 
   function init() {
     forced = forcedByLink();
@@ -132,11 +146,13 @@ const Kvx = (() => {
     boss = spawnMob('kravenox', null, { x: AR().x, z: AR().z - 6 });
     boss.sx = AR().x; boss.sz = AR().z - 6; boss.face = 0; boss.state = 'idle'; boss.specT = 5; boss.addT = 20; boss.meleeT = 2;
     active = true;
-    banner('☠ KRAVENOX DESPERTOU ☠');
+    const jaEstava = srv && agoraSrv() - srv.inicio > 90e3;               // quem entra depois das 20h: aviso grande de que ele ESTÁ acordado
+    banner(jaEstava ? '☠ KRAVENOX ESTÁ ACORDADO ☠' : '☠ KRAVENOX DESPERTOU ☠');
     Audio8.sfx('boom'); setTimeout(() => Audio8.sfx('boom'), 300);
     log('☠ <b style="color:#ff6060">KRAVENOX DESPERTOU</b> no topo da Torre do Cisma! Todos os aventureiros estão subindo!', 'bad');
     log('📍 Ele está no <b>topo da Torre do Cisma</b>, na Cidadela do Cisma (extremo leste). Suba os 30 andares!', 'gold');
-    spawnAllies();
+    // sem bots: o jogo é todo on-line e quem luta são os jogadores de verdade
+    // (os 6 aventureiros de antes batiam nele no aparelho de cada um e o dano contava como se fosse do jogador)
   }
   function sleep(msg) {
     if (boss && !boss.dead) { mobs = mobs.filter(o => o !== boss); scene.remove(boss.model.g); boss.lab.remove(); }
@@ -285,11 +301,11 @@ const Kvx = (() => {
       if (tl.line) tl.fill.material.opacity = 0.15 + k * 0.45; else { tl.fill.scale.set(tl.r * k, 1, tl.r * k); tl.fill.material.opacity = 0.15 + k * 0.35; }
       if (tl.t <= 0) {
         tl.done = true; scene.remove(tl.fill); scene.remove(tl.edge);
-        Audio8.sfx('boom'); if (!tl.line) ring(tl.x, tl.z, tl.r, 0xff5030, 0.5);
+        if (naArena()) Audio8.sfx('boom'); if (!tl.line) ring(tl.x, tl.z, tl.r, 0xff5030, 0.5);
         burst(new THREE.Vector3(tl.x, groundY(tl.x, tl.z) + 0.5, tl.z), 0xff4020, 26, tl.r * 1.5, 0.8);
         const hit = (x, z) => tl.line ? inLine(tl, x, z) : Math.hypot(x - tl.x, z - tl.z) < tl.r;
         if (tl.line) beamFx(tl);
-        if (boss && hit(P.x, P.z)) hurtPlayer(boss, tl.mult);
+        if (boss && naArena() && hit(P.x, P.z)) hurtPlayer(boss, tl.mult);
         allies.forEach(al => { if (hit(al.x, al.z)) hurtAlly(al, 70 * tl.mult); });
       }
     }
@@ -300,8 +316,8 @@ const Kvx = (() => {
   function ai(m, dt) {
     m.roar = Math.max(0, (m.roar || 0) - dt);
     if (!m.enraged && m.hp < m.maxHp * 0.5) {
-      m.enraged = true; banner('KRAVENOX SE ENFURECE!'); Audio8.sfx('boom');
-      log('🔥 <b>Kravenox se enfurece!</b> Ele ficou mais rápido e agressivo.', 'bad');
+      m.enraged = true; if (naArena()) { banner('KRAVENOX SE ENFURECE!'); Audio8.sfx('boom'); }
+      if (naArena()) log('🔥 <b>Kravenox se enfurece!</b> Ele ficou mais rápido e agressivo.', 'bad');
     }
     const enr = m.enraged ? 1.4 : 1;
     // alvo: jogador ou aliado mais próximo dentro da arena
@@ -327,7 +343,7 @@ const Kvx = (() => {
     if (m.meleeT <= 0 && d < 16) {
       m.meleeT = 3; m.swing = 1;
       telegraph(m.x + fx * 9, m.z + fz * 9, 7.5, 0.7, 1.2, 0xff2a2a);
-      setTimeout(() => { if (boss) { clawFx(m); Audio8.sfx('crit'); } }, 650);
+      setTimeout(() => { if (boss) { clawFx(m); if (naArena()) Audio8.sfx('crit'); } }, 650);
     }
     // golpes especiais
     m.specT -= dt * enr;
@@ -336,13 +352,13 @@ const Kvx = (() => {
       if (m.spec === 1) {                                              // Raio da Essência
         const a = Math.atan2(tg.x - m.x, tg.z - m.z); m.face = a; m.beam = 1.6;
         teleLine(m.x, m.z, a, 46, 6, 1.5, 2.0);
-        log('🔴 Kravenox carrega o <b>Raio da Essência</b>! Saia da faixa vermelha!', 'bad');
+        if (naArena()) log('🔴 Kravenox carrega o <b>Raio da Essência</b>! Saia da faixa vermelha!', 'bad');
       } else if (m.spec === 2) {                                       // Esmagamento
         m.pound = 1; telegraph(m.x, m.z, 15, 1.3, 1.6, 0xff2a2a);
         setTimeout(() => { if (boss) spikeRing(m.x, m.z, 15); }, 1250);
-        log('⬇️ Kravenox salta para o <b>Esmagamento</b>! Use a esquiva!', 'bad');
+        if (naArena()) log('⬇️ Kravenox salta para o <b>Esmagamento</b>! Use a esquiva!', 'bad');
       } else {                                                         // espinhos brotando sob os alvos
-        const pts = [{ x: P.x, z: P.z }, ...allies.filter(a => a.down <= 0).map(a => ({ x: a.x, z: a.z }))].slice(0, 6);
+        const pts = cands.map(c => ({ x: c.x, z: c.z })).slice(0, 6);           // só quem está na arena (antes mirava você até na cidade)
         pts.forEach((p, i) => setTimeout(() => { if (boss) { telegraph(p.x, p.z, 3.4, 1.1, 1.3, 0xff2a2a); setTimeout(() => spikeRing(p.x, p.z, 3.4), 1050); } }, i * 120));
         if (m.enraged) telegraph(m.x, m.z, 9, 1.1, 1.5);
       }
@@ -352,19 +368,29 @@ const Kvx = (() => {
     if (m.addT <= 0 && m.hp < m.maxHp * 0.75) {
       m.addT = 28;
       for (let i = 0; i < 3; i++) { const c = spawnMob('larva', null, { x: m.x + rand(-6, 6), z: m.z + rand(-6, 6) }); c.state = 'chase'; c.at = null; c.area = [m.x - 10, m.x + 10, m.z - 10, m.z + 10]; c.noRespawn = true; }
-      log('🐛 Kravenox chamou <b>Larvas da Essência</b>!', 'bad');
+      if (naArena()) log('🐛 Kravenox chamou <b>Larvas da Essência</b>!', 'bad');
     }
   }
 
-  function curWeek() { return forced ? 'teste' : weekId(); }
+  function curWeek() { return semanaAtual() + '-v2'; }                // -v2: zera o dano que os bots deram por você
   function addDmg(d) { const w = curWeek(); if (!P.kvxDmg || P.kvxDmg.w !== w) P.kvxDmg = { w, d: 0 }; P.kvxDmg.d += d; }
   function sharedHp(m) {
     const w = curWeek(), mine = P.kvxDmg && P.kvxDmg.w === w ? P.kvxDmg.d : 0;
     return m.maxHp - mine - Net.kvxOthers(w);
   }
+  // caiu, mas você não lutou o bastante: sem prêmio
+  function caiuSemVoce(por) {
+    boss = null; active = false;
+    banner('☠ KRAVENOX FOI DERROTADO ☠');
+    log(`🏆 <b>Kravenox foi derrotado${por ? ' por ' + por : ''}!</b> Você não lutou o bastante para ganhar o prêmio (é preciso causar pelo menos ${MIN_DANO.toLocaleString('pt-BR')} de dano). Ele volta no próximo sábado, às 20h.`, 'sys');
+    allies.forEach(al => { scene.remove(al.g); al.lab.remove(); }); allies = [];
+    teles.forEach(t => { scene.remove(t.fill); scene.remove(t.edge); }); teles = [];
+    panel();
+  }
   function onKill(m) {
     boss = null; active = false;
-    P.kvxWeek = forced ? 'teste' : weekId(); P.kvxKills = (P.kvxKills || 0) + 1;
+    P.kvxWeek = semanaAtual(); P.kvxKills = (P.kvxKills || 0) + 1;
+    if (!forced && typeof Nuvem !== 'undefined') Nuvem.api('POST', '/conta/kvx/morto', { semana: P.kvxWeek, nome: P.name }).then(r => { srv = { ...srv, ...r, dif: r.agora - Date.now() }; }).catch(() => { });
     P.title = 'Matador de Kravenox';
     $('pname').innerHTML = `${P.name}<small>« ${P.title} »</small>`;
     banner('🏆 KRAVENOX FOI DERROTADO! 🏆');
@@ -386,16 +412,27 @@ const Kvx = (() => {
 
   // ---------------- laço
   function update(dt) {
-    checkT -= dt;
+    checkT -= dt; srvT -= dt;
+    if (srvT <= 0) { srvT = acordadoAgora() || (srv && proximoAgora() - Date.now() < 120e3) ? 20 : 120; sincronizar(); }
     if (checkT <= 0) {
       checkT = 1;
-      const should = (forced || windowNow()) && !killedThisWeek();
+      if (boss && !boss.dead && mortoNoServidor() && P.kvxWeek !== semanaAtual()) {        // outro grupo derrubou: ele some para todos
+        mobs = mobs.filter(o => o !== boss); scene.remove(boss.model.g); boss.lab.remove(); caiuSemVoce(srv.morto.por);
+      }
+      const should = (forced || acordadoAgora()) && !killedThisWeek();
       if (should && !boss) wake();
       if (!should && boss && !forced) sleep('🌑 Deu 2h da manhã: Kravenox voltou a dormir. Só no próximo sábado, às 20h.');
       panel();
     }
     if (boss && boss.dead) boss = null;
-    if (boss) { boss.hp = Math.min(boss.maxHp, sharedHp(boss)); if (boss.hp <= 0 && !boss.dead) { boss.hp = 0; killMob(boss); } }
+    if (boss) {
+      boss.hp = Math.min(boss.maxHp, sharedHp(boss));
+      if (boss.hp <= 0 && !boss.dead) {
+        boss.hp = 0; const meu = P.kvxDmg && P.kvxDmg.w === curWeek() ? P.kvxDmg.d : 0;
+        if (meu >= MIN_DANO || forced) killMob(boss);                                   // lutou: prêmio
+        else { const b = boss; killMob(b, { semPremio: true }); caiuSemVoce(''); }      // só estava por perto: sem prêmio
+      }
+    }
     updateAllies(dt); updateTeles(dt);
     // rótulos dos aliados
     for (const al of allies) {
@@ -418,11 +455,11 @@ const Kvx = (() => {
     const el = $('kvx'); if (!el) return;
     let body;
     if (boss) {
-      const left = forced ? 'modo teste' : `termina em ${fmt(endTime() - new Date())}`;
+      const left = forced ? 'modo teste' : `termina em ${fmt(fimAgora() - Date.now())}`;
       const onRoof = inTower(P.z) && Tower.floor === TOP;
-      body = `<b class="live">● ACORDADO</b> · ${left}<br>${onRoof ? 'Você está no topo. Derrube o Soberano!' : '📍 Topo da Torre do Cisma — Cidadela do Cisma, extremo leste (caveira no minimapa)'}`;
-    } else if (killedThisWeek()) body = `✅ Derrotado esta semana!<br>Próximo despertar em <b>${fmt(nextStart() - new Date())}</b>`;
-    else body = `Desperta todo <b>sábado às 20h</b> e fica acordado <b>6 horas</b> (até as 2h)<br>Faltam <b>${fmt(nextStart() - new Date())}</b>`;
+      body = `<b class="live">● ACORDADO</b> · ${left}<br>${onRoof ? 'Derrube o Soberano!' : '📍 Topo da Torre do Cisma'}`;
+    } else if (killedThisWeek()) body = `✅ Derrotado esta semana${mortoNoServidor() ? ` por <b>${srv.morto.por}</b>` : ''}!<br>Próximo despertar em <b>${fmt(proximoAgora() - Date.now())}</b>`;
+    else body = `Sábado, 20h às 2h (Brasília)<br>Faltam <b>${fmt(proximoAgora() - Date.now())}</b>`;
     const html = `<div class="wt">☠ Kravenox</div><div class="wb">${body}</div>`;
     if (html !== lastMsg) { el.innerHTML = html; lastMsg = html; }
     el.classList.toggle('live', !!boss);

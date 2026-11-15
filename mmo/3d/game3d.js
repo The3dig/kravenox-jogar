@@ -188,7 +188,7 @@ const C_ = h => new THREE.Color(h);
 const DARK_H = C_(0x4a1830), DARK_T = C_(0x12081c), MOUNT_C = C_(0x2a3440), ASH_H = C_(0x5a4440), ASH_T = C_(0x1e1418);
 const SUNSET_H = C_(0xd8905a), SUNSET_T = C_(0x5a5a8a), NIGHT_H = C_(0x1c2436), NIGHT_T = C_(0x060914);
 function dayCycle() {
-  const forced = /noite/.test(location.hash) ? 0.0 : /tarde/.test(location.hash) ? 0.79 : null;
+  const forced = /noite/.test(location.hash) ? 0.0 : /tarde/.test(location.hash) ? 0.79 : /dia/.test(location.hash) ? 0.5 : null;
   const t = forced ?? ((Date.now() / 1000 / 1800 + 0.2) % 1);          // 0..1 (0,25 manhã · 0,5 meio-dia · 0,75 fim de tarde)
   const ang = (t - 0.25) * Math.PI * 2, elev = Math.sin(ang + Math.PI / 2 - Math.PI / 2) ;
   const e = Math.sin((t - 0.2) / 0.62 * Math.PI);                         // elevação do sol: dia de 0,2 a 0,82
@@ -272,6 +272,56 @@ function mesh(geo, mat, x = 0, y = 0, z = 0, parent = null, shadow = true) {
   (parent || scene).add(m); return m;
 }
 
+// junta as peças de um objeto (casa, quiosque…) que usam o mesmo material numa peça só: o celular desenha
+// uma vez por material em vez de uma vez por peça (casas detalhadas sem pesar)
+// materiais compartilhados (mesma textura e cor = mesmo material): permite juntar peças de várias casas
+const MATC = {};
+const PMc = (n, rep, c = 0xffffff, o) => { const k = n + rep + (c.isColor ? c.getHex() : c) + JSON.stringify(o || {}); return MATC[k] || (MATC[k] = PM(n, rep, c, o)); };
+const FLORES = [0xff6a8a, 0xffd040, 0xc070ff, 0xff8a40].map(c => new THREE.MeshLambertMaterial({ color: c }));
+const VIDRO = new THREE.MeshBasicMaterial({ color: 0xffd890, toneMapped: false });
+function fundir(grupo) {
+  grupo.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(grupo.matrixWorld).invert(), porMat = new Map(), tirar = [];
+  grupo.traverse(o => {
+    if (!o.isMesh || o.isInstancedMesh || o === grupo || Array.isArray(o.material) || !o.geometry.attributes.uv) return;
+    const geo = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone());
+    for (const k of Object.keys(geo.attributes)) if (!['position', 'normal', 'uv'].includes(k)) geo.deleteAttribute(k);
+    geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld)); geo.clearGroups();
+    if (!porMat.has(o.material)) porMat.set(o.material, []); porMat.get(o.material).push(geo); tirar.push(o);
+  });
+  for (const o of tirar) o.parent.remove(o);
+  for (const [mat, geos] of porMat) {
+    const n = geos.reduce((t, g) => t + g.attributes.position.count, 0), pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2);
+    let i = 0; for (const g of geos) { pos.set(g.attributes.position.array, i * 3); nor.set(g.attributes.normal.array, i * 3); uv.set(g.attributes.uv.array, i * 2); i += g.attributes.position.count; g.dispose(); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    geo.computeBoundingSphere(); const m = new THREE.Mesh(geo, mat); m.castShadow = !mat.transparent && !mat.isMeshBasicMaterial; m.receiveShadow = true; grupo.add(m);
+  }
+  // os grupos que ficaram vazios (janelas etc.) saem
+  for (const c of [...grupo.children]) if (c.isGroup && !c.children.length) grupo.remove(c);
+  return grupo;
+}
+// enfeites longe demais (além da névoa) não são desenhados: cada lugar só aparece quando você está perto
+const DECOR = [];
+function decor(g, folga = 0) { const c = new THREE.Box3().setFromObject(g).getCenter(new THREE.Vector3()); g.userData.dc = c; g.userData.df = folga; DECOR.push(g); return g; }
+// no fim da montagem do mundo: todo enfeite parado e pequeno (casa, cerca, ponte, barril, NPC…) entra na lista
+let enfeitesFeitos = false;
+function registrarEnfeites() {
+  if (enfeitesFeitos) return; enfeitesFeitos = true;
+  const pular = new Set([lyra, ...clouds]), esf = new THREE.Sphere(), cx = new THREE.Box3();
+  for (const o of scene.children) {
+    if (pular.has(o) || DECOR.includes(o) || o.isInstancedMesh || o.isPoints || o.isLight || o.isCamera || (o.isMesh && o.frustumCulled === false)) continue;
+    if (!(o.isMesh || o.isGroup)) continue;
+    cx.setFromObject(o); if (cx.isEmpty()) continue; cx.getBoundingSphere(esf);
+    if (!isFinite(esf.radius) || esf.radius > 70 || Math.abs(esf.center.z) > 250) continue;      // grandes (terreno, céu) e o que fica fora do mapa (Torre, casa, Valdora) ficam de fora
+    o.userData.dc = esf.center.clone(); o.userData.df = esf.radius; DECOR.push(o);
+  }
+}
+let decorT = 0;
+function decorTick(dt) {
+  if ((decorT -= dt) > 0) return; decorT = 0.5;
+  const fora = inTower(P.z) || inVal(P.z);
+  for (const g of DECOR) g.visible = !fora && Math.hypot(g.userData.dc.x - P.x, g.userData.dc.z - P.z) < 190 + g.userData.df;
+}
 // ---------------------------------------------------------------- mundo
 const WX = 220, WZ = 90;
 const VIL = { x: -105, z: 0 }, OAS = { x: 120, z: 55 }, RUIN = { x: 128, z: -52 }, LAIR = { x: -20, z: -64 };
@@ -282,25 +332,32 @@ const VCAMP = { x: -110, z: -668 }, VHILL = { x: -12, z: -735 }, VCITY = { x: 85
 const VGATE_R = { x: 84, z: -84 }, VGATE_V = { x: -110, z: -645 };            // passagem no Reino (Areias Rubras) e chegada em Valdora
 const inVal = z => z < -300;
 const TZ = 420;                                                   // andares da torre ficam fora do mapa (z ~ 420)
-// Torre do Cisma: 30 andares + topo. Cada andar é um salão redondo; ao norte, uma escadaria
-// sobe 7 m até o andar de cima; ao sul, a escadaria por onde se chegou desce para o de baixo.
+// Torre do Cisma: 30 andares + topo. Cada andar é um salão redondo e grande; colada na parede, uma
+// escadaria curva SOBE 7 m até a porta do andar de cima, e do outro lado outra escadaria curva DESCE
+// por um vão no chão até o andar de baixo (as duas dão a volta pela beira do salão).
 const TOP = 30, STAIR_L = 14, STAIR_W = 2.4, STAIR_H = 7;
-const FLOORS = Array.from({ length: TOP + 1 }, (_, i) => ({ i, x: -250 + (i % 10) * 100, z: TZ + 140 + Math.floor(i / 10) * 110, y: 40 + i * STAIR_H, r: i === TOP ? 34 : 18 + Math.floor(i / 10) * 2 }));
+const FLOORS = Array.from({ length: TOP + 1 }, (_, i) => ({ i, x: -250 + (i % 10) * 100, z: TZ + 140 + Math.floor(i / 10) * 110, y: 40 + i * STAIR_H, r: i === TOP ? 38 : 30 }));
+// escadarias laterais: ângulo (θ: x = sen θ, z = cos θ) onde começam, quanto da volta ocupam e a largura
+const RAMPA = { sobe: 0.55 * Math.PI, desce: -0.45 * Math.PI, volta: 0.5 * Math.PI, larg: 4.2 };
+function rampa(f, x, z) {
+  if (!f || f.casa) return null;
+  const dx = x - f.x, dz = z - f.z, r = Math.hypot(dx, dz); if (r < f.r - RAMPA.larg - 0.3 || r > f.r + 0.6) return null;
+  const th = Math.atan2(dx, dz), em = a0 => { const d = ((th - a0) % TAU + TAU) % TAU; return d <= RAMPA.volta ? d / RAMPA.volta : -1; };
+  if (f.i < TOP) { const p = em(RAMPA.sobe); if (p >= 0) return { tipo: 'sobe', p }; }
+  const p = em(RAMPA.desce); if (p >= 0) return { tipo: 'desce', p };
+  return null;
+}
+// ponto da escadaria: p de 0 (embaixo/no chão) a 1 (no fim), na faixa do meio
+function pontoRampa(f, tipo, p) { const th = (tipo === 'sobe' ? RAMPA.sobe : RAMPA.desce) + p * RAMPA.volta, r = f.r - RAMPA.larg / 2 - 0.2; return { x: f.x + Math.sin(th) * r, z: f.z + Math.cos(th) * r, th }; }
 const inTower = z => z > 300;
 const CASA = { i: 'casa', casa: true, x: 520, z: TZ, y: 0, r: 8 };            // interior da casa do Sítio (fora do mapa, como a Torre)
 function floorAt(x, z) {
   const row = Math.round((z - TZ - 140) / 110), col = Math.round((x + 250) / 100), f = row >= 0 && col >= 0 && col < 10 ? FLOORS[row * 10 + col] : null;
-  if (f && (Math.hypot(x - f.x, z - f.z) < f.r + 6 || (Math.abs(x - f.x) < STAIR_W + 1 && Math.abs(z - f.z) < f.r + STAIR_L + 3))) return f;
+  if (f && Math.hypot(x - f.x, z - f.z) < f.r + 6) return f;
   if (Math.hypot(x - CASA.x, z - CASA.z) < CASA.r + 6) return CASA; return null;
 }
-// altura extra nas escadarias (rampa suave sob os degraus)
-function stairRise(f, x, z) {
-  if (f.casa || Math.abs(x - f.x) > STAIR_W + 1) return 0;
-  const n = f.z - f.r + 0.5 - z, s = z - (f.z + f.r - 0.5);
-  if (n > 0 && f.i < TOP) return Math.min(1, n / STAIR_L) * STAIR_H;
-  if (s > 0) return -Math.min(1, s / STAIR_L) * STAIR_H;
-  return 0;
-}
+// altura nas escadarias laterais (rampa suave sob os degraus)
+function stairRise(f, x, z) { const r = rampa(f, x, z); return !r ? 0 : r.tipo === 'sobe' ? r.p * STAIR_H : -r.p * STAIR_H; }
 const riverX = z => 20 + Math.sin(z * 0.08) * 4;
 const FARM = { x: -176, z: 0 };   // Sítio de Solmira (vida.js)
 const WHEAT = [[-42, -42, 20, 14], [-22, 22, 18, 12], [30, -38, 13, 10], [-48, 30, 12, 10]];
@@ -516,7 +573,7 @@ function addOb(x, z, r) {
     }
 }
 function blocked(x, z, r = 0.45) {
-  if (inTower(z)) { const f = floorAt(x, z); if (!f || (Math.hypot(x - f.x, z - f.z) > f.r - 1 - r && !(typeof Tower !== 'undefined' && Tower.corridor(f, x, z, r)))) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
+  if (inTower(z)) { const f = floorAt(x, z); if (!f || Math.hypot(x - f.x, z - f.z) > f.r - (f.casa ? 1 : 0.5) - r || (typeof Tower !== 'undefined' && Tower.selada(f, x, z))) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
   if (z < -300) { if (typeof Valdora === 'undefined' || Valdora.out(x, z, r)) return true; }
   else if (Math.abs(x) > WX - 4 || Math.abs(z) > WZ - 4) return true;
   if (isWater(x, z)) return true;
@@ -720,7 +777,7 @@ const windU = { value: 0 };
 
 // palmeiras: tronco com casca e folhas em cartões (horizontais, caídas)
 const PALM_G = cardGeo(Array.from({ length: 9 }, (_, i) => [0, 0, 0, i * TAU / 9 + (i % 2) * 0.2, 0.25 + (i % 3) * 0.12, 3.4, 1.0, 0.0]));
-const palmMat = cardMat('palmeira.png');
+const palmMat = cardMat('palmeira.png'); palmMat.emissive.setHex(0x2a3a18); palmMat.color.setHex(0xd8f0b0);   // folhas não ficam pretas contra o céu
 for (const p of palms) {
   const g = new THREE.Group(); g.position.set(p.x, height(p.x, p.z), p.z); g.scale.setScalar(p.s); scene.add(g);
   const trunk = mesh(new THREE.CylinderGeometry(0.14, 0.26, 4.6, 8), PM('casca.jpg', [1, 3], 0xb0a088), 0, 2.25, 0, g); trunk.rotation.z = p.lean;
@@ -732,50 +789,111 @@ const smokes = [];
 function house(x, z, rot, w, d, roofC, style) {
   const g = new THREE.Group(); g.position.set(x, groundY(x, z), z); g.rotation.y = rot; scene.add(g);
   if (style === 'sand') {
-    mesh(new THREE.BoxGeometry(w, 3.2, d), PM('pedra.jpg', [w / 2, 1.6], 0xd8b890), 0, 1.6, 0, g);
-    const adobe = PM('reboco.jpg', [1, 0.5], 0xc8a478);
-    mesh(new THREE.BoxGeometry(w + 0.3, 0.3, d + 0.3), adobe, 0, 3.3, 0, g);
-    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => mesh(new THREE.BoxGeometry(0.5, 0.6, 0.5), adobe, a * (w / 2), 3.7, b * (d / 2), g));   // ameias
-    for (let k = -2; k <= 2; k++) { const v = mesh(new THREE.CylinderGeometry(0.1, 0.1, d + 1.0, 6), PM('madeira.jpg', [0.2, 1], 0x6a5040), k * w / 5.5, 2.9, 0, g); v.rotation.x = Math.PI / 2; }   // vigas salientes
-    if (roofC) mesh(new THREE.SphereGeometry(Math.min(w, d) * 0.32, 20, 10, 0, TAU, 0, Math.PI / 2), PM('reboco.jpg', [2, 1], new THREE.Color(roofC).lerp(new THREE.Color(0xd8c8b0), 0.6).getHex()), 0, 3.4, 0, g);
-    const door = mesh(new THREE.BoxGeometry(1.1, 1.8, 0.1), M(0x5a3a1a), 0, 0.9, d / 2 + 0.03, g, false);
-    [-w / 2 + 1, w / 2 - 1].forEach(wx => mesh(new THREE.BoxGeometry(0.6, 0.8, 0.1), M(0x2a3a5a), wx, 2, d / 2 + 0.03, g, false));
+    // casa de adobe do deserto: paredes de barro de cantos arredondados, mureta no telhado, cúpula de cebola,
+    // porta em arco com toldo listrado, janelas com treliça acesa e vigas saindo da parede
+    const k = Math.abs(Math.round(x * 3 + z)) % 3, H = 3.4;
+    const barro = PMc('reboco.jpg', [w / 3, 1.2], 0xe2c49a), barro2 = PMc('reboco.jpg', [1, 0.4], 0xd0ae80), madeira = PMc('madeira.jpg', [0.2, 1], 0x6a5040);
+    const caixaRed = (W, Hh, D, mt, px, py, pz, bev = 0.25) => { const sh = new THREE.Shape(); const r = bev; sh.moveTo(-W / 2 + r, -D / 2); sh.lineTo(W / 2 - r, -D / 2); sh.quadraticCurveTo(W / 2, -D / 2, W / 2, -D / 2 + r); sh.lineTo(W / 2, D / 2 - r); sh.quadraticCurveTo(W / 2, D / 2, W / 2 - r, D / 2); sh.lineTo(-W / 2 + r, D / 2); sh.quadraticCurveTo(-W / 2, D / 2, -W / 2, D / 2 - r); sh.lineTo(-W / 2, -D / 2 + r); sh.quadraticCurveTo(-W / 2, -D / 2, -W / 2 + r, -D / 2);
+      const geo = new THREE.ExtrudeGeometry(sh, { depth: Hh, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.1, bevelSegments: 2, curveSegments: 6 }); geo.rotateX(-Math.PI / 2); const m = new THREE.Mesh(geo, mt); m.position.set(px, py, pz); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
+    caixaRed(w, H, d, barro, 0, 0, 0, 0.5);
+    caixaRed(w + 0.3, 0.35, d + 0.3, barro2, 0, H, 0, 0.55);                                      // cornija
+    for (const [a, b] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) caixaRed(a ? 0.35 : w + 0.2, 0.55, b ? 0.35 : d + 0.2, barro2, a * (w / 2 + 0.05), H + 0.35, b * (d / 2 + 0.05), 0.12);   // mureta do terraço
+    for (let q = -2; q <= 2; q++) { const v = mesh(new THREE.CylinderGeometry(0.09, 0.1, d + 0.9, 7), madeira, q * w / 5.5, H - 0.45, 0, g); v.rotation.x = Math.PI / 2; }   // vigas salientes
+    if (roofC) { const cup = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [1.25, 0], [1.35, 0.35], [1.25, 0.9], [0.85, 1.45], [0.35, 1.85], [0.12, 2.15], [0.05, 2.5], [0, 2.6]].map(([a, b]) => new THREE.Vector2(a, b)), 24), PMc('reboco.jpg', [2, 1], [0xf0e0c8, 0x9ac0c8, 0xd8b890][k])); cup.position.set(0, H + 0.35, 0); cup.castShadow = true; g.add(cup); }
+    // porta em arco com toldo listrado
+    const arco = (W2, H2) => { const sh = new THREE.Shape(); sh.moveTo(-W2 / 2, 0); sh.lineTo(-W2 / 2, H2 - W2 / 2); sh.absarc(0, H2 - W2 / 2, W2 / 2, Math.PI, 0, true); sh.lineTo(W2 / 2, 0); sh.closePath(); return sh; };
+    const porta = new THREE.Mesh(new THREE.ShapeGeometry(arco(1.2, 2.3), 12), PMc('madeira.jpg', [0.6, 1], 0x6a3a24)); porta.position.set(0, 0.02, d / 2 + 0.13); g.add(porta);
+    const LISTRA = MATC['listra' + k] || (MATC['listra' + k] = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide, map: (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 16; const x2 = c.getContext('2d'); for (let q = 0; q < 8; q++) { x2.fillStyle = q % 2 ? '#f2e6d0' : ['#b8402a', '#2a6a9a', '#3a8a5a'][k]; x2.fillRect(q * 8, 0, 8, 16); } return new THREE.CanvasTexture(c); })() }));
+    const toldo = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 1.0), LISTRA); toldo.position.set(0, 2.55, d / 2 + 0.55); toldo.rotation.x = -0.9; g.add(toldo);
+    // janelas em arco com treliça de madeira acesa
+    const TREL = MATC.trelica || (MATC.trelica = new THREE.MeshBasicMaterial({ toneMapped: false, transparent: true, alphaTest: 0.2, map: (() => { const c = document.createElement('canvas'); c.width = 32; c.height = 48; const x2 = c.getContext('2d'); x2.fillStyle = '#ffcf80'; x2.beginPath(); x2.moveTo(2, 47); x2.lineTo(2, 16); x2.arc(16, 16, 14, Math.PI, 0); x2.lineTo(30, 47); x2.fill(); x2.strokeStyle = '#5a3a20'; x2.lineWidth = 2; for (let q = -48; q < 48; q += 6) { x2.beginPath(); x2.moveTo(q, 0); x2.lineTo(q + 48, 48); x2.stroke(); x2.beginPath(); x2.moveTo(q + 48, 0); x2.lineTo(q, 48); x2.stroke(); } x2.globalCompositeOperation = 'destination-in'; x2.beginPath(); x2.moveTo(2, 47); x2.lineTo(2, 16); x2.arc(16, 16, 14, Math.PI, 0); x2.lineTo(30, 47); x2.fill(); return new THREE.CanvasTexture(c); })() }));
+    for (const [px, pz, ry] of [[-w / 2 + 1, d / 2 + 0.14, 0], [w / 2 - 1, d / 2 + 0.14, 0], [w / 2 + 0.14, 0, Math.PI / 2], [-w / 2 - 0.14, 0, -Math.PI / 2], [0, -d / 2 - 0.14, Math.PI]]) { const jn = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 1.05), TREL); jn.position.set(px, 2.0, pz); jn.rotation.y = ry; g.add(jn); }
   } else if (style === 'tent') {
-    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4), M(0x6b4a2a), a * w / 2, 1.2, b * d / 2, g));
-    const roof = mesh(new THREE.ConeGeometry(Math.hypot(w, d) / 2 + 0.3, 1.2, 4), M(roofC), 0, 2.9, 0, g); roof.rotation.y = Math.PI / 4;
-    mesh(new THREE.BoxGeometry(w - 0.4, 0.8, 1), M(0xd9c39a), 0, 0.4, d / 2 - 0.6, g);
-    ['#8a4a3a', '#a08040', '#5a6a40', '#9a6a3a'].forEach((c, i) => mesh(new THREE.SphereGeometry(0.2, 6, 5), M(c), -w / 2 + 0.8 + i * (w - 1.6) / 3, 0.95, d / 2 - 0.6, g));
+    // barraca do mercado: tecido listrado caído entre os postes, balcão e mercadorias (cestos, jarros, frutas)
+    const k = Math.abs(Math.round(x + z * 3)) % 3, madeira = PMc('madeira.jpg', [0.2, 1], 0x6b4a2a);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => mesh(new THREE.CylinderGeometry(0.06, 0.07, 2.6, 7), madeira, a * w / 2, 1.3, b * d / 2, g));
+    const tec = new THREE.PlaneGeometry(w + 0.6, d + 0.6, 10, 8); tec.rotateX(-Math.PI / 2); { const ps = tec.attributes.position; for (let q = 0; q < ps.count; q++) { const px = ps.getX(q) / ((w + 0.6) / 2), pz = ps.getZ(q) / ((d + 0.6) / 2); ps.setY(q, 0.55 - 0.45 * (px * px) * 0.5 - 0.25 * Math.max(0, Math.abs(pz) - 0.6) + 0.15 * Math.cos(px * 1.6)); } tec.computeVertexNormals(); }
+    const LIST = MATC['listraT' + k] || (MATC['listraT' + k] = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide, map: (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 16; const x2 = c.getContext('2d'); for (let q = 0; q < 8; q++) { x2.fillStyle = q % 2 ? '#f2e6d0' : ['#a83a2e', '#2e5a8a', '#8a6a2a'][k]; x2.fillRect(q * 8, 0, 8, 16); } const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.repeat.set(2, 1); return t; })() }));
+    const pano = new THREE.Mesh(tec, LIST); pano.position.y = 2.45; pano.castShadow = true; g.add(pano);
+    mesh(new THREE.BoxGeometry(w - 0.3, 0.12, 1.0), PMc('madeira.jpg', [1, 0.3], 0x9a7a54), 0, 0.85, d / 2 - 0.6, g);
+    mesh(new THREE.BoxGeometry(w - 0.4, 0.8, 0.9), PMc('madeira.jpg', [1, 0.5], 0x7a5a3a), 0, 0.4, d / 2 - 0.6, g);
+    const cesto = new THREE.LatheGeometry([[0, 0], [0.2, 0], [0.28, 0.15], [0.3, 0.25], [0.27, 0.27]].map(([a, b]) => new THREE.Vector2(a, b)), 12), jarro = new THREE.LatheGeometry([[0, 0], [0.12, 0], [0.2, 0.15], [0.18, 0.35], [0.08, 0.45], [0.1, 0.52], [0, 0.52]].map(([a, b]) => new THREE.Vector2(a, b)), 12);
+    const vime = PMc('palha.jpg', [1, 0.5], 0xc8a060), barroJ = PMc('reboco.jpg', [0.5, 0.5], 0xb86a3a);
+    for (let q = 0; q < 3; q++) { const c = new THREE.Mesh(cesto, vime); c.position.set(-w / 2 + 0.6 + q * (w - 1.2) / 2, 0.91, d / 2 - 0.6); g.add(c);
+      for (let f = 0; f < 3; f++) { const fr = new THREE.Mesh(new THREE.SphereGeometry(0.09, 7, 5), FLORES[(q + f + k) % 4]); fr.position.set(c.position.x + (f - 1) * 0.12, 1.12, c.position.z + (f % 2) * 0.06); g.add(fr); } }
+    for (const sx of [-1, 1]) { const j = new THREE.Mesh(jarro, barroJ); j.position.set(sx * (w / 2 + 0.25), 0, d / 2 + 0.1); j.scale.setScalar(1.6); g.add(j); }
   } else {
-    mesh(new THREE.BoxGeometry(w, 1.3, d), PM('pedra.jpg', [w / 2, 0.65], 0xa8a090), 0, 0.65, 0, g);                       // base de pedra
-    mesh(new THREE.BoxGeometry(w - 0.1, 1.6, d - 0.1), PM('reboco.jpg', [1, 0.4], 0xb8ab94), 0, 2.1, 0, g);         // reboco
-    const beam = PM('madeira.jpg', [0.25, 1], 0x6a5040);
-    [-1, 1].forEach(a => [-1, 1].forEach(b => mesh(new THREE.BoxGeometry(0.28, 2.9, 0.28), beam, a * w / 2, 1.45, b * d / 2, g)));
-    [-1, 1].forEach(b => { mesh(new THREE.BoxGeometry(w + 0.1, 0.22, 0.22), beam, 0, 1.35, b * d / 2, g); mesh(new THREE.BoxGeometry(w + 0.1, 0.22, 0.22), beam, 0, 2.85, b * d / 2, g); });
-    [-1, 1].forEach(a => { const x = mesh(new THREE.BoxGeometry(0.16, 1.9, 0.16), beam, a * w / 4, 2.1, d / 2 + 0.02, g); x.rotation.z = a * 0.6; });
-    const thatch = (Math.round(x * 7 + z) & 1) === 0;
-    const roof = mesh(new THREE.ConeGeometry(Math.hypot(w, d) / 2 + 0.7, 2.6, 4), PM(thatch ? 'palha.jpg' : 'telha.jpg', thatch ? [3, 1.5] : [4, 2], thatch ? 0xb0a080 : new THREE.Color(roofC).lerp(new THREE.Color(0xffffff), 0.55).multiplyScalar(1.5).getHex()), 0, 4.1, 0, g); roof.rotation.y = Math.PI / 4;
-    mesh(new THREE.BoxGeometry(0.7, 1.9, 0.7), PM('pedra.jpg', [0.4, 1], 0x9a9284), w / 4, 4.4, -d / 5, g);
-    smokes.push(new THREE.Vector3(x, 0, z).add(new THREE.Vector3(w / 4, 5, -d / 5).applyAxisAngle(new THREE.Vector3(0, 1, 0), rot)).setY(groundY(x, z) + 5.1));
-    mesh(new THREE.BoxGeometry(1.1, 2.0, 0.12), PM('madeira.jpg', [0.5, 1], 0x7a5a40), 0, 1.0, d / 2 + 0.05, g, false);
-    [-w / 2 + 1.1, w / 2 - 1.1].forEach(wx => { mesh(new THREE.BoxGeometry(0.8, 0.8, 0.1), new THREE.MeshBasicMaterial({ color: 0x3a2a14 }), wx, 2.1, d / 2 + 0.04, g, false); mesh(new THREE.BoxGeometry(0.95, 0.12, 0.2), beam, wx, 1.66, d / 2 + 0.1, g, false); });
+    // casa de vila medieval: térreo de pedra, andar de reboco com vigas (enxaimel), telhado de duas águas com beiral,
+    // janelas com vidro aceso e venezianas, porta em arco, floreira e chaminé — sem caixa lisa nem telhado de pirâmide
+    const k = Math.abs(Math.round(x * 7 + z)) % 4, thatch = (k & 1) === 0;
+    const pedra = PMc('pedra.jpg', [w / 2, 0.8], 0xc8bca8), reb = PMc('reboco.jpg', [1.2, 0.8], 0xeadcc0), beam = PMc('madeira.jpg', [0.25, 1], 0x5a4030);
+    const H1 = 1.7, H2 = 1.7, RH = 2.4;
+    mesh(new THREE.BoxGeometry(w, H1, d), pedra, 0, H1 / 2, 0, g);
+    mesh(new THREE.BoxGeometry(w + 0.2, 0.22, d + 0.2), PMc('pedra.jpg', [2, 0.2], 0x9a907e), 0, 0.11, 0, g, false);
+    mesh(new THREE.BoxGeometry(w + 0.3, H2, d + 0.3), reb, 0, H1 + H2 / 2, 0, g);
+    mesh(new THREE.BoxGeometry(w + 0.45, 0.22, d + 0.45), beam, 0, H1 + 0.02, 0, g, false); mesh(new THREE.BoxGeometry(w + 0.45, 0.2, d + 0.45), beam, 0, H1 + H2, 0, g, false);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) mesh(new THREE.BoxGeometry(0.2, H2, 0.2), beam, sx * (w / 2 + 0.17), H1 + H2 / 2, sz * (d / 2 + 0.17), g, false);
+    for (const f of [1, -1]) for (const dx of [-1, 1]) { const b = mesh(new THREE.BoxGeometry(0.14, H2 * 1.12, 0.1), beam, dx * w * 0.3, H1 + H2 / 2, f * (d / 2 + 0.18), g, false); b.rotation.z = dx * 0.55; }
+    // telhado de duas águas (prisma) com beiral e as empenas de reboco
+    const tri = (W, Hh) => { const sh = new THREE.Shape(); sh.moveTo(-W / 2, 0); sh.lineTo(W / 2, 0); sh.lineTo(0, Hh); sh.closePath(); return sh; };
+    const tg = new THREE.ExtrudeGeometry(tri(w + 1.3, RH + 0.3), { depth: d + 1.1, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 2 }); tg.translate(0, 0, -(d + 1.1) / 2);
+    const roof = new THREE.Mesh(tg, PMc(thatch ? 'palha.jpg' : 'telha.jpg', thatch ? [1.4, 1.4] : [1.6, 1.6], thatch ? 0xc8b088 : 0xa85a44)); roof.position.y = H1 + H2 - 0.05; roof.castShadow = true; g.add(roof);
+    for (const f of [1, -1]) { const em = new THREE.Mesh(new THREE.ShapeGeometry(tri(w + 0.3, RH * 0.92)), reb); em.position.set(0, H1 + H2 + 0.05, f * (d / 2 + 0.16)); if (f < 0) em.rotation.y = Math.PI; g.add(em); }
+    // chaminé de pedra
+    mesh(new THREE.BoxGeometry(0.7, RH + 1.4, 0.7), PMc('pedra.jpg', [0.4, 1], 0x9a9284), w / 4, H1 + H2 + RH / 2 + 0.3, -d / 5, g);
+    mesh(new THREE.BoxGeometry(0.85, 0.18, 0.85), PMc('pedra.jpg', [0.4, 1], 0x9a9284), w / 4, H1 + H2 + RH + 1.05, -d / 5, g, false);
+    smokes.push(new THREE.Vector3(x, 0, z).add(new THREE.Vector3(w / 4, H1 + H2 + RH + 1.2, -d / 5).applyAxisAngle(new THREE.Vector3(0, 1, 0), rot)).setY(groundY(x, z) + H1 + H2 + RH + 1.3));
+    // porta em arco com moldura de pedra e degrau
+    const ap = (() => { const sh = new THREE.Shape(); sh.moveTo(-0.55, 0); sh.lineTo(-0.55, 1.45); sh.absarc(0, 1.45, 0.55, Math.PI, 0, true); sh.lineTo(0.55, 0); sh.closePath(); return sh; })();
+    const porta = new THREE.Mesh(new THREE.ShapeGeometry(ap, 12), PMc('madeira.jpg', [0.6, 1], 0x6a4a30)); porta.position.set(-w / 5, 0.05, d / 2 + 0.02); g.add(porta);
+    const mold = new THREE.Mesh(new THREE.ExtrudeGeometry((() => { const sh = new THREE.Shape(); sh.moveTo(-0.8, 0); sh.lineTo(-0.8, 1.45); sh.absarc(0, 1.45, 0.8, Math.PI, 0, true); sh.lineTo(0.8, 0); sh.closePath(); sh.holes.push(new THREE.Path(ap.getPoints(12))); return sh; })(), { depth: 0.12, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.04, bevelSegments: 2, curveSegments: 12 }), PMc('pedra.jpg', [0.5, 0.5], 0xb0a690));
+    mold.position.set(-w / 5, 0.05, d / 2 - 0.02); g.add(mold);
+    mesh(new THREE.CylinderGeometry(0.9, 0.95, 0.16, 16, 1, false, -Math.PI / 2, Math.PI), PMc('pedra.jpg', [2, 0.2], 0x9a907e), -w / 5, 0.08, d / 2 + 0.05, g, false);
+    // janelas: vidro aceso, moldura, venezianas abertas e floreira
+    const vidro = VIDRO, venM = PMc('madeira.jpg', [0.3, 0.6], [0x4a6a5a, 0x6a4a3a, 0x3a4a6a, 0x5a5a3a][k]);
+    const janela = (px, py, pz, ry) => {
+      const jg = new THREE.Group(); jg.position.set(px, py, pz); jg.rotation.y = ry; g.add(jg);
+      const v = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.78), vidro); jg.add(v);
+      for (const [sw, sh2, ox, oy] of [[0.78, 0.08, 0, 0.43], [0.78, 0.08, 0, -0.43], [0.08, 0.86, 0.35, 0], [0.08, 0.86, -0.35, 0], [0.04, 0.78, 0, 0], [0.62, 0.04, 0, 0.05]]) { const fr = new THREE.Mesh(new THREE.BoxGeometry(sw, sh2, 0.06), beam); fr.position.set(ox, oy, 0.03); jg.add(fr); }
+      for (const sx of [-1, 1]) { const vn = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.8, 0.04), venM); vn.position.set(sx * 0.58, 0, 0.12); vn.rotation.y = sx * -0.5; jg.add(vn); }
+      const fl = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.14, 0.2), beam); fl.position.set(0, -0.5, 0.12); jg.add(fl);
+      for (let i = 0; i < 4; i++) { const fo = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 4), FLORES[(i + k) % 4]); fo.position.set(-0.27 + i * 0.18, -0.38, 0.14); jg.add(fo); }
+    };
+    janela(w / 5 + 0.1, 1.0, d / 2 + 0.03, 0);
+    for (const f of [1, -1]) janela(f * w * 0.25, H1 + H2 / 2, f > 0 ? d / 2 + 0.19 : -(d / 2 + 0.19), f > 0 ? 0 : Math.PI);
+    for (const f of [1, -1]) janela(f * (w / 2 + 0.19), H1 + H2 / 2, 0, f * Math.PI / 2);
   }
   addOb(x, z, Math.max(w, d) / 2 + 0.3);
   return g;
 }
 // Vila de Solmira
-[[-125, -22, '#7a5546'], [-105, -30, '#5a5e64'], [-84, -24, '#6e5a44'], [-127, 22, '#4e545a'], [-104, 30, '#7a5a40'], [-84, 22, '#5e5048'], [-135, -6, '#585e5e']]
-  .forEach(([x, z, c]) => house(x, z, Math.atan2(VIL.x - x, VIL.z - z), 5, 4.5, c, 'wood'));
-// chafariz
+{ // as 7 casas viram um conjunto só por material (a vila inteira em poucas chamadas de desenho)
+  const casas = new THREE.Group(); scene.add(casas);
+  [[-125, -22, '#7a5546'], [-105, -30, '#5a5e64'], [-84, -24, '#6e5a44'], [-127, 22, '#4e545a'], [-104, 30, '#7a5a40'], [-84, 22, '#5e5048'], [-135, -6, '#585e5e']]
+    .forEach(([x, z, c]) => casas.attach(house(x, z, Math.atan2(VIL.x - x, VIL.z - z), 5, 4.5, c, 'wood')));
+  fundir(casas); decor(casas, 30);
+}
+// chafariz de pedra torneada: bacia com borda arredondada, pé esculpido e taça de onde a água cai
 const fountain = new THREE.Group(); fountain.position.set(VIL.x, 0, VIL.z); scene.add(fountain);
-mesh(new THREE.CylinderGeometry(3.2, 3.4, 0.7, 24), PM('pedra.jpg', [8, 0.5], 0xb0a898), 0, 0.35, 0, fountain);
-mesh(new THREE.CylinderGeometry(2.8, 2.8, 0.1, 24), waterMat, 0, 0.66, 0, fountain, false);
-mesh(new THREE.CylinderGeometry(0.4, 0.5, 2.2, 10), TM(TEX.stone, [1, 1]), 0, 1.4, 0, fountain);
-mesh(new THREE.CylinderGeometry(1.2, 0.8, 0.35, 16), TM(TEX.stone, [3, 0.3]), 0, 2.5, 0, fountain);
-addOb(VIL.x, VIL.z, 3.4);
+const V2 = (a, b) => new THREE.Vector2(a, b), pedraF = PM('pedra.jpg', [6, 1], 0xd0c8b8);
+const bacia = new THREE.Mesh(new THREE.LatheGeometry([V2(0, 0), V2(3.4, 0), V2(3.45, 0.1), V2(3.5, 0.55), V2(3.38, 0.72), V2(3.2, 0.78), V2(3.0, 0.7), V2(2.95, 0.4), V2(0, 0.4)], 40), pedraF); bacia.castShadow = true; bacia.receiveShadow = true; fountain.add(bacia);
+mesh(new THREE.CylinderGeometry(2.95, 2.95, 0.05, 32), waterMat, 0, 0.62, 0, fountain, false);
+const pe = new THREE.Mesh(new THREE.LatheGeometry([V2(0, 0.4), V2(0.75, 0.4), V2(0.7, 0.6), V2(0.45, 0.8), V2(0.38, 1.4), V2(0.32, 1.9), V2(0.42, 2.1), V2(0.3, 2.25), V2(0, 2.25)], 24), pedraF); pe.castShadow = true; fountain.add(pe);
+const taca = new THREE.Mesh(new THREE.LatheGeometry([V2(0, 2.2), V2(0.3, 2.25), V2(1.1, 2.45), V2(1.35, 2.7), V2(1.3, 2.8), V2(1.15, 2.72), V2(0, 2.6)], 32), pedraF); taca.castShadow = true; fountain.add(taca);
+mesh(new THREE.CylinderGeometry(1.12, 1.12, 0.04, 24), waterMat, 0, 2.7, 0, fountain, false);
+const ponta = new THREE.Mesh(new THREE.LatheGeometry([V2(0, 2.6), V2(0.16, 2.6), V2(0.12, 3.1), V2(0.2, 3.25), V2(0, 3.5)], 16), pedraF); fountain.add(ponta);
+// cortina de água caindo da taça para a bacia
+const AGUA_T = (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 64; const g = c.getContext('2d'); for (let i = 0; i < 24; i++) { const x = (i * 37) % 64, a = 0.15 + ((i * 13) % 10) / 25; g.fillStyle = `rgba(220,240,255,${a})`; g.fillRect(x, 0, 1 + (i % 2), 64); } const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 1); return t; })();
+const cortina = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.6, 2.1, 32, 1, true), new THREE.MeshBasicMaterial({ map: AGUA_T, color: 0xbfe6ff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+cortina.onBeforeRender = () => { AGUA_T.offset.y = -time * 1.5; };   // fios de água descendo
+cortina.position.y = 1.65; fountain.add(cortina);
+addOb(VIL.x, VIL.z, 3.4); decor(fountain);
 // Oásis de Kharum
-[[100, 48, '#6a7a80'], [118, 77, '#8a5a44'], [141, 64, '#6a7058'], [142, 42, '#9a7a4a'], [100, 68, null]]
-  .forEach(([x, z, c]) => house(x, z, Math.atan2(OAS.x - x, OAS.z - z), 6, 5, c, 'sand'));
-[[106, 32, '#7a3a2e'], [124, 31, '#3e4e5a'], [131, 34, '#5a4a3a']].forEach(([x, z, c]) => house(x, z, 0, 3.2, 2.4, c, 'tent'));
+{ const oasisG = new THREE.Group(); scene.add(oasisG);
+  [[100, 48, '#6a7a80'], [118, 77, '#8a5a44'], [141, 64, '#6a7058'], [142, 42, '#9a7a4a'], [100, 68, null]]
+    .forEach(([x, z, c]) => oasisG.attach(house(x, z, Math.atan2(OAS.x - x, OAS.z - z), 6, 5, c, 'sand')));
+  [[106, 32, '#7a3a2e'], [124, 31, '#3e4e5a'], [131, 34, '#5a4a3a']].forEach(([x, z, c]) => oasisG.attach(house(x, z, 0, 3.2, 2.4, c, 'tent')));
+  fundir(oasisG); decor(oasisG, 30); }
 // ruínas do Guardião
 for (let i = 0; i < 9; i++) {
   const a = i * TAU / 9, x = RUIN.x + Math.cos(a) * 12, z = RUIN.z + Math.sin(a) * 12, h = rr(2, 6);
@@ -1125,11 +1243,13 @@ refreshSkills();
 function bmul(k) { let v = 1; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v *= m[k]; } return v; }
 function badd(k) { let v = 0; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v += m[k]; } return v; }
 const gearB = k => (typeof Vida !== 'undefined' ? Vida.gear(k) : 0);
+// vantagens da guilda (guilda.js): xp, cr, desc, hp, dano, drop
+const gBon = k => typeof Guilda !== 'undefined' && running ? (Guilda.bonus()[k] || 0) : 0;
 const stats = {
-  atk: () => { const c = CLS(); const main = c.dmg === 'dex' ? P.dex * 2 + P.str * 0.5 : P.str * 2 + P.dex * 0.5; return Math.round((6 + P.lv + main + P.luk * 0.3 + (c.magic ? 0 : gearB('pow'))) * bmul('atk')); },
-  matk: () => Math.round((6 + P.lv + P.int * 3 + P.dex * 0.3 + (CLS().magic ? gearB('pow') : 0)) * bmul('matk')),
+  atk: () => { const c = CLS(); const main = c.dmg === 'dex' ? P.dex * 2 + P.str * 0.5 : P.str * 2 + P.dex * 0.5; return Math.round((6 + P.lv + main + P.luk * 0.3 + (c.magic ? 0 : gearB('pow'))) * bmul('atk') * (1 + gBon('dano'))); },
+  matk: () => Math.round((6 + P.lv + P.int * 3 + P.dex * 0.3 + (CLS().magic ? gearB('pow') : 0)) * bmul('matk') * (1 + gBon('dano'))),
   def: () => Math.floor(P.vit * 0.6) + badd('def') + gearB('def'),
-  maxHp: () => Math.round((80 + P.vit * 13 + P.lv * 11) * CLS().hp * (1 + 0.12 * (P.tier || 0)) + gearB('hp')),
+  maxHp: () => Math.round(((80 + P.vit * 13 + P.lv * 11) * CLS().hp * (1 + 0.12 * (P.tier || 0)) + gearB('hp')) * (1 + gBon('hp'))),
   maxSp: () => Math.round((25 + P.int * 7 + P.lv * 3) * CLS().sp + gearB('sp')),
   aspd: () => Math.max(0.2, CLS().aspd * (1 - P.agi * 0.009 - P.dex * 0.003)) / bmul('aspd'),
   speed: () => 6.2 * bmul('speed') * (1 + gearB('spd')),
@@ -1288,16 +1408,17 @@ function killMob(m, o = {}) {
   else scene.remove(m.model.g);
   if (o.semPremio) return;                                              // morreu na mão de outro jogador
   if (o.ajuda) {                                                       // ajudou a matar: XP pela parte do dano (e conta na missão se foi boa parte)
-    const xp = Math.max(1, Math.round(m.d.xp * o.ajuda));
+    const xp = Math.max(1, Math.round(m.d.xp * o.ajuda * (1 + gBon('xp')))); if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
     log(`🤝 <b>${m.d.name}</b> caiu com a sua ajuda! +${xp} XP`, 'xp'); gainXp(xp);
     if (o.ajuda >= 0.25) { if (typeof Quests !== 'undefined') Quests.onKill(m); if (typeof Evo !== 'undefined') Evo.onKill(m); }
     return;
   }
-  drops.push(makeDrop('zeny', irand(...m.d.zeny), m.x, m.z));
-  const dropMul = bmul('drop') * (m.plundered && time - m.plundered < 3 ? 1.8 : 1);
+  drops.push(makeDrop('zeny', Math.round(irand(...m.d.zeny) * (1 + gBon('cr'))), m.x, m.z));
+  const dropMul = bmul('drop') * (m.plundered && time - m.plundered < 3 ? 1.8 : 1) * (1 + gBon('drop'));
   for (const [it, ch] of m.d.drops) if (Math.random() < ch * dropMul) drops.push(makeDrop(it, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
   const diff = P.lv - m.d.lv, mult = diff > 8 ? 0.3 : diff > 5 ? 0.6 : 1;
-  const xp = Math.round(m.d.xp * mult * (o.parte ?? 1));
+  const xp = Math.round(m.d.xp * mult * (o.parte ?? 1) * (1 + gBon('xp')));
+  if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
   log(`Você derrotou <b>${m.d.name}</b>! +${xp} XP${o.parte != null && o.parte < 0.99 ? ` <small>(${Math.round(o.parte * 100)}% do dano)</small>` : ''}`, 'xp');
   if (typeof Vida !== 'undefined') Vida.onKill(m);
   if (typeof Evo !== 'undefined') Evo.onKill(m);
@@ -1338,7 +1459,7 @@ function gainXp(n) {
   }
 }
 function hurtPlayer(m, mult = 1) {
-  if (P.dead || P.dashT > 0) return;
+  if (P.dead || P.dashT > 0 || (P.protT && time < P.protT)) return;          // dash ou proteção de chegada (Torre)
   if (Math.random() < stats.flee()) { floater(P.x, P.y + 2, P.z, 'Miss', 'miss'); Audio8.sfx('miss'); return; }
   const dmg = Math.max(1, Math.round(m.d.atk * mult * rand(0.85, 1.15) - stats.def()));
   P.hp -= dmg; P.hurtT = 0.2; P.sit = false;
@@ -1413,7 +1534,9 @@ function railTick(dt) {
   const live = typeof Kvx !== 'undefined' && Kvx.active;
   set('kvx', live ? '!' : '');
   const kv = $('kvx');
-  if (kv) { const show = P.ui.kvx || live; kv.style.display = show ? '' : 'none'; if (show) { const rr = r.getBoundingClientRect(); kv.style.top = (rr.bottom + 6) + 'px'; kv.style.left = rr.left + 'px'; kv.style.transform = 'none'; kv.style.width = '190px'; } }
+  r.querySelector('[data-p="kvx"]').classList.toggle('vivo', !!live);                 // ☠ pisca vermelho enquanto ele está acordado
+  // o quadro do Kravenox só abre quando você toca no ☠ (antes ficava aberto, grande, o tempo todo)
+  if (kv) { const show = !!P.ui.kvx; kv.style.display = show ? '' : 'none'; if (show) { const rr = r.getBoundingClientRect(); kv.style.top = (rr.bottom + 6) + 'px'; kv.style.left = rr.left + 'px'; kv.style.transform = 'none'; kv.style.width = ''; } }
 }
 function hurtFlash(k) {
   let el = $('hurtfx'); if (!el) { el = document.createElement('div'); el.id = 'hurtfx'; document.body.appendChild(el); }
@@ -1730,7 +1853,7 @@ const ZONES = {
   areias: { name: 'Areias Rubras', music: 'vale' },
   lair: { name: 'Cratera do Cisma', music: 'abismo' },
   cidadela: { name: 'Cidadela do Cisma', music: 'fortaleza', town: true },
-  torre: { name: 'Torre do Cisma', music: 'masmorra' },
+  torre: { name: 'Torre do Cisma', music: 'torre' },          // metal gótico (scripts/compor_torre.py); a masmorra.mp4 antiga continua guardada
   topo: { name: 'Topo da Torre do Cisma', music: 'chefe' },
   casa: { name: 'Sua Casa', music: 'vila' },
   kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },
@@ -1749,7 +1872,7 @@ function update(dt) {
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); Kvx.update(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); Net.tickMyBubble(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); else if (c.m3) { c.m3.rotation.z = Math.min(Math.PI / 2, c.m3.rotation.z + dt * 6); } if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
   for (const n of NPCS) if (n.inst) n.inst.update(dt); else if (n.spr) n.spr.update(dt, { face: Math.hypot(P.x - n.x, P.z - n.z) < 7 ? Math.atan2(P.x - n.x, P.z - n.z) : n.face0 });
@@ -1888,7 +2011,9 @@ function updateMob(m, dt) {
     if (m.state !== 'chase' && m.d.aggro && dP < m.d.aggro && !P.dead) m.state = 'chase';
     const reach = m.d.boss ? 4.2 : 1.6;
     if (m.state === 'chase') {
-      if (P.dead || Math.hypot(m.x - m.sx, m.z - m.sz) > (m.d.field ? 70 : 32)) { m.state = 'return'; m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25); if (m.nid && typeof Partilha !== 'undefined') Partilha.cura(m); }
+      // longe demais de casa: volta (e se cura um pouco). Na Torre o salão é fechado: ninguém foge, ninguém se cura.
+      // Também não se cura se acabou de apanhar (antes o chefe que saltava longe voltava a encher a vida a cada golpe).
+      if (P.dead || (m.towerFloor === undefined && Math.hypot(m.x - m.sx, m.z - m.sz) > (m.d.field ? 70 : 32))) { m.state = 'return'; m.retT = 0; if (time - (m.lastHit || -99) > 6) { m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25); if (m.nid && typeof Partilha !== 'undefined') Partilha.cura(m); } }
       else if (dP > reach) stepMob(m, P.x, P.z, m.d.speed * 1.3, dt);
       else {
         m.face = Math.atan2(P.x - m.x, P.z - m.z);
@@ -1899,7 +2024,8 @@ function updateMob(m, dt) {
         }
       }
     } else if (m.state === 'return') {
-      if (Math.hypot(m.x - m.sx, m.z - m.sz) < 1) m.state = 'idle';
+      m.retT = (m.retT || 0) + dt;
+      if (Math.hypot(m.x - m.sx, m.z - m.sz) < 1 || m.retT > 12) { m.state = 'idle'; m.retT = 0; }     // preso no caminho: desiste de voltar
       else stepMob(m, m.sx, m.sz, m.d.speed * 1.6, dt);
     } else {
       m.timer -= dt;
@@ -2005,10 +2131,7 @@ function animateModel(dt) {
 function updateCamera(dt) {
   const big = inTower(P.z) && Tower.floor === TOP;                   // topo da torre: câmera para o gigante
   camS.pitch = clamp(camS.pitch, 0.08, 1.25); camS.dist = clamp(camS.dist, big ? 10 : 4, big ? 32 : 18);
-  if (inTower(P.z)) {                                    // escadaria da Torre: a câmera se alinha com ela (de lado só veria a parede)
-    const f = floorAt(P.x, P.z);
-    if (f && !f.casa && stairRise(f, P.x, P.z) !== 0) { const alvo = Math.cos(camS.yaw) >= 0 ? 0 : Math.PI, d = ((alvo - camS.yaw + Math.PI) % TAU + TAU) % TAU - Math.PI; camS.yaw += d * Math.min(1, dt * 4); }
-  }
+  // a câmera nunca gira sozinha: só quem joga vira a câmera (antes ela se alinhava nas escadarias da Torre e trocava a direção do joystick)
   const tx = P.x, ty = P.y + (big ? 4.5 : 1.3), tz = P.z;
   camS.x = lerp(camS.x, tx, Math.min(1, dt * 10)); camS.y = lerp(camS.y, ty, Math.min(1, dt * 10)); camS.z = lerp(camS.z, tz, Math.min(1, dt * 10));
   // aproxima a câmera quando uma árvore/casa fica entre ela e o personagem
@@ -2018,7 +2141,7 @@ function updateCamera(dt) {
     const d = camS.dist * k / 16, x = camS.x + dx * d, z = camS.z + dz * d, y = camS.y + dy * d;
     const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL));
     if (l && y < groundY(x, z) + 5 && l.some(o => o.r > 2 && Math.hypot(x - o.x, z - o.z) < o.r + 0.8)) { want = Math.max(2.2, camS.dist * (k - 1) / 16); break; }
-    if (inTower(camS.z) && blocked(x, z, 0.35)) { want = Math.max(1.4, camS.dist * (k - 1) / 16); break; }   // parede da Torre: a câmera chega perto em vez de ficar atrás dela
+    if (inTower(camS.z)) { const fc = floorAt(x, z); if (!fc || Math.hypot(x - fc.x, z - fc.z) > fc.r - (fc.casa ? 1 : 0.4)) { want = Math.max(1.4, camS.dist * (k - 1) / 16); break; } }   // só a parede da Torre aproxima a câmera (corrimão e pilar não)
   }
   camS.cur = lerp(camS.cur ?? want, want, Math.min(1, dt * (want < (camS.cur ?? want) ? 20 : 2.5)));
   const cx = camS.x + dx * camS.cur, cz = camS.z + dz * camS.cur;
@@ -2072,6 +2195,7 @@ function updateHUD() {
   let b = '';
   for (const id in P.buffs) b += `<span>${P.buffs[id].icon || '✦'} ${Math.ceil(P.buffs[id].t)}s</span>`;
   if (P.sit) b += '<span>🧘 Descansando</span>';
+  if (typeof Guilda !== 'undefined') b += Guilda.hud();
   $('buffs').innerHTML = b;
   $('combo').innerHTML = P.combo >= 2 ? `<b>${P.combo}</b> COMBO<small>+${Math.min(100, P.combo * 5)}% dano</small>` : '';
   const q = QUESTS[P.quest];
@@ -2285,7 +2409,7 @@ function useWing(id) {
   if (zn === 'casa') { log('Aqui dentro não dá para usar asas.', 'sys'); return; }
   if (id === 'asa_mosca') {
     let tx = null, tz = null;
-    if (inTower(P.z)) { const f = floorAt(P.x, P.z); for (let i = 0; i < 40 && f; i++) { const a = rand(0, TAU), r = rand(2, f.r - 3), x = f.x + Math.cos(a) * r, z = f.z + Math.sin(a) * r; if (!blocked(x, z)) { tx = x; tz = z; break; } } }
+    if (inTower(P.z)) { const f = floorAt(P.x, P.z); for (let i = 0; i < 40 && f; i++) { const a = rand(0, TAU), r = rand(2, f.r - 3), x = f.x + Math.cos(a) * r, z = f.z + Math.sin(a) * r; if (!blocked(x, z) && !rampa(f, x, z)) { tx = x; tz = z; break; } } }
     else for (let i = 0; i < 60; i++) { const a = rand(0, TAU), r = rand(15, 55), x = P.x + Math.cos(a) * r, z = P.z + Math.sin(a) * r; if ((inVal(P.z) ? inVal(z) : Math.abs(x) < WX - 8 && Math.abs(z) < WZ - 8) && !blocked(x, z) && !isWater(x, z) && zoneOf(x, z) === zn) { tx = x; tz = z; break; } }
     if (tx === null) { log('A Asa de Mosca não achou lugar para pousar. Tente de novo.', 'sys'); return; }
     P.inv[id]--; burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0x9ad0ff, 24, 3, 0.6);
@@ -2315,13 +2439,16 @@ function homePos() {
   return P.home === 'kharum' ? { x: OAS.x - 4, z: OAS.z - 22 } : P.home === 'cidadela' ? { x: CIT.x - 6, z: CIT.z + 8 } : P.home === 'acampamento' ? { x: VCAMP.x, z: VCAMP.z + 4 } : { x: VIL.x, z: VIL.z + 10 };
 }
 function breakCast() { if (P.wingT > 0) { P.wingT = 0; log('🦋 A conjuração da Asa de Borboleta foi interrompida!', 'bad'); Audio8.sfx('miss'); } }
-// ---------------- barra de atalhos (como no Ragnarok): 2 barras de 6, lado a lado; o jogador escolhe o que vai em cada espaço
-// P.bar[i] = 's:<id da habilidade>' | 'i:<id do item>' | null. Teclas: barra 1 = 1 a 6, barra 2 = Q E R T Y U.
-const BAR_N = 12, BAR_KEYS = ['1', '2', '3', '4', '5', '6', 'Q', 'E', 'R', 'T', 'Y', 'U'];
+// ---------------- barra de atalhos (como no Ragnarok): uma barra de 8 espaços; o jogador escolhe o que vai em cada um (✏️)
+// P.bar[i] = 's:<id da habilidade>' | 'i:<id do item>' | null. Teclas 1 a 8.
+// Fora do modo ✏️, tocar num espaço vazio não faz nada (antes abria a janela de escolha no meio da luta).
+const BAR_N = 8, BAR_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8'];
 let barEdit = false;
 function ensureBar() {
   if (Array.isArray(P.bar) && P.bar.length === BAR_N) return P.bar;
-  const l = SKILLS.filter(tierOk).map(s => 's:' + s.id).concat((P.hot || ['red', 'blue']).filter(id => ITEMS[id]).map(id => 'i:' + id));
+  // barra antiga (12 espaços): guarda os 8 primeiros atalhos que estavam ocupados
+  const velha = Array.isArray(P.bar) ? P.bar.filter(Boolean) : null;
+  const l = velha && velha.length ? velha : SKILLS.filter(tierOk).map(s => 's:' + s.id).concat((P.hot || ['red', 'blue']).filter(id => ITEMS[id]).map(id => 'i:' + id));
   P.bar = Array.from({ length: BAR_N }, (_, i) => l[i] || null);
   return P.bar;
 }
@@ -2329,7 +2456,7 @@ function ensureBar() {
 function barToggle(e) {
   const b = ensureBar(), i = b.indexOf(e);
   if (i >= 0) { b[i] = null; buildHotbar(); return false; }
-  const j = b.indexOf(null); if (j < 0) { log('As duas barras de atalho estão cheias. Toque em ✏️ para trocar um espaço.', 'bad'); Audio8.sfx('miss'); return null; }
+  const j = b.indexOf(null); if (j < 0) { log('A barra de atalhos está cheia. Toque em ✏️ para trocar um espaço.', 'bad'); Audio8.sfx('miss'); return null; }
   b[j] = e; buildHotbar(); return true;
 }
 function barUse(e) {
@@ -2343,14 +2470,14 @@ function barPick(i) {
   SKILLS.forEach(s => { if (tierOk(s) && P.skillLv[s.id] > 0) opts.push({ label: `${s.icon} ${s.name}${b[i] === 's:' + s.id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('s:' + s.id); if (o >= 0) b[o] = null; b[i] = 's:' + s.id; buildHotbar(); } }); });
   Object.keys(ITEMS).filter(id => (ITEMS[id].use || ITEMS[id].heal || id === 'red' || id === 'blue') && P.inv[id] > 0).forEach(id => opts.push({ label: `${ITEMS[id].ic || '🧪'} ${ITEMS[id].name} ×${P.inv[id]}${b[i] === 'i:' + id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('i:' + id); if (o >= 0) b[o] = null; b[i] = 'i:' + id; buildHotbar(); } }));
   opts.push({ label: '⬜ Deixar vazio', fn: () => { b[i] = null; buildHotbar(); } }, { label: 'Fechar' });
-  dialog(`✏️ Atalho ${BAR_KEYS[i]} (barra ${i < 6 ? 1 : 2})`, 'Escolha o que fica neste espaço. Quando terminar, toque em ✏️ de novo.', opts);
+  dialog(`✏️ Atalho ${BAR_KEYS[i]}`, 'Escolha o que fica neste espaço. Quando terminar, toque em ✏️ de novo.', opts);
 }
 function buildHotbar() {
   const hb = $('hotbar'); hb.innerHTML = ''; const old = $('hotbar2'); if (old) old.remove();
   const b = ensureBar();
-  for (let g = 0; g < 2; g++) {
+  {
     const grp = document.createElement('div'); grp.className = 'hbg' + (barEdit ? ' edit' : ''); hb.appendChild(grp);
-    for (let i = g * 6; i < g * 6 + 6; i++) {
+    for (let i = 0; i < BAR_N; i++) {
       const e = b[i], el = document.createElement('div'); el.className = 'slot';
       const k = `<span class="k">${BAR_KEYS[i]}</span>`;
       if (e && e.startsWith('s:') && SKILLS.some(s => s.id === e.slice(2))) {
@@ -2362,7 +2489,7 @@ function buildHotbar() {
         el.innerHTML = `<span class="ic">${ITEMS[id].ic || (id === 'red' ? '🧪' : '💧')}</span>${k}<span class="cost">x${P.inv[id] || 0}</span>`;
         if (!(P.inv[id] > 0)) el.style.opacity = 0.45;
       } else { el.className = 'slot vazio'; el.innerHTML = `<span class="ic">${barEdit ? '+' : ''}</span>${k}`; }
-      tapOn(el, () => barEdit || !e ? barPick(i) : barUse(e));
+      tapOn(el, () => barEdit ? barPick(i) : barUse(e));
       grp.appendChild(el);
     }
   }
@@ -2521,7 +2648,7 @@ function qty(id, back) {
   dialog(`${ITEMS[id].ic} ${ITEMS[id].name}`, `Quantos? <small>Tem ${P.inv[id] || 0} · Coroas: <b>${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, opts);
 }
 function buy(id, n) {
-  const c = ITEMS[id].price * n;
+  const c = Math.round(ITEMS[id].price * n * (1 - gBon('desc')));
   if (P.zeny < c) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); return; }
   P.zeny -= c; P.inv[id] = (P.inv[id] || 0) + n; Audio8.sfx('coin'); log(`Comprou ${n}x <b>${ITEMS[id].name}</b>.`, 'item'); buildHotbar();
 }
@@ -2634,7 +2761,7 @@ function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); }
 setInterval(save, 8000); addEventListener('beforeunload', save);
 
 function start(fromSave) {
-  Audio8.init();
+  Audio8.init(); registrarEnfeites();
   $('title').classList.add('hidden'); $('hud').classList.remove('hidden'); camera.clearViewOffset();
   if (fromSave) {
     const s = loadSave();
@@ -2660,7 +2787,7 @@ function start(fromSave) {
   $('pname').textContent = P.name;
   SPAWNS.forEach((s, si) => { for (let i = 0; i < s.n; i++) { const m = spawnMob(s.type, s.area, s.at); m.nid = si + '-' + i; } });
   if (typeof Quests !== 'undefined') Quests.migrate();
-  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (typeof Cos !== 'undefined') Cos.init(); if (typeof PvP !== 'undefined') PvP.init(); buildGraves(); Kvx.init(); if (typeof Partilha !== 'undefined') Partilha.init(); Net.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
+  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (typeof Cos !== 'undefined') Cos.init(); if (typeof PvP !== 'undefined') PvP.init(); buildGraves(); Kvx.init(); if (typeof Partilha !== 'undefined') Partilha.init(); Net.init(); if (typeof Guilda !== 'undefined') Guilda.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
   const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
