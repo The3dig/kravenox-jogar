@@ -1,5 +1,5 @@
 // Guarda o jogo no celular para não baixar tudo de novo a cada vez que abre.
-// Gerado por ferramentas/versionar.py (versão 8e15a4e598-4a1340d49a).
+// Gerado por ferramentas/versionar.py (versão 8e15a4e598-80c347f5c7).
 //
 // - Os arquivos grandes têm a impressão digital no nome (kx-....wasm,
 //   jogo-....pck): se estão guardados, saem do celular, sem internet.
@@ -8,7 +8,7 @@
 // - Numa versão nova, só os arquivos que mudaram são baixados; os que saíram
 //   da lista são apagados.
 const CAIXA = 'kravenox-quadros';
-const ARQUIVOS = ["jogo-4a1340d49a.pck", "kx-8e15a4e598.audio.position.worklet.js", "kx-8e15a4e598.audio.worklet.js", "kx-8e15a4e598.js", "kx-8e15a4e598.wasm", "index.png", "index.icon.png", "index.apple-touch-icon.png"];
+const ARQUIVOS = ["jogo-80c347f5c7.pck", "kx-8e15a4e598.audio.position.worklet.js", "kx-8e15a4e598.audio.worklet.js", "kx-8e15a4e598.js", "kx-8e15a4e598.wasm", "index.png", "index.icon.png", "index.apple-touch-icon.png"];
 
 self.addEventListener('install', (ev) => {
 	ev.waitUntil((async () => {
