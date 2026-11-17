@@ -24,13 +24,15 @@ function salaServidor(url, aoMsg) {
     const tk = typeof Nuvem !== 'undefined' && Nuvem.token ? (url.includes('?') ? '&' : '?') + 'token=' + Nuvem.token : '';
     try { ws = new WebSocket(url + tk); } catch (e) { setTimeout(conectar, espera = Math.min(espera * 2, 30000)); return; }
     ws.onopen = () => { aberta = true; espera = 1000; falhas = 0; if (pend) mandar(JSON.stringify({ t: 'p', s: pend })); };
+    // os nomes de personagem são únicos: alguém com o meu nome é uma conexão velha minha (o fantasma de mim mesmo)
+    const souEu = s => !!(s && typeof P !== 'undefined' && P.name && s.n === P.name);
     ws.onmessage = e => {
       uso.in += (e.data.length || 0) + 4;
       if (e.data === 'pong') return;
       let m; try { m = JSON.parse(e.data); } catch (_) { return; }
       if (m.t === 'eu') { me = m.peer; emit(); }
-      else if (m.t === 'todos') { const velhos = [...peers.keys()]; peers.clear(); for (const p of m.peers || []) peers.set(p.peer, p.s); emit([], velhos.filter(k => !peers.has(k)).map(peer => ({ peer }))); }
-      else if (m.t === 'p') { const novo = !peers.has(m.peer); peers.set(m.peer, m.s); emit(novo ? [{ peer: m.peer, presence: m.s, sameTab: false }] : []); }
+      else if (m.t === 'todos') { const velhos = [...peers.keys()]; peers.clear(); for (const p of m.peers || []) if (!souEu(p.s)) peers.set(p.peer, p.s); emit([], velhos.filter(k => !peers.has(k)).map(peer => ({ peer }))); }
+      else if (m.t === 'p') { if (souEu(m.s)) return; const novo = !peers.has(m.peer); peers.set(m.peer, m.s); emit(novo ? [{ peer: m.peer, presence: m.s, sameTab: false }] : []); }
       else if (m.t === 'saiu') { if (peers.delete(m.peer)) emit([], [{ peer: m.peer }]); }
       else if (m.t === 'erro' && typeof log === 'function') log('🌐 ' + String(m.msg).slice(0, 120), 'sys');
       if (aoMsg) aoMsg(m);                                                      // monstros compartilhados e o resto
@@ -84,7 +86,7 @@ const Net = (() => {
     let r = remotes.get(p.peer);
     const lookKey = JSON.stringify(s.look || {});
     if (!r || r.lookKey !== lookKey) {
-      if (r) { scene.remove(r.g); r.lab.remove(); r.bub.remove(); }
+      if (r) { scene.remove(r.g); if (r._dour) scene.remove(r._dour.m); r.lab.remove(); r.bub.remove(); }
       const g = new THREE.Group(); scene.add(g);
       const look = { race: 'humano', cls: 'dancarina', gender: 'f', hair: 0, skin: 0, ...(s.look || {}) };
       if (!RACES[look.race]) look.race = 'humano';
@@ -98,17 +100,18 @@ const Net = (() => {
     r.s = s; r.tx = s.x; r.tz = s.z; r.ty = s.y || 0; r.tf = s.f || 0;
     if (s.say && s.say.at && seenSay.get(p.peer) !== s.say.at) {
       seenSay.set(p.peer, s.say.at);
-      const daGuilda = !!s.say.g;                                            // mensagem só para a guilda: os outros não veem
+      const daGuilda = !!s.say.g;                                            // mensagem só para a guilda (ou só para o grupo): os outros não veem
       if (Date.now() - s.say.at < 15000 && (!daGuilda || (typeof Guilda !== 'undefined' && Guilda.minha() === s.say.g))) {
-        if (daGuilda) log(`🛡️ <b>[Guilda] ${esc(s.n)}</b>: ${esc(s.say.t)}`, 'guild');
-        else { log(`💬 <b>${esc(s.n)}</b>: ${esc(s.say.t)}`, 'chat'); r.bub.textContent = String(s.say.t).slice(0, 80); r.bubT = 6; }
+        if (daGuilda) chatMsg(`🛡️ <b>[Guilda] ${esc(s.n)}</b>: ${esc(s.say.t)}`, 'guild');
+        else if (s.say.gp) { if (s.say.gp === P.grupo) chatMsg(`👥 <b>[Grupo] ${esc(s.n)}</b>: ${esc(s.say.t)}`, 'grupo'); }
+        else { chatMsg(`🌍 <b>${esc(s.n)}</b>: ${esc(s.say.t)}`, 'chat'); r.bub.textContent = semTokens(s.say.t).slice(0, 80); r.bubT = 6; }
       }
     }
   }
   function drop(peer) {
     const r = remotes.get(peer); if (!r) return;
     if (r.s && r.s.n) log(`<b>${esc(r.s.n)}</b> saiu do mundo.`, 'sys');
-    scene.remove(r.g); r.lab.remove(); r.bub.remove(); remotes.delete(peer);
+    scene.remove(r.g); if (r._dour) scene.remove(r._dour.m); r.lab.remove(); r.bub.remove(); remotes.delete(peer);
   }
   function updateBadge() {
     const el = $('online'); if (!el) return;
@@ -143,7 +146,7 @@ const Net = (() => {
         n: P.name, lv: P.lv, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), f: +P.face.toFixed(2), st, k: P.atkSeq || 0,
         hp: Math.round(P.hp / stats.maxHp() * 100), look: { race: P.race, cls: P.cls, gender: P.gender, hair: P.hair, skin: P.skin },
         kd: P.kvxDmg || null, fb: P.fb || null, ...(typeof Cos !== 'undefined' ? Cos.pres() : {}), ...(typeof PvP !== 'undefined' ? PvP.pres() : {}), title: P.title || null, say: P.say || null,
-        ...(typeof Vida !== 'undefined' ? Vida.pres() : {}), ...(typeof Guilda !== 'undefined' ? Guilda.pres() : {}),
+        ...(typeof Vida !== 'undefined' ? Vida.pres() : {}), ...(typeof Guilda !== 'undefined' ? Guilda.pres() : {}), ...(typeof Grupo !== 'undefined' ? Grupo.pres() : {}), ...(typeof Verme !== 'undefined' ? Verme.pres() : {}),
       };
       const j = JSON.stringify(pres);
       if (j !== lastSent) { lastSent = j; room.presence(pres).catch(() => { }); }
@@ -159,7 +162,7 @@ const Net = (() => {
       if (r.L.sprite) {
         if ((s.k || 0) !== r.k) { r.k = s.k || 0; r.atkT = 0.3; }
         r.atkT = Math.max(0, (r.atkT || 0) - dt);
-        r.L.sprite.update(dt, { face: r.f, moving: moving || s.st === 'm' || s.st === 'r', atk: r.atkT / 0.3, dead: s.st === 'd', sit: s.st === 's' });
+        r.L.sprite.update(dt, { face: r.f, moving: moving || s.st === 'm' || s.st === 'r', atk: r.atkT / 0.3, dead: s.st === 'd', sit: s.st === 's', dourado: s.ir | 0 });
       } else if (r.L.model) {
         const C = CLASSES[r.look.cls] || CLASSES.dancarina;
         let anim = s.st === 'd' ? 'Death' : s.st === 'r' ? 'Roll' : (moving || s.st === 'm') ? 'Run' : s.st === 's' ? 'Interact' : (C.ranged || C.weapon === 'ribbon' ? 'Idle' : 'Idle_Sword');
@@ -169,6 +172,7 @@ const Net = (() => {
         r.L.inst.play(anim, { once, restart, speed: anim === 'Run' ? 1 : 1.5 });
         r.L.inst.update(dt); updateFollow(r.L);
       }
+      if (typeof Cos !== 'undefined' && Cos.brilho && typeof VFX !== 'undefined') Cos.brilho(r, s.ir | 0, r.x, r.g.position.y, r.z, dt, r.g.visible && s.st !== 'd');
       // nome, classe e vida
       const sp = toScreen(r.x, r.g.position.y + 2.15, r.z);
       const near = Math.hypot(r.x - P.x, r.z - P.z) < 45;
@@ -178,7 +182,7 @@ const Net = (() => {
       r.lab.style.display = sp.vis && near ? 'block' : 'none';
       r.lab.style.transform = `translate(${sp.x | 0}px,${sp.y | 0}px) translate(-50%,-100%)`;
       const pvc = typeof PvP !== 'undefined' && (s.fl === 'r' || s.fl === 'p') ? PvP.color(s.fl, (s.pk || 0) - Date.now()) : null;
-      const html = `<span style="${pvc ? 'color:' + pvc + ';font-weight:900' : /^#[0-9a-f]{6}$/i.test(s.cn || '') ? 'color:' + s.cn : ''}">${s.fl === 'r' ? '☠️ ' : ''}${s.gt ? `<em class="gtag${typeof Guilda !== 'undefined' && Guilda.aliado(s) ? ' aliada' : ''}">[${esc(s.gt)}]</em> ` : ''}${esc(s.n)}</span> <span class="lv">Nv ${s.lv | 0}</span><small>${esc(className(r.look.cls, r.look.gender))}${s.title ? ' · « ' + esc(s.title) + ' »' : s.ct ? ' · ' + esc(s.ct) : ''}</small>${s.bk ? `<em class="bk">🏪 ${esc(s.bk.t)}</em>` : ''}<i><b style="width:${Math.max(0, Math.min(100, s.hp | 0))}%"></b></i>`;
+      const html = `<span style="${pvc ? 'color:' + pvc + ';font-weight:900' : ''}">${s.fl === 'r' ? '<b class="pktag">☠ PK</b> ' : ''}${s.gt ? `<em class="gtag${typeof Guilda !== 'undefined' && Guilda.aliado(s) ? ' aliada' : ''}">[${esc(s.gt)}]</em> ` : ''}${esc(s.n)}</span> <span class="lv">Nv ${s.lv | 0}</span><small>${esc(className(r.look.cls, r.look.gender))}${s.title ? ' · « ' + esc(s.title) + ' »' : s.ct ? ' · ' + esc(s.ct) : ''}</small>${s.bk ? `<em class="bk">🏪 ${esc(s.bk.t)}</em>` : ''}<i><b style="width:${Math.max(0, Math.min(100, s.hp | 0))}%"></b></i>`;
       if (r.lab.dataset.h !== html) { r.lab.innerHTML = html; r.lab.dataset.h = html; }
       if (r.bubT > 0) {
         r.bubT -= dt; r.bub.classList.remove('hidden');
@@ -201,11 +205,13 @@ const Net = (() => {
     for (const r of remotes.values()) { const fb = r.s && r.s.fb; if (fb && fb.s === slot && typeof fb.d === 'number') t += Math.max(0, Math.min(1e7, fb.d)); }
     return t;
   }
-  function say(text) {
+  function say(text, canal = 'mundo') {
     text = String(text || '').trim().slice(0, 80); if (!text) return;
+    if (canal === 'grupo' && P.grupo) { P.say = { t: text, at: Date.now(), gp: P.grupo }; chatMsg(`👥 <b>[Grupo] ${esc(P.name)}</b>: ${esc(text)}`, 'grupo', true); return; }
+    if (canal === 'guilda' && typeof Guilda !== 'undefined' && Guilda.minha()) { P.say = { t: text, at: Date.now(), g: Guilda.minha() }; chatMsg(`🛡️ <b>[Guilda] ${esc(P.name)}</b>: ${esc(text)}`, 'guild', true); return; }
     P.say = { t: text, at: Date.now() };
-    log(`💬 <b>${esc(P.name)}</b>: ${esc(text)}`, 'chat');
-    const b = $('mybubble'); b.textContent = text; b.classList.remove('hidden'); myBubT = 6;
+    chatMsg(`🌍 <b>${esc(P.name)}</b>: ${esc(text)}`, 'chat', true);
+    const b = $('mybubble'); b.textContent = semTokens(text); b.classList.remove('hidden'); myBubT = 6;
     if (!room) log('Você está jogando sozinho agora (sem internet). O chat aparece para os amigos online.', 'sys');
   }
   let myBubT = 0;

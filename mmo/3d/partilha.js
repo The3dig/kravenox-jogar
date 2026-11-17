@@ -43,11 +43,13 @@ const Partilha = (() => {
     // monstros que o servidor ainda não conhece (lugar novo, versão nova): manda para ele em vez de apagar
     const novos = [];
     for (const [id, m] of loc) if (!vistos.has(id)) { if (m.dono === undefined || m.dono === null) { m.dono = me(); novos.push(m); } else tirar(m); }
-    if (novos.length) Net.send({ t: 'semente+', l: novos.map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: m.d.respawn, x: +m.x.toFixed(2), z: +m.z.toFixed(2) })) });
+    for (let i = 0; i < novos.length; i += 150) Net.send({ t: 'semente+', l: novos.slice(i, i + 150).map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: m.d.respawn, x: +m.x.toFixed(2), z: +m.z.toFixed(2) })) });
   }
   function semente() {
+    if (!mobs.some(m => m.nid)) { setTimeout(semente, 800); return; }          // os monstros ainda não nasceram neste jogo: espera
     const l = mobs.filter(m => m.nid).map(m => ({ id: m.nid, type: m.type, max: m.maxHp, hp: m.hp, resp: m.d.respawn, x: +m.x.toFixed(2), z: +m.z.toFixed(2), vivo: true }));
-    Net.send({ t: 'semente', l });
+    // em partes: a lista inteira passa do tamanho máximo de mensagem do servidor (24 KB) e era jogada fora
+    for (let i = 0; i < l.length; i += 150) Net.send({ t: i ? 'semente+' : 'semente', l: l.slice(i, i + 150) });
   }
   // ---------------- mensagens do servidor
   function init() {
@@ -63,12 +65,16 @@ const Partilha = (() => {
         if (Math.hypot(mb.x - x, mb.z - z) > 25) { mb.x = x; mb.z = z; }          // longe demais: pula direto
       }
     });
-    Net.on('hp', m => { const mb = porId().get(m.id); if (mb) { mb.hp = Math.max(m.hp, 1); if (m.by && m.by !== me()) mb.flash = 0.08; } });
+    Net.on('hp', m => { const mb = porId().get(m.id); if (mb) { mb.hp = Math.max(m.hp, 1); if (m.hp > 1) mb.morrendo = 0; if (m.by && m.by !== me()) mb.flash = 0.08; } });
     Net.on('morre', m => {
       const mb = porId().get(m.id); mortos.set(m.id, mb ? mb.type : mortos.get(m.id));
       if (!mb) return;
       const total = Object.values(m.dano || {}).reduce((a, b) => a + b, 0) || 1, parte = Math.min(1, ((m.dano || {})[me()] || 0) / total);
+      const gq = m.by !== me() && typeof Grupo !== 'undefined' && Grupo.doGrupo(m.by) && !P.dead && Math.hypot(mb.x - P.x, mb.z - P.z) < Grupo.PERTO ? Grupo.parteDoMatador(mb, m.by) : null;
+      const grupo = gq && gq.parte > 0;
       if (m.by === me()) killMob(mb, { parte: Math.max(parte, 0.5) });       // último golpe: itens, coroas e pelo menos metade do XP
+      else if (grupo) killMob(mb, { ajuda: gq.parte, grupo: true, n: gq.n, w: gq.w });   // companheiro de grupo perto: a parte dele do XP e conta nas missões
+      else if (gq && gq.lvK && !P.leechAviso) { P.leechAviso = 1; log(`👥 Diferença de nível grande demais (mais de 20) com quem matou: no grupo, a caçada só se divide entre níveis parecidos.`, 'sys'); killMob(mb, parte > 0.02 ? { ajuda: parte } : { semPremio: true }); }
       else if (parte > 0.02) killMob(mb, { ajuda: parte });
       else killMob(mb, { semPremio: true });
     });
@@ -79,6 +85,7 @@ const Partilha = (() => {
       Net.send({ t: 'nasceu', id: m.id, x: +mb.x.toFixed(2), z: +mb.z.toFixed(2) });
     });
     Net.on('caiu', () => { });
+    Net.on('some', m => { const mb = porId().get(m.id); if (mb) { mortos.set(m.id, mb.type); tirar(mb); } });   // o servidor diz que ele já tinha morrido
   }
   // ---------------- o que eu mando
   function dano(m, v) { Net.send({ t: 'd', id: m.nid, v: Math.round(v) }); }

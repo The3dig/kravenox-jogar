@@ -28,6 +28,7 @@ const Vida = (() => {
     // Torre do Cisma
     presa: ['Presa Curva', '🦷', 38, 0, 'mat'], escama: ['Escama Encouraçada', '🪨', 44, 0, 'mat'], nucleo_ferro: ['Núcleo de Ferro', '⚙️', 600, 0, 'mat'],
     estilhaco: ['Estilhaço do Cisma', '🔮', 52, 0, 'mat'], po_estelar: ['Pó Estelar', '🌟', 650, 0, 'mat'],
+    presa_verme: ['Presa do Abismo', '🦷', 2500, 0, 'mat'], quitina_colossal: ['Quitina Colossal', '🪨', 9000, 0, 'mat'],
     placa_vazio: ['Placa do Vazio', '⬛', 70, 0, 'mat'], olho_vazio: ['Olho do Vazio', '🟣', 900, 0, 'mat'],
     // Valdora
     seiva: ['Seiva Negra', '🫗', 62, 0, 'mat'], espinho_negro: ['Espinho Negro', '🥀', 700, 0, 'mat'],
@@ -40,6 +41,20 @@ const Vida = (() => {
     placa_antiga: ['Placa Antiga', '🪙', 90, 0, 'mat'], lembranca: ['Lembrança Presa', '💭', 110, 0, 'mat'],
     coracao_floresta: ['Coração da Floresta', '🫀', 1500, 0, 'mat'], runa_ordem: ['Runa da Ordem', '🔹', 1800, 0, 'mat'], fragmento_dourado: ['Fragmento Dourado', '✴️', 2000, 0, 'mat'],
     seiva_branca: ['Seiva Branca', '🥛', 30, 0, 'comida', { heal: 0.25 }],
+    // Cidade Submersa (Nv 70–86)
+    raiz_suspensa: ['Raiz Suspensa', '🪢', 140, 0, 'mat'], estilhaco_vivo: ['Estilhaço Vivo', '💠', 150, 0, 'mat'], eco_cidade: ['Eco da Cidade', '🏛️', 155, 0, 'mat'],
+    placa_submersa: ['Placa Submersa', '🛡️', 165, 0, 'mat'], ovo_abismo: ['Ovo do Abismo', '🥚', 170, 0, 'mat'],
+    cristal_tres: ['Cristal dos Três Irmãos', '🔱', 3500, 0, 'mat'], raiz_fonte: ['Raiz da Fonte', '🌑', 6000, 0, 'mat'],
+    luz_suspensa: ['Luz Suspensa', '🕯️', 60, 0, 'comida', { heal: 0.35, spH: 0.15 }],
+    // Vale dos Mortos e Ponte dos Mortos (Nv 55–72)
+    unha_palida: ['Unha Pálida', '🫳', 95, 0, 'mat'], eco_voz: ['Eco de Voz', '🗣️', 100, 0, 'mat'], veu_branco: ['Véu Branco', '🤍', 120, 0, 'mat'],
+    sombra_densa: ['Sombra Densa', '🌑', 125, 0, 'mat'], osso_ponte: ['Osso da Ponte', '🦴', 130, 0, 'mat'],
+    cristal_memoria: ['Cristal de Memória', '🔮', 2200, 0, 'mat'], lasca_cajado: ['Lasca do Cajado Dourado', '✨', 4000, 0, 'mat'],
+    flor_tumulo: ['Flor de Túmulo', '🥀', 40, 0, 'comida', { heal: 0.3, spH: 0.1 }],
+    // Praia de Cômodo (Nv 18–34)
+    garra: ['Garra Rubra', '🦀', 40, 0, 'mat'], tentaculo: ['Tentáculo Brilhante', '🪼', 48, 0, 'mat'], casco: ['Casco Espinhoso', '🐢', 60, 0, 'mat'],
+    escama_mar: ['Escama do Mar', '🌊', 70, 0, 'mat'], coral: ['Coral Rubro', '🪸', 900, 0, 'mat'], coroa_caranguejo: ['Coroa do Rei Caranguejo', '👑', 2500, 0, 'mat'],
+    agua_coco: ['Água de Coco', '🥥', 12, 30, 'comida', { heal: 0.12, spH: 0.08 }],
     // frutas e ervas (curam na hora, como as do Ragnarok)
     maca: ['Maçã Silvestre', '🍎', 4, 0, 'comida', { heal: 0.08 }], mel: ['Mel Escuro', '🍯', 12, 0, 'comida', { heal: 0.15 }],
     folha: ['Folha Verde', '🍃', 3, 0, 'comida', { heal: 0.05 }], erva_vermelha: ['Erva Vermelha', '🌺', 9, 0, 'comida', { heal: 0.2 }],
@@ -92,6 +107,22 @@ const Vida = (() => {
     luvas_valdora: ['Manoplas de Valdora', '🧤', 'luvas', 0, { def: 6, pow: 12 }, 2, 'valdora'],
     botas_valdora: ['Botas de Valdora', '🥾', 'botas', 0, { def: 6, spd: 0.1, hp: 70 }, 2, 'valdora'],
     arma_valdora: ['Espada de Valdora', '⚔️', 'arma', 0, { pow: 34, crit: 0.04 }, 2],
+    // Cidade Submersa (Nv 70–86): o conjunto do vazio e a lâmina de raiz negra (lendários)
+    elmo_cidade: ['Elmo da Cidade Submersa', '🪖', 'capacete', 0, { def: 28, hp: 300 }, 3, 'cidade'],
+    couraca_cidade: ['Couraça das Torres Rachadas', '🛡️', 'armadura', 0, { def: 56, hp: 560 }, 3, 'cidade'],
+    luvas_cidade: ['Luvas de Cristal Vivo', '🧤', 'luvas', 0, { def: 15, pow: 30 }, 3, 'cidade'],
+    botas_cidade: ['Botas do Caminho Invisível', '🥾', 'botas', 0, { def: 15, spd: 0.13, hp: 170 }, 3, 'cidade'],
+    lamina_raiz: ['Lâmina de Raiz Negra', '🗡️', 'arma', 0, { pow: 78, crit: 0.09 }, 3],
+    // Abismo do Cisma: dos Guardiões dos andares e do Verme Colossal
+    lamina_verme: ['Lâmina de Dente Colossal', '🦷', 'arma', 0, { pow: 104, crit: 0.08, spd: 0.04 }, 4],
+    couraca_verme: ['Couraça de Quitina Abissal', '🪨', 'armadura', 0, { def: 74, hp: 900 }, 3],
+    anel_ninho: ['Anel do Ninho', '💍', 'anel', 0, { pow: 22, hp: 320, crit: 0.05 }, 4],
+    // Vale dos Mortos (Nv 55–72): o conjunto da névoa e o cajado do Primeiro Guardião (lendários)
+    capuz_vale: ['Capuz do Vale dos Mortos', '🧕', 'capacete', 0, { def: 22, hp: 240 }, 3, 'vale'],
+    manto_vale: ['Manto da Névoa', '🌫️', 'armadura', 0, { def: 46, hp: 460 }, 3, 'vale'],
+    luvas_vale: ['Luvas de Osso', '🧤', 'luvas', 0, { def: 12, pow: 24 }, 3, 'vale'],
+    botas_vale: ['Botas da Ponte', '🥾', 'botas', 0, { def: 12, spd: 0.12, hp: 140 }, 3, 'vale'],
+    cajado_guardiao: ['Cajado do Primeiro Guardião', '🪄', 'arma', 0, { pow: 64, crit: 0.08 }, 3],
     // Floresta Morta (Nv 40–55): o conjunto de raiz petrificada e a lança do Guardião Branco
     elmo_raiz: ['Elmo de Raiz Petrificada', '🪖', 'capacete', 0, { def: 16, hp: 150 }, 2, 'floresta'],
     manto_floresta: ['Manto da Floresta Morta', '🧥', 'armadura', 0, { def: 32, hp: 300 }, 2, 'floresta'],
@@ -111,7 +142,11 @@ const Vida = (() => {
     sentinela: { name: 'Conjunto da Sentinela', bonus: { def: 20, pow: 10, hp: 150 } },
     cisma: { name: 'Conjunto do Cisma', bonus: { pow: 25, def: 25, hp: 300, crit: 0.08 } },
     valdora: { name: 'Conjunto da Guarda de Valdora', bonus: { pow: 18, def: 22, hp: 220 } },
+    cidade: { name: 'Conjunto da Cidade Submersa', bonus: { pow: 42, def: 46, hp: 520, crit: 0.05 } },
+    vale: { name: 'Conjunto do Vale dos Mortos', bonus: { pow: 34, def: 38, hp: 420, crit: 0.04 } },
     floresta: { name: 'Conjunto da Floresta Morta', bonus: { pow: 24, def: 28, hp: 300 } },
+    // uma peça por amigo do Rone (desafios.js); bônus em níveis: 2, 4 e as 8 peças (o completo é muito mais forte)
+    amigos: { name: 'Conjunto da Irmandade Eterna', pecas: 8, tiers: [[2, { pow: 15, def: 15, hp: 250 }], [4, { pow: 40, def: 35, hp: 600, crit: 0.05 }], [8, { pow: 120, def: 90, hp: 1800, crit: 0.15, spd: 0.15, sp: 300 }]] },
     soberano: { name: 'Conjunto do Soberano', bonus: { pow: 60, def: 50, hp: 800, crit: 0.12, spd: 0.1 } },
   };
   for (const [id, [name, ic, slot, price, mods, rar, set]] of Object.entries(GEAR)) ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar, set, price: price || 0, sell: Math.round((price || [60, 220, 700, 2000, 15000][rar]) / 2) };
@@ -124,7 +159,7 @@ const Vida = (() => {
   const add = (id, n) => { P.inv[id] = Math.max(0, (P.inv[id] || 0) + n); if (id === 'red' || id === 'blue') buildHotbar(); };
 
   // materiais que cada monstro solta
-  const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia', raizNegra: 'fibra', ecoCinza: 'cinza', larvaCinza: 'cinza', sentinelaMuralha: 'lasca', carrasco: 'essencia', larvaPernalta: 'membrana', raizOssuda: 'osso_raiz', larvaCristal: 'cristal_carne', larvaAntiga: 'placa_antiga', memoria: 'lembranca', guardiaoBranco: 'runa_ordem' };
+  const MOB_MAT = { pompom: 'gosma', zunzum: 'po_eco', fungolino: 'raiz', besouro: 'cristal', serpe: 'fio', guardiao: 'lasca', larva: 'gosma', verme: 'lasca', esfera: 'cristal', sentinela: 'lasca', kravenox: 'essencia', raizNegra: 'fibra', ecoCinza: 'cinza', larvaCinza: 'cinza', sentinelaMuralha: 'lasca', carrasco: 'essencia', larvaPernalta: 'membrana', raizOssuda: 'osso_raiz', larvaCristal: 'cristal_carne', larvaAntiga: 'placa_antiga', memoria: 'lembranca', guardiaoBranco: 'runa_ordem', raizSuspensa: 'raiz_suspensa', cristalVivo: 'estilhaco_vivo', ecoCidade: 'eco_cidade', sentinelaSubmersa: 'placa_submersa', larvaAbismo: 'ovo_abismo', sombraFonte: 'raiz_fonte', maoPalida: 'unha_palida', sussurro: 'eco_voz', damaSemOlhos: 'veu_branco', sombraVale: 'sombra_densa', guardaOssos: 'osso_ponte', primeiroGuardiao: 'lasca_cajado', caranguejo: 'garra', medusa: 'tentaculo', tartaruga: 'casco', serpenteOnda: 'escama_mar', reiCaranguejo: 'coroa_caranguejo' };
   for (const [t, m] of Object.entries(MOB_MAT)) if (MOBDEF[t]) MOBDEF[t].drops.push([m, MOBDEF[t].boss ? 1 : 0.55]);
   // tabela no jeito do Ragnarok: um comum (~20–30%), uma fruta/erva (~10%), um incomum e uma raridade (1–3%)
   const MOB_LOOT = {
@@ -149,6 +184,23 @@ const Vida = (() => {
     larvaAntiga: [['escama', 0.25], ['placa_vazio', 0.12], ['seiva_branca', 0.1], ['runa_ordem', 0.01]],
     memoria: [['po_estelar', 0.03], ['erva_azul', 0.15], ['fragmento_dourado', 0.012]],
     guardiaoBranco: [['runa_ordem', 1], ['coracao_floresta', 0.5], ['fragmento_dourado', 0.4]],
+    raizSuspensa: [['luz_suspensa', 0.1], ['casca', 0.3], ['cristal_tres', 0.005]],
+    cristalVivo: [['cristal_puro', 0.04], ['erva_azul', 0.12], ['cristal_tres', 0.008]],
+    ecoCidade: [['luz_suspensa', 0.12], ['lembranca', 0.25], ['cristal_memoria', 0.01]],
+    sentinelaSubmersa: [['placa_vazio', 0.2], ['luz_suspensa', 0.1], ['cristal_tres', 0.01]],
+    larvaAbismo: [['essencia', 0.08], ['erva_azul', 0.12], ['cristal_tres', 0.01]],
+    sombraFonte: [['cristal_tres', 0.8], ['cristal_memoria', 0.6], ['fragmento_dourado', 0.6]],
+    maoPalida: [['flor_tumulo', 0.1], ['osso_raiz', 0.2], ['cristal_memoria', 0.006]],
+    sussurro: [['erva_azul', 0.15], ['lembranca', 0.2], ['cristal_memoria', 0.01]],
+    damaSemOlhos: [['flor_tumulo', 0.12], ['veu', 0.2], ['cristal_memoria', 0.012]],
+    sombraVale: [['essencia', 0.06], ['erva_azul', 0.12], ['cristal_memoria', 0.012]],
+    guardaOssos: [['placa_antiga', 0.2], ['flor_tumulo', 0.1], ['nucleo_ferro', 0.02]],
+    primeiroGuardiao: [['cristal_memoria', 0.8], ['fragmento_dourado', 0.5], ['runa_ordem', 1]],
+    caranguejo: [['agua_coco', 0.1]],                                              // os peixes e pérolas entram em praia.js
+    medusa: [['erva_azul', 0.15], ['coral', 0.006]],
+    tartaruga: [['agua_coco', 0.15], ['coral', 0.01]],
+    serpenteOnda: [['escama', 0.15], ['coral', 0.012]],
+    reiCaranguejo: [['coral', 0.8]],
   };
   for (const [t, l] of Object.entries(MOB_LOOT)) if (MOBDEF[t]) for (const d of l) if (ITEMS[d[0]]) MOBDEF[t].drops.push(d);
   // os Alfas (versões grandes) soltam o mesmo, com mais chance
@@ -167,6 +219,12 @@ const Vida = (() => {
     raizNegra: [['botas_valdora', 0.012], ['luvas_valdora', 0.01]],
     ecoCinza: [['elmo_valdora', 0.012], ['colar_sombra', 0.02]],
     larvaCinza: [['luvas_valdora', 0.012], ['couraca_valdora', 0.008]],
+    raizSuspensa: [['luvas_cidade', 0.007]], cristalVivo: [['luvas_cidade', 0.007], ['elmo_cidade', 0.006]], ecoCidade: [['elmo_cidade', 0.007]],
+    sentinelaSubmersa: [['couraca_cidade', 0.006], ['botas_cidade', 0.006]], larvaAbismo: [['botas_cidade', 0.007]],
+    sombraFonte: [['lamina_raiz', 0.12], ['couraca_cidade', 0.15], ['elmo_cidade', 0.15], ['luvas_cidade', 0.15], ['botas_cidade', 0.15]],
+    maoPalida: [['luvas_vale', 0.008]], sussurro: [['capuz_vale', 0.008]], damaSemOlhos: [['manto_vale', 0.006], ['capuz_vale', 0.006]],
+    sombraVale: [['botas_vale', 0.008]], guardaOssos: [['luvas_vale', 0.008], ['manto_vale', 0.006]],
+    primeiroGuardiao: [['cajado_guardiao', 0.12], ['manto_vale', 0.15], ['capuz_vale', 0.15], ['luvas_vale', 0.15], ['botas_vale', 0.15]],
     larvaPernalta: [['botas_raiz', 0.01]], raizOssuda: [['elmo_raiz', 0.01], ['botas_raiz', 0.008]],
     larvaCristal: [['luvas_cristal', 0.01]], larvaAntiga: [['manto_floresta', 0.008], ['elmo_raiz', 0.008]], memoria: [['luvas_cristal', 0.01], ['manto_floresta', 0.006]],
     guardiaoBranco: [['lanca_ordem', 0.12], ['manto_floresta', 0.15], ['elmo_raiz', 0.15], ['luvas_cristal', 0.15], ['botas_raiz', 0.15]],
@@ -574,6 +632,16 @@ const Vida = (() => {
     { out: 'luvas_cristal', need: { cristal_carne: 12, membrana: 6, fragmento_dourado: 1 }, z: 8000 },
     { out: 'manto_floresta', need: { placa_antiga: 12, lembranca: 8, coracao_floresta: 1 }, z: 10000 },
     { out: 'lanca_ordem', need: { runa_ordem: 3, placa_antiga: 15, fragmento_dourado: 2 }, z: 20000 },
+    { out: 'botas_vale', need: { osso_ponte: 12, sombra_densa: 8 }, z: 14000 },
+    { out: 'luvas_vale', need: { unha_palida: 14, osso_ponte: 8, cristal_memoria: 1 }, z: 16000 },
+    { out: 'capuz_vale', need: { veu_branco: 14, eco_voz: 10, cristal_memoria: 1 }, z: 16000 },
+    { out: 'manto_vale', need: { veu_branco: 16, sombra_densa: 12, cristal_memoria: 2 }, z: 22000 },
+    { out: 'cajado_guardiao', need: { lasca_cajado: 2, cristal_memoria: 3, runa_ordem: 2 }, z: 40000 },
+    { out: 'botas_cidade', need: { ovo_abismo: 12, raiz_suspensa: 10 }, z: 22000 },
+    { out: 'luvas_cidade', need: { estilhaco_vivo: 14, raiz_suspensa: 8, cristal_tres: 1 }, z: 25000 },
+    { out: 'elmo_cidade', need: { eco_cidade: 14, placa_submersa: 8, cristal_tres: 1 }, z: 25000 },
+    { out: 'couraca_cidade', need: { placa_submersa: 16, estilhaco_vivo: 12, cristal_tres: 2 }, z: 32000 },
+    { out: 'lamina_raiz', need: { raiz_fonte: 2, cristal_tres: 3, cristal_memoria: 2 }, z: 60000 },
   ].filter(r => ITEMS[r.out]);
   const needTxt = r => Object.entries(r.need).map(([id, n]) => `${n} ${it(id).ic}`).join(' + ') + ` + ${r.z} cr`;
   function forge() {
@@ -638,12 +706,15 @@ const Vida = (() => {
   }
 
   // ---------------------------------------------------------------- mochila (inventário com o personagem)
+  // bônus que vale agora: conjuntos normais com 4 peças; os de níveis (Irmandade Eterna) pelo maior nível alcançado
+  function setBonus(st, n) { const S_ = SETS[st]; if (!S_) return null; if (!S_.tiers) return n >= 4 ? S_.bonus : null; let b = null; for (const [q, bb] of S_.tiers) if (n >= q) b = bb; return b; }
+  const setTxt = st => SETS[st].tiers ? SETS[st].tiers.map(([q, b]) => `${q === SETS[st].pecas ? 'completo' : q} peças: ${modTxt(b)}`).join(' · ') : `4 peças: ${modTxt(SETS[st].bonus)}`;
   function setCount() { const c = {}; for (const sl in (P.equip || {})) { const I = ITEMS[P.equip[sl]]; if (I && I.set) c[I.set] = (c[I.set] || 0) + 1; } return c; }
   const gear = k => {
     let v = 0; for (const sl in (P.equip || {})) { const id = P.equip[sl]; if (id && ITEMS[id] && ITEMS[id].mods) v += (ITEMS[id].mods[k] || 0) * (['pow', 'def', 'hp'].includes(k) ? 1 + 0.1 * refOf(id) : 1); }
     for (const sl in (P.cards || {})) { const c = P.cards[sl]; if (c && P.equip && P.equip[sl] && ITEMS[c]) v += ITEMS[c].mods[k] || 0; }   // carta só vale com peça no espaço
     if (k === 'pow' || k === 'def' || k === 'hp' || k === 'sp') v = Math.round(v);
-    const sc = setCount(); for (const st in sc) if (sc[st] >= 4) v += SETS[st].bonus[k] || 0;
+    const sc = setCount(); for (const st in sc) { const B = setBonus(st, sc[st]); if (B) v += B[k] || 0; }
     return v;
   };
   let sel = null, tab = 'tudo', trashArm = null;
@@ -708,7 +779,7 @@ const Vida = (() => {
         const I = it(id);
         view = `<div class="iview"><div class="iv-art">${bigArt(I, id)}${cd ? `<div class="iv-mini">${cardArt(it(cd))}</div>` : ''}</div><div class="iv-txt">
           <b class="iv-n" style="color:${RARITY[I.rar || 0].c}">${nameOf(id)}</b><small>${RARITY[I.rar || 0].n} · ${slotName(sl.startsWith('anel') ? 'anel' : sl)} · equipado</small>
-          <p>${modTxt(I.mods)}${refOf(id) ? `<br>🔨 Refino +${refOf(id)}: +${refOf(id) * 10}% de dano, defesa e HP` : ''}${I.set ? `<br>🔗 ${SETS[I.set].name} (4 peças: ${modTxt(SETS[I.set].bonus)})` : ''}${cd ? `<br>🃏 ${it(cd).name}: ${modTxt(it(cd).mods)}` : `<br><small>🃏 Espaço de carta vazio</small>`}</p>
+          <p>${modTxt(I.mods)}${refOf(id) ? `<br>🔨 Refino +${refOf(id)}: +${refOf(id) * 10}% de dano, defesa e HP` : ''}${I.set ? `<br>🔗 ${SETS[I.set].name} (${setTxt(I.set)})` : ''}${cd ? `<br>🃏 ${it(cd).name}: ${modTxt(it(cd).mods)}` : `<br><small>🃏 Espaço de carta vazio</small>`}</p>
           <div class="ibtn"><button data-a="unequip" data-v="${sl}">Tirar</button>${cd ? `<button data-a="uncard" data-v="${sl}">Tirar carta</button>` : ''}<button data-a="unsel">Fechar</button></div></div></div>`;
       } else det = `<small>${SLOTS[sl]} vazio. Equipe algo da mochila.</small>`;
     } else if (sel && P.inv[sel] > 0) {
@@ -735,7 +806,7 @@ const Vida = (() => {
       <div class="invb">
         <div class="doll"><div class="doll-fig">${img}<div class="doll-n">${P.name}<br><small>${typeof tierName === 'function' ? tierName() : className(P.cls, P.gender)} · Nv ${P.lv}</small></div></div><div class="eslots">${slots}</div>
           <div class="dstat">${mag ? 'MATQ ' + stats.matk() : 'ATQ ' + stats.atk()} · DEF ${stats.def()} · HP ${stats.maxHp()}</div>
-          ${Object.entries(setCount()).map(([st, n]) => `<div class="dset ${n >= 4 ? 'on' : ''}">${SETS[st].name}: ${n}/4${n >= 4 ? ' ✅ ' + modTxt(SETS[st].bonus) : ''}</div>`).join('')}</div>
+          ${Object.entries(setCount()).map(([st, n]) => { const B = setBonus(st, n); return `<div class="dset ${B ? 'on' : ''}">${SETS[st].name}: ${n}/${SETS[st].pecas || 4}${B ? ' ✅ ' + modTxt(B) : ''}</div>`; }).join('')}</div>
         <div class="invr"><div class="invc"><div class="igrid">${cells}</div><div class="idet">${det}</div>
           <div class="ibtn foot"><button data-a="trade">🤝 Trocar</button><button data-a="stall">${st.stall ? '🏪 Fechar banca' : '🏪 Abrir banca'}</button></div></div>${tabsHtml}</div>${view}
       </div>`;
@@ -768,6 +839,7 @@ const Vida = (() => {
   function use(id) {
     if (ITEMS[id].use === 'pot') return usePotion(id);
     if (ITEMS[id].use === 'tp') { closeInv(); return useWing(id); }
+    if (ITEMS[id].use === 'isca') { closeInv(); if (typeof Mascotes !== 'undefined') Mascotes.capturar(id); return; }
     if (ITEMS[id].use === 'garrafa') { closeInv(); if (typeof Praia !== 'undefined') Praia.abrirGarrafa(); return; }
     if (!has(id)) return;
     add(id, -1); Audio8.sfx('heal');
@@ -795,7 +867,7 @@ const Vida = (() => {
     if (!tr || !pr) { tr = null; dialog('🤝 Troca', 'A troca foi encerrada.'); return; }
     const their = (pr.s.tr && pr.s.tr.to === Net.me && pr.s.tr.id === tr.id) ? pr.s.tr : null;
     const opts = [];
-    for (const id of Object.keys(P.inv).filter(id => P.inv[id] > (tr.give[id] || 0) && ITEMS[id])) opts.push({ label: `+1 ${it(id).ic} ${it(id).name}`, fn: () => { tr.give[id] = (tr.give[id] || 0) + 1; tr.ok = false; tradeWin(); return true; } });
+    for (const id of Object.keys(P.inv).filter(id => P.inv[id] > (tr.give[id] || 0) && ITEMS[id] && !ITEMS[id].preso)) opts.push({ label: `+1 ${it(id).ic} ${it(id).name}`, fn: () => { tr.give[id] = (tr.give[id] || 0) + 1; tr.ok = false; tradeWin(); return true; } });
     if (P.zeny >= (tr.give.z || 0) + 50) opts.push({ label: '+50 cr', fn: () => { tr.give.z = (tr.give.z || 0) + 50; tr.ok = false; tradeWin(); return true; } });
     opts.push({ label: 'Limpar minha oferta', fn: () => { tr.give = {}; tr.ok = false; tradeWin(); return true; } });
     opts.push({ label: tr.ok ? '⏳ Esperando o outro confirmar…' : '✅ Confirmar troca', fn: () => { if (their) tr.ok = keyOf(tr.give, their.give); tradeWin(); return true; } });
@@ -838,7 +910,7 @@ const Vida = (() => {
   function stallSetup(sel = {}) {
     if (!online()) return soloMsg();
     const mult = [0.8, 1, 1.5][stallMode], price = id => Math.max(1, Math.round(it(id).price * mult));
-    const opts = Object.keys(P.inv).filter(id => P.inv[id] > (sel[id] || 0) && ITEMS[id]).map(id => ({ label: `+1 ${it(id).ic} ${it(id).name} (${price(id)} cr)`, fn: () => { sel[id] = (sel[id] || 0) + 1; stallSetup(sel); return true; } }));
+    const opts = Object.keys(P.inv).filter(id => P.inv[id] > (sel[id] || 0) && ITEMS[id] && !ITEMS[id].preso).map(id => ({ label: `+1 ${it(id).ic} ${it(id).name} (${price(id)} cr)`, fn: () => { sel[id] = (sel[id] || 0) + 1; stallSetup(sel); return true; } }));
     opts.push({ label: `Preço: ${['barato (80%)', 'normal', 'caro (150%)'][stallMode]} — mudar`, fn: () => { stallMode = (stallMode + 1) % 3; stallSetup(sel); return true; } });
     opts.push({ label: '🏪 Abrir banca', fn: () => {
       const items = Object.entries(sel).filter(([, n]) => n > 0).map(([id, n]) => [id, n, price(id)]);
@@ -1058,5 +1130,32 @@ const Vida = (() => {
     addEventListener('keydown', e => { if (e.key.toLowerCase() === 'b' && running && !dialogOpen && document.activeElement.tagName !== 'INPUT') bag(); });
     save();
   }
-  return { use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
+  // ficha de um item mostrado no chat (o amigo toca no nome e vê tudo)
+  function ficha(id, dono) {
+    const I = ITEMS[id]; if (!I) return;
+    const cor = I.kind === 'equip' ? RARITY[I.rar || 0].c : I.kind === 'carta' ? '#ffb640' : '#e8e4dc';
+    const de = Object.entries(MOBDEF).filter(([t, D]) => (D.drops || []).some(([i]) => i === id) && !t.startsWith('alfa_')).slice(0, 4).map(([, D]) => `${D.name} (Nv ${D.lv})`);
+    const linhas = [];
+    if (I.kind === 'equip') {
+      linhas.push(`${RARITY[I.rar || 0].n} · ${I.slot === 'anel' ? 'Anel' : SLOTS[I.slot] || I.slot}`);
+      if (I.mods) linhas.push(`<b>${modTxt(I.mods)}</b>`);
+      if (I.set && SETS[I.set]) linhas.push(`🔗 ${SETS[I.set].name} (${SETS[I.set].pecas || '?'} peças)`);
+    } else if (I.desc) linhas.push(I.desc);
+    if (I.desafio) linhas.push(I.preso ? '🔒 Só de quem fez a aventura do amigo: não troca nem vende.' : '🏆 Só se ganha num desafio.');
+    else if (de.length) linhas.push(`📍 Cai de: ${de.join(', ')}`);
+    else if (I.price) linhas.push(`🛒 Vende nas lojas por ${I.price.toLocaleString('pt-BR')} cr`);
+    if (I.sell) linhas.push(`💰 Vende por ${I.sell.toLocaleString('pt-BR')} cr`);
+    dialog(`${I.ic} <span style="color:${cor}">${I.name}</span>`, `${dono ? `<small>Mostrado por <b>${dono}</b> no chat</small><br>` : ''}${linhas.join('<br>')}`, [{ label: 'Fechar' }]);
+  }
+  // escolher um item da mochila (ou equipado) para mostrar no chat
+  function escolherParaChat(fn) {
+    const eq = [...new Set(Object.values(P.equip || {}).filter(Boolean))];
+    const inv = Object.keys(P.inv).filter(id => P.inv[id] > 0 && ITEMS[id] && !eq.includes(id));
+    const ord = id => { const I = ITEMS[id]; return (I.kind === 'equip' ? 0 : I.kind === 'carta' ? 1 : 2) * 10 - (I.rar || 0); };
+    const lista = [...eq.map(id => [id, true]), ...inv.sort((a, b) => ord(a) - ord(b)).map(id => [id, false])].slice(0, 40);
+    const opts = lista.map(([id, usando]) => { const I = ITEMS[id]; return { label: `${I.ic} ${I.name}${usando ? ' (equipado)' : P.inv[id] > 1 ? ' ×' + P.inv[id] : ''}`, fn: () => { fn(id); } }; });
+    opts.push({ label: 'Cancelar' });
+    dialog('🎒 Mostrar um item no chat', 'Escolha o item: ele aparece na mensagem e quem tocar no nome vê a ficha completa.', opts);
+  }
+  return { ficha, escolherParaChat, use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
 })();

@@ -41,6 +41,21 @@ const Quests = (() => {
     { id: 'f6', type: 'principal', giver: 'Lira', req: 'f5', title: 'O Guardião Branco', txt: 'A lança dele brilha com uma força diferente: não é Vazio nem Essência. É algo anterior aos dois.', steps: [{ kill: 'guardiaoBranco', n: 1 }], rw: { xp: 120000, zeny: 15000, items: { lanca_ordem: 1, runa_ordem: 1 } }, lore: 'Quando a poeira baixa, não há corpo. Apenas a lança, cravada no chão. Antes de sumir, uma palavra surge na lâmina: PRIMEIRA RAIZ. — Meu nome era Lira — diz a pequena criatura, com um cristal negro pulsando sob a pele do peito. — Eu morri há muito tempo. Alguém precisa lembrar.' },
     { id: 'f7', type: 'principal', giver: 'Lira', req: 'f6', title: 'A parede dos dois espinhos', txt: 'Ao norte, numa encosta, não há templo nem porta. Só uma parede de pedra com dois espinhos, um claro e um escuro.', steps: [{ reach: [FWALL.x, FWALL.z + 4, 5], label: 'Chegue à parede do Templo' }], rw: { xp: 40000, zeny: 5000 }, lore: '"Somente os que carregam a ruptura podem entrar." A marca dos espinhos brilha em dourado, depois em vermelho, por fim em preto. A montanha treme, e a parede se abre num túnel que desce por raízes petrificadas.' },
     { id: 'f8', type: 'principal', giver: 'Lira', req: 'f7', title: 'Testemunhas', txt: 'Nos cristais do túnel há vozes: sacerdotes, guerreiros, crianças, reis. Todos mortos, todos presos nas paredes. Algumas memórias ganharam corpo. Cale-as e chegue à sala redonda.', steps: [{ kill: 'memoria', n: 10 }, { reach: [FHALL.x, FHALL.z + 5, 5], label: 'Chegue à estátua da sala redonda' }], rw: { xp: 160000, zeny: 20000, items: { manto_floresta: 1, fragmento_dourado: 1 } }, lore: 'No centro da sala, uma estátua dos dois irmãos. Mas os rostos são iguais: não como irmãos, e sim como duas versões da mesma criatura. Na base, a inscrição: ANTES DE HAVER DOIS, HOUVE UM.' },
+    // Vale dos Mortos e Ponte dos Mortos (livro I, cap. 8)
+    { id: 'g1', type: 'principal', giver: 'Lira', to: 'Coveira Maren', req: 'f8', lv: 55, title: 'Os sinos do vazio', txt: 'Os sinos estão tocando por todo o Reino. Sete sinos: seis já tocaram, e o sétimo só toca quando a Fonte começa a morrer. O caminho passa pelo Vale dos Mortos, a leste da floresta, e ninguém atravessa o vale.', steps: [], rw: { xp: 60000, zeny: 8000 } },
+    { id: 'g2', type: 'principal', giver: 'Coveira Maren', req: 'g1', title: 'Mãos que saem da terra', txt: 'A névoa sobe até a cintura. Algo toca a sua perna: uma mão pálida saindo da terra. E outra. E outra.', steps: [{ kill: 'maoPalida', n: 12 }], rw: { xp: 110000, zeny: 12000, items: { flor_tumulo: 8 } } },
+    { id: 'g3', type: 'principal', giver: 'Coveira Maren', req: 'g2', title: 'Não responda às vozes', txt: 'Um sussurro atravessa a névoa e chama o seu nome. Não responda. Cale os Sussurros.', steps: [{ kill: 'sussurro', n: 12 }], rw: { xp: 125000, zeny: 13000, items: { blue: 12 } } },
+    { id: 'g4', type: 'principal', giver: 'Coveira Maren', req: 'g3', title: 'A mulher sem olhos', txt: 'O vale se alimenta de lembranças. Ele usa a voz de quem você ama: uma mulher de vestido branco, cabelos longos, o rosto escondido.', steps: [{ kill: 'damaSemOlhos', n: 10 }], rw: { xp: 150000, zeny: 15000, items: { red: 30 } }, lore: 'A mulher ergueu o rosto. Não havia olhos. A boca se abriu. — Você prometeu voltar. — NÃO ESCUTE! A forma desapareceu, mas o rosto ficou na memória. — O vale se alimenta de lembranças.' },
+    { id: 'g5', type: 'principal', giver: 'Coveira Maren', req: 'g4', title: 'As mãos apontam para o norte', txt: 'Dezenas de mãos brotaram do solo e, uma a uma, apontaram para a mesma direção: o norte. Siga até a beira do abismo.', steps: [{ reach: [900, -832, 6], label: 'Chegue à Ponte dos Mortos' }], rw: { xp: 80000, zeny: 9000 }, lore: 'Entre a névoa havia uma ponte, feita não de pedra, mas de ossos. — A Ponte dos Mortos. Se atravessarmos, não poderemos voltar. A cada passo, vozes surgem sob os pés: algumas gritam, outras choram, outras riem.' },
+    { id: 'g6', type: 'principal', giver: 'Coveira Maren', req: 'g5', title: 'Centenas de sombras', txt: 'Na ponte, os ossos se levantam. Embaixo, na névoa do abismo, centenas de sombras esperam.', steps: [{ kill: 'guardaOssos', n: 10 }, { kill: 'sombraVale', n: 10 }], rw: { xp: 190000, zeny: 20000, items: { capuz_vale: 1 } } },
+    { id: 'g7', type: 'principal', giver: 'Coveira Maren', req: 'g6', title: 'O Primeiro Guardião', txt: 'No fim da ponte, sobre a névoa: armadura branca, cajado, olhos dourados. — Kravenox. Eu sabia que você viria.', steps: [{ kill: 'primeiroGuardiao', n: 1 }], rw: { xp: 420000, zeny: 50000, items: { cajado_guardiao: 1, cristal_memoria: 1 } }, lore: '— Você é aquele que estava preso sob a Fonte? — Não. Eu sou aquele que colocou vocês dois lá. Eu não quero destruir o Reino. Quero libertá-lo. A ponte começou a desmoronar, e os dois irmãos caíram juntos no abismo.' },
+    { id: 'h1', type: 'principal', giver: 'Coveira Maren', to: 'Náufraga Ilene', req: 'g7', lv: 70, title: 'A queda', txt: 'A ponte caiu, e os irmãos caíram com ela. No fim da Ponte dos Mortos ficou um redemoinho no chão. Pule. Lá embaixo alguém espera por quem cai.', steps: [], rw: { xp: 200000, zeny: 20000 } },
+    { id: 'h2', type: 'principal', giver: 'Náufraga Ilene', req: 'h1', title: 'Raízes que pendem do nada', txt: 'As raízes que seguram as ilhas também caçam. Corte as Raízes Suspensas que rondam o Refúgio.', steps: [{ kill: 'raizSuspensa', n: 14 }], rw: { xp: 260000, zeny: 24000, items: { luz_suspensa: 10 } } },
+    { id: 'h3', type: 'principal', giver: 'Náufraga Ilene', req: 'h2', title: 'Cristais que andam', txt: 'Os cristais da cidade estão acordando. Quebre os Cristais Vivos e traga os estilhaços.', steps: [{ kill: 'cristalVivo', n: 12 }, { item: 'estilhaco_vivo', n: 6 }], rw: { xp: 300000, zeny: 28000, items: { blue: 15 } } },
+    { id: 'h4', type: 'principal', giver: 'Náufraga Ilene', req: 'h3', title: 'O Jardim de Cristais', txt: 'Siga pelas pontes até o Jardim de Cristais, onde os cristais são maiores que torres.', steps: [{ reach: [CILHAS[3].x, CILHAS[3].z, 9], label: 'Chegue ao Jardim de Cristais' }], rw: { xp: 150000, zeny: 15000 }, lore: 'Os ecos repetem vozes que você nunca ouviu. Uma delas é de menina. Ela não chama Kravenox. Chama <b>irmão</b>.' },
+    { id: 'h5', type: 'principal', giver: 'Náufraga Ilene', req: 'h4', title: 'Vozes que não são suas', txt: 'Os Ecos da Cidade e as Sentinelas Submersas guardam o caminho até o fundo.', steps: [{ kill: 'ecoCidade', n: 12 }, { kill: 'sentinelaSubmersa', n: 10 }], rw: { xp: 380000, zeny: 34000, items: { red: 40 } } },
+    { id: 'h6', type: 'principal', giver: 'Náufraga Ilene', req: 'h5', title: 'Onde não há ponte', txt: 'Entre as Torres Rachadas e O Fundo não existe ponte. Não havia chão, mas a cada passo os pés encontravam uma superfície invisível. Atravesse.', steps: [{ kill: 'larvaAbismo', n: 10 }, { reach: [CILHAS[4].x, CILHAS[4].z, 8], label: 'Chegue a O Fundo' }], rw: { xp: 400000, zeny: 36000 } },
+    { id: 'h7', type: 'principal', giver: 'Náufraga Ilene', req: 'h6', title: 'A Sombra da Fonte', txt: 'No fundo há uma figura coberta de raízes negras. Ela segura um cristal partido ao meio. As raízes não deixam ninguém chegar perto.', steps: [{ kill: 'sombraFonte', n: 1 }], rw: { xp: 900000, zeny: 90000, items: { raiz_fonte: 1, cristal_tres: 1 } }, lore: 'As raízes se soltam. Por baixo há uma garota, de cabelos longos e olhos dourados. — Lira... — Esse foi o nome que me deram depois. Meu nome é <b>Lyra</b>. Eu sou a irmã que vocês esqueceram. O cristal na mão dela já uniu três irmãos.' },
     // ---------------- secundárias
     { id: 's1', type: 'secundaria', giver: 'Irmã Celina', title: 'Ervas para os feridos', txt: 'Preciso de Raízes Secas para os unguentos.', steps: [{ item: 'raiz', n: 4 }], rw: { xp: 120, zeny: 80, items: { blue: 3 } } },
     { id: 's2', type: 'secundaria', giver: 'Mercador Bento', title: 'Gosma para o sabão', txt: 'Gosma de Larva faz o melhor sabão da região.', steps: [{ item: 'gosma', n: 8 }], rw: { xp: 100, zeny: 150, items: { anel_raiz: 1 } } },
@@ -65,6 +80,10 @@ const Quests = (() => {
     { id: 'c8', type: 'caca', board: 'acampamento', repeat: true, title: 'Muralhas de Valdora', txt: 'Cada Sentinela a menos é uma casa a mais.', steps: [{ kill: 'sentinelaMuralha', n: 12 }], rw: { xp: 16000, zeny: 3500, items: { blue: 4 } } },
     { id: 'c9', type: 'caca', board: 'clareira', repeat: true, title: 'A trilha da clareira', txt: 'As Pernaltas cercam quem chega. Abra a trilha.', steps: [{ kill: 'larvaPernalta', n: 15 }], rw: { xp: 45000, zeny: 6000 } },
     { id: 'c10', type: 'caca', board: 'clareira', repeat: true, title: 'Armaduras antigas', txt: 'Larvas Antigas carregam pedaços da armadura da Ordem.', steps: [{ kill: 'larvaAntiga', n: 15 }], rw: { xp: 60000, zeny: 8000, items: { blue: 6 } } },
+    { id: 'c11', type: 'caca', board: 'vigilia', repeat: true, title: 'Mãos na névoa', txt: 'Ninguém dorme com mãos saindo da terra.', steps: [{ kill: 'maoPalida', n: 15 }], rw: { xp: 130000, zeny: 14000 } },
+    { id: 'c12', type: 'caca', board: 'vigilia', repeat: true, title: 'Ossos da ponte', txt: 'A Vigília paga por cada Guarda de Ossos que cai no abismo.', steps: [{ kill: 'guardaOssos', n: 12 }], rw: { xp: 170000, zeny: 18000, items: { blue: 8 } } },
+    { id: 'c13', type: 'caca', board: 'refugio', repeat: true, title: 'Raízes famintas', txt: 'As raízes sobem pelas bordas do Refúgio à noite.', steps: [{ kill: 'raizSuspensa', n: 15 }], rw: { xp: 240000, zeny: 22000 } },
+    { id: 'c14', type: 'caca', board: 'refugio', repeat: true, title: 'Calar os ecos', txt: 'Ninguém consegue dormir com vozes que não são de ninguém.', steps: [{ kill: 'ecoCidade', n: 12 }], rw: { xp: 300000, zeny: 26000, items: { blue: 8 } } },
     // ---------------- ocultas (quem dá está escondido pelo mapa)
     { id: 'h1', type: 'oculta', giver: 'Viajante Perdido', title: 'O anel engolido', txt: '"Uma Raiz Rastejante engoliu o anel da minha mãe... por favor."', steps: [{ kill: 'fungolino', n: 8 }], rw: { xp: 600, zeny: 500, items: { anel_cristal: 1 } } },
     { id: 'h2', type: 'oculta', giver: 'Eco Sussurrante', title: 'Vozes da cratera', txt: '"Traga o pó dos meus irmãos e eu te conto um segredo."', steps: [{ item: 'po_eco', n: 5 }], rw: { xp: 900, zeny: 300, items: { colar_sombra: 1 } }, lore: 'O Eco sussurra: "Antes do Cisma, o Reino era um só. A Fonte guardava a memória de todos… e alguém quis guardá-la só para si."' },
@@ -94,13 +113,19 @@ const Quests = (() => {
   const available = q => !S().act[q.id] && (q.repeat || !S().done[q.id]) && (!q.req || S().done[q.req]) && (!q.lv || P.lv >= q.lv);
   const npcByName = n => NPCS.find(o => o.name === n);
 
+  // contratos do Quadro de Caça: no máximo 6 por dia (somando os aceitos e os já entregues hoje)
+  const LIM_CACA = 6, hoje = () => new Date().toLocaleDateString('pt-BR');
+  function cacas() { const s = S(); if (!s.caca || s.caca.d !== hoje()) s.caca = { d: hoje(), n: 0 }; return s.caca; }
+  const cacasUsadas = () => cacas().n + Object.keys(S().act).filter(id => byId[id] && byId[id].type === 'caca').length;
   function accept(q) {
+    if (q.type === 'caca' && cacasUsadas() >= LIM_CACA) { log(`📋 Você já pegou os <b>${LIM_CACA} contratos de caça de hoje</b>. O quadro abre de novo amanhã.`, 'bad'); Audio8.sfx('miss'); return; }
     P.qGo = null;
     S().act[q.id] = { k: {} }; Audio8.sfx('buff');
     log(`${TYPE[q.type].dot} Missão aceita: <b style="color:${colorOf(q)}">${q.title}</b>`, 'gold'); save();
   }
   function finish(q) {
     for (const st of q.steps) if (st.item) P.inv[st.item] = Math.max(0, (P.inv[st.item] || 0) - st.n);
+    if (q.type === 'caca') cacas().n++;
     delete S().act[q.id]; S().done[q.id] = (S().done[q.id] || 0) + 1;
     const r = q.rw || {}; P.zeny += r.zeny || 0;
     const got = [];
@@ -137,14 +162,15 @@ const Quests = (() => {
     for (const q of qs) {
       if (S().act[q.id] && ready(q)) opts.push({ label: `✅ Receber: ${q.title}`, fn: () => { finish(q); setTimeout(() => boardTalk(city), 50); } });
       else if (S().act[q.id]) opts.push({ label: `⏳ ${q.title} (${prog(q, 0)}/${q.steps[0].n})`, fn: () => true });
+      else if (cacasUsadas() >= LIM_CACA) opts.push({ label: `🔒 ${q.title} — amanhã`, fn: () => true });
       else opts.push({ label: `🟢 ${q.title} — ${rewardTxt(q)}`, fn: () => { accept(q); setTimeout(() => boardTalk(city), 50); } });
     }
     P.warps = P.warps || {}; P.warps[city] = 1;            // memória de viagem: só leva a cidades já visitadas
     opts.push({ label: '🧭 Viagem rápida', fn: () => { travel(city); return true; } });
     opts.push({ label: 'Fechar' });
-    dialog('📋 Quadro de Caça', 'Contratos de caça da cidade. Pode repetir quantas vezes quiser.', opts);
+    dialog('📋 Quadro de Caça', `Contratos de caça da cidade. <b>Até ${LIM_CACA} por dia</b> (somando todos os quadros).<br><small>Hoje: <b>${cacasUsadas()} de ${LIM_CACA}</b>${cacasUsadas() >= LIM_CACA ? ' · o quadro abre de novo amanhã' : ''}</small>`, opts);
   }
-  const CITY_N = { solmira: 'Vila de Solmira', kharum: 'Oásis de Kharum', cidadela: 'Cidadela do Cisma', acampamento: 'Acampamento de Valdora', clareira: 'Clareira de Lira', praia: 'Praia de Cômodo' };
+  const CITY_N = { solmira: 'Vila de Solmira', kharum: 'Oásis de Kharum', cidadela: 'Cidadela do Cisma', acampamento: 'Acampamento de Valdora', clareira: 'Clareira de Lira', praia: 'Praia de Cômodo', vigilia: 'Vigília do Vale', refugio: 'Refúgio Suspenso' };
   function travel(from) {
     const opts = Object.keys(BOARDS).filter(c => c !== from).map(c => P.warps[c]
       ? { label: `🧭 ${CITY_N[c]} — 50 cr`, fn: () => {
@@ -191,13 +217,17 @@ const Quests = (() => {
     if (q.board) { const b = BOARDS[q.board]; return { x: b.x, z: b.z, name: 'Quadro de Caça · ' + placeOf(b.x, b.z) }; }
     const n = npcByName(q.giver); return n ? { x: n.x, z: n.z, name: n.name + ' · ' + placeOf(n.x, n.z) } : null;
   }
+  // missões novas (que você ainda não pegou nem viu no diário): o 📜 mostra "!"
+  const novas = () => Q.filter(q => (q.type === 'principal' || q.type === 'secundaria') && available(q) && giverPos(q));
+  function novasCount() { const v = S().vistas || {}; return novas().filter(q => !v[q.id]).length; }
   function journal() {
     const act = Object.keys(S().act).map(id => byId[id]).filter(Boolean);
     const avail = Q.filter(q => q.type !== 'oculta' && available(q));
+    const sv = S(); sv.vistas = sv.vistas || {}; const novo = new Set(novas().filter(q => !sv.vistas[q.id]).map(q => q.id)); for (const id of novo) sv.vistas[id] = 1;
     const done = Object.keys(S().done).length;
     const opts = [];
     for (const q of act) opts.push({ label: `🧭 ${TYPE[q.type].dot} ${q.title} — ${ready(q) ? 'pronta para entregar' : 'em andamento'}`, fn: () => { follow(q.id); P.qGo = null; $('quest').dataset.h = ''; } });
-    for (const q of avail) { const g = giverPos(q); if (!g) continue; opts.push({ label: `${TYPE[q.type].dot} ${q.title} — pegar com ${g.name}`, fn: () => { P.qGo = g; Audio8.sfx('click'); log(`🧭 A seta leva até <b>${g.name}</b> para pegar <b style="color:${colorOf(q)}">${q.title}</b>.`, 'sys'); $('quest').dataset.h = ''; } }); }
+    for (const q of avail) { const g = giverPos(q); if (!g) continue; opts.push({ label: `${novo.has(q.id) ? '🆕 ' : ''}${TYPE[q.type].dot} ${q.title} — pegar com ${g.name}`, fn: () => { P.qGo = g; Audio8.sfx('click'); log(`🧭 A seta leva até <b>${g.name}</b> para pegar <b style="color:${colorOf(q)}">${q.title}</b>.`, 'sys'); $('quest').dataset.h = ''; } }); }
     opts.push({ label: 'Fechar' });
     dialog('📖 Diário de Missões', `<small>🟡 principal · 🔵 secundária · 🟢 caça · 🟣 oculta</small><br>${act.length} ativa(s) · ${avail.length} disponível(is) · ${done} concluída(s).<br><small>Toque numa disponível e a seta leva até quem dá a missão.</small>`, opts);
   }
@@ -212,6 +242,11 @@ const Quests = (() => {
   }
   // destino da seta: missão principal ativa (ou a primeira)
   function target() {
+    if (P.qGo && P.qGo.reg) {                        // indo para outro mapa (Mapa do Mundo): passagem por passagem até chegar
+      const G = P.qGo, aqui = inTower(P.z) ? 'torre' : mapaDe(P.x, P.z);
+      if (aqui === G.reg || (G.reg === 'torre' && Math.hypot(P.x - Tower.door.x, P.z - Tower.door.z) < 6)) { if (G.fim && Math.hypot(P.x - G.fim.x, P.z - G.fim.z) > 4) { G.x = G.fim.x; G.z = G.fim.z; G.name = `o ponto marcado (${G.regN})`; return G; } log(`🧭 Você chegou: <b>${G.regN}</b>.`, 'sys'); P.qGo = null; return null; }
+      const w = BigMap.rota(aqui, G.reg); G.x = w.x; G.z = w.z; G.name = `${w.name}, caminho para ${G.regN}`; return G;
+    }
     if (P.qGo) { if (!P.qGo.grave && Math.hypot(P.x - P.qGo.x, P.z - P.qGo.z) < 4) { log(`🧭 Você chegou: <b>${P.qGo.name}</b>.`, 'sys'); P.qGo = null; } else return P.qGo; }
     const act = Object.keys(S().act).map(id => byId[id]).filter(Boolean);
     const q = byId[focusId()]; if (!q) return null;
@@ -231,7 +266,7 @@ const Quests = (() => {
   }
 
   // ---------------- mundo: quadros de caça, tesouros e NPCs escondidos
-  const BOARDS = { solmira: { x: VIL.x - 9, z: VIL.z + 9 }, kharum: { x: OAS.x - 12, z: OAS.z - 18 }, cidadela: { x: CIT.x - 4, z: CIT.z - 6 }, acampamento: { x: VCAMP.x + 9, z: VCAMP.z + 3 }, clareira: { x: FCLAR.x + 9, z: FCLAR.z - 1 }, praia: { x: PVILA.x + 10, z: PVILA.z - 2 } };
+  const BOARDS = { solmira: { x: VIL.x - 9, z: VIL.z + 9 }, kharum: { x: OAS.x - 12, z: OAS.z - 18 }, cidadela: { x: CIT.x - 4, z: CIT.z - 6 }, acampamento: { x: VCAMP.x + 9, z: VCAMP.z + 3 }, clareira: { x: FCLAR.x + 9, z: FCLAR.z - 1 }, praia: { x: PVILA.x + 10, z: PVILA.z - 2 }, vigilia: { x: VIGIL.x + 9, z: VIGIL.z + 4 }, refugio: { x: CREF.x - 9, z: CREF.z - 3 } };
   const opened = () => (P.secrets = P.secrets || {});
   const glintMats = [];
   function build() {
@@ -266,6 +301,7 @@ const Quests = (() => {
       }
     }
   }
+  const quadroPerto = () => Math.min(...Object.values(BOARDS).map(b => Math.hypot(b.x - P.x, b.z - P.z)));
   function nearest() {
     for (const [city, b] of Object.entries(BOARDS)) if (Math.hypot(b.x - P.x, b.z - P.z) < 2.6) return { label: 'Ler o Quadro de Caça', fn: () => boardTalk(city) };
     for (const s of SECRETS) if (s.kind === 'bau' && !opened()[s.id] && Math.hypot(s.x - P.x, s.z - P.z) < 2.2) return { label: `Abrir: ${s.name}`, fn: () => openChest(s) };
@@ -299,6 +335,6 @@ const Quests = (() => {
     }
     if (!Object.keys(s.act).some(id => byId[id] && byId[id].type === 'principal')) { const nx = Q.find(q => q.type === 'principal' && available(q)); if (nx) s.act[nx.id] = { k: {} }; }
   }
-  return { warp, readyCount, journal, needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
+  return { quadroPerto, warp, readyCount, novasCount, journal, needItems, follow, talk, boardTalk, mark, onKill, html, target, build, nearest, update, migrate, TYPE };
 })();
 Quests.build();

@@ -156,13 +156,16 @@ function autoWaypoint(T) {
   if (Math.abs(P.z - bz) > 1.4 || Math.abs(P.x - bx) > 8) return { x: bx + sp * 7.5, z: bz };
   return { x: bx - sp * 8, z: bz };
 }
+// passagens entre mapas: quem anda sozinho vai até o meio do arco (e atravessa), não para na frente
+const PORTAS = () => [PGATE, RGATE_P, VGATE_R, VGATE_V, VGATE_VF, FGATE, FGATE_V, VALE_GATE, VGATE_C, CGATE];
+function portaPerto(T) { if (!T) return null; for (const g of PORTAS()) if (Math.hypot(T.x - g.x, T.z - g.z) < 6) return g; return null; }
 function autoDir(dt) {
   if ((AUTO.tgT -= dt) <= 0) { AUTO.tgT = 0.4; AUTO.tg = questTarget(); }
   const T = AUTO.tg;
   if (!T) { autoStop('🚶 Objetivo concluído.'); return null; }
   if (P.hp < AUTO.hp - 1) { autoStop('⚠️ Você foi atacado: parou de andar sozinho.'); return null; }
   AUTO.hp = Math.max(AUTO.hp, P.hp);
-  const W = autoWaypoint(T), dx = W.x - P.x, dz = W.z - P.z, d = Math.hypot(dx, dz);
+  const pt = portaPerto(T), W0 = autoWaypoint(pt || T), W = pt && W0.end ? { x: pt.x, z: pt.z } : W0, dx = W.x - P.x, dz = W.z - P.z, d = Math.hypot(dx, dz);
   if (W.end && d < 3) { autoStop('🚶 Você chegou.'); return null; }
   let a = Math.atan2(dx, dz);
   // desvia de árvores, casas e pedras: testa o caminho à frente e gira até achar passagem
@@ -185,7 +188,7 @@ const SUN_OFF = new THREE.Vector3(40, 34, 22);
 let LASTDAY = null;
 const DAYC = { horizon: new THREE.Color(), top: new THREE.Color(), sunC: new THREE.Color(), hemiC: new THREE.Color(), sunDir: new THREE.Vector3() };
 const C_ = h => new THREE.Color(h);
-const LUAR = C_(0x9aaad0), FLO_H = C_(0x343844), FLO_T = C_(0x0c0a12), DARK_H = C_(0x4a1830), DARK_T = C_(0x12081c), MOUNT_C = C_(0x2a3440), ASH_H = C_(0x5a4440), ASH_T = C_(0x1e1418);
+const CID_H_ = C_(0x241a3a), CID_T = C_(0x06040e), VALE_H_ = C_(0x5a5a66), VALE_T = C_(0x1c161c), LUAR = C_(0x9aaad0), FLO_H = C_(0x343844), FLO_T = C_(0x0c0a12), DARK_H = C_(0x4a1830), DARK_T = C_(0x12081c), MOUNT_C = C_(0x2a3440), ASH_H = C_(0x5a4440), ASH_T = C_(0x1e1418);
 const SUNSET_H = C_(0xd8905a), SUNSET_T = C_(0x5a5a8a), NIGHT_H = C_(0x1c2436), NIGHT_T = C_(0x060914);
 function dayCycle() {
   const forced = /noite/.test(location.hash) ? 0.0 : /tarde/.test(location.hash) ? 0.79 : /dia/.test(location.hash) ? 0.5 : null;
@@ -334,26 +337,43 @@ const inVal = z => z < -300;
 // Floresta Morta e Templo da Primeira Raiz (livro I, caps. 4 e 5): mapa a leste de Valdora (x > 250), níveis 40–55
 const FGATE = { x: 318, z: -760 }, VGATE_VF = { x: 138, z: -705 };              // chegada na Floresta e passagem em Valdora
 const FCLAR = { x: 362, z: -748 }, FGUARD = { x: 470, z: -772 }, FWALL = { x: 545, z: -812 }, FHALL = { x: 545, z: -850 };
-const inFlo = (x, z) => z < -300 && x > 250;
+const inFlo = (x, z) => z < -300 && x > 250 && x < 650;
+// Vale dos Mortos e Ponte dos Mortos (livro I, cap. 8): a leste da Floresta Morta (x > 650), níveis 55–72
+const FGATE_V = { x: 586, z: -742 }, VALE_GATE = { x: 714, z: -742 };          // passagem no leste da Floresta e chegada no Vale
+const VIGIL = { x: 742, z: -742 }, VPONTE = { x0: -836, z1: -872, x: 900 }, VGUARD = { x: 900, z: -868 };
+const inVale = (x, z) => z < -300 && x > 650 && x < 1000;
+// Cidade Submersa (livro I, caps. 9 e 10): ilhas de uma cidade suspensa no vazio (x > 1000), níveis 70–86
+const VGATE_C = { x: 900, z: -873 }, CGATE = { x: 1074, z: -760 };           // a queda no fim da Ponte dos Mortos e a chegada na Cidade
+const CREF = { x: 1084, z: -760 };
+// ilhas da cidade (centro e raio) e as pontes entre elas; o último trecho é o caminho invisível (livro I, cap. 10)
+const CILHAS = [{ x: 1084, z: -760, r: 16, n: 'Refúgio Suspenso' }, { x: 1140, z: -712, r: 19, n: 'Praça Quebrada' }, { x: 1190, z: -800, r: 17, n: 'Torres Rachadas' },
+  { x: 1250, z: -716, r: 19, n: 'Jardim de Cristais' }, { x: 1300, z: -806, r: 16, n: 'O Fundo' }];
+const CPONTES = [[0, 1], [1, 2], [1, 3], [3, 4], [2, 4, 'invisivel']];
+const inCidade = (x, z) => z < -300 && x > 1000;
 // Praia de Cômodo: lugar tranquilo, criado para o jogo (não está no livro), a oeste (x < -250), sem monstros
 const PVILA = { x: -440, z: -760 }, PPIER = { z: -792 }, PFAROL = { x: -505, z: -858 }, PGATE = { x: -318, z: -760 }, RGATE_P = { x: -206, z: -40 };            // chegada na praia e passagem no Reino (oeste)
 const inPraia = (x, z) => z < -300 && x < -250;
-let PRAIA_H = null, PRAIA_OUT = null, PRAIA_ZONA = null;                     // praia.js preenche (antes de construir o mapa)
+let PRAIA_H = null, PRAIA_OUT = null, PRAIA_ZONA = null, VALE_H = null, VALE_OUT = null, VALE_ZONA = null, CID_H = null, CID_OUT = null, CID_ZONA = null;   // praia.js e vale.js preenchem                     // praia.js preenche (antes de construir o mapa)
 // em que mapa está um ponto (para setas de missão, mapa e passagens)
-const mapaDe = (x, z) => inTower(z) ? 'torre' : z < -300 ? (x > 250 ? 'floresta' : x < -250 ? 'praia' : 'valdora') : 'reino';
+const mapaDe = (x, z) => inTower(z) ? 'torre' : z < -300 ? (x > 1000 ? 'cidade' : x > 650 ? 'vale' : x > 250 ? 'floresta' : x < -250 ? 'praia' : 'valdora') : 'reino';
 const TZ = 420;                                                   // andares da torre ficam fora do mapa (z ~ 420)
 // Torre do Cisma: 30 andares + topo. Cada andar é um salão redondo e grande; colada na parede, uma
 // escadaria curva SOBE 7 m até a porta do andar de cima, e do outro lado outra escadaria curva DESCE
 // por um vão no chão até o andar de baixo (as duas dão a volta pela beira do salão).
 const TOP = 30, STAIR_L = 14, STAIR_W = 2.4, STAIR_H = 7;
 const FLOORS = Array.from({ length: TOP + 1 }, (_, i) => ({ i, x: -250 + (i % 10) * 100, z: TZ + 140 + Math.floor(i / 10) * 110, y: 40 + i * STAIR_H, r: i === TOP ? 38 : 30 }));
+// Abismo do Cisma: a Torre ao contrário, descendo pela Cratera. 30 andares (id 100 a 129) e o Fundo (id 130), onde dorme o Verme Colossal
+const AB_N = 30, AB_FUNDO = 100 + AB_N;
+const ABF = Array.from({ length: AB_N + 1 }, (_, k) => ({ i: 100 + k, k, ab: true, fundo: k === AB_N, x: -250 + (k % 10) * 100, z: TZ + 140 + (4 + Math.floor(k / 10)) * 110, y: -10 - k * STAIR_H, r: k === AB_N ? 40 : 30 }));
+const FL = id => id >= 100 ? ABF[id - 100] : FLOORS[id];
 // escadarias laterais: ângulo (θ: x = sen θ, z = cos θ) onde começam, quanto da volta ocupam e a largura
 const RAMPA = { sobe: 0.55 * Math.PI, desce: -0.45 * Math.PI, volta: 0.5 * Math.PI, larg: 4.2 };
 function rampa(f, x, z) {
   if (!f || f.casa) return null;
   const dx = x - f.x, dz = z - f.z, r = Math.hypot(dx, dz); if (r < f.r - RAMPA.larg - 0.3 || r > f.r + 0.6) return null;
   const th = Math.atan2(dx, dz), em = a0 => { const d = ((th - a0) % TAU + TAU) % TAU; return d <= RAMPA.volta ? d / RAMPA.volta : -1; };
-  if (f.i < TOP) { const p = em(RAMPA.sobe); if (p >= 0) return { tipo: 'sobe', p }; }
+  if (f.ab || f.i < TOP) { const p = em(RAMPA.sobe); if (p >= 0) return { tipo: 'sobe', p }; }
+  if (f.fundo) return null;
   const p = em(RAMPA.desce); if (p >= 0) return { tipo: 'desce', p };
   return null;
 }
@@ -362,7 +382,7 @@ function pontoRampa(f, tipo, p) { const th = (tipo === 'sobe' ? RAMPA.sobe : RAM
 const inTower = z => z > 300;
 const CASA = { i: 'casa', casa: true, x: 520, z: TZ, y: 0, r: 8 };            // interior da casa do Sítio (fora do mapa, como a Torre)
 function floorAt(x, z) {
-  const row = Math.round((z - TZ - 140) / 110), col = Math.round((x + 250) / 100), f = row >= 0 && col >= 0 && col < 10 ? FLOORS[row * 10 + col] : null;
+  const row = Math.round((z - TZ - 140) / 110), col = Math.round((x + 250) / 100), f = row >= 0 && col >= 0 && col < 10 ? (row >= 4 ? ABF[(row - 4) * 10 + col] : FLOORS[row * 10 + col]) : null;
   if (f && Math.hypot(x - f.x, z - f.z) < f.r + 6) return f;
   if (Math.hypot(x - CASA.x, z - CASA.z) < CASA.r + 6) return CASA; return null;
 }
@@ -378,7 +398,9 @@ function dRoad(x, z) {
   return Math.min(d, bd);
 }
 function zoneOf(x, z) {
-  if (inTower(z)) { const f = floorAt(x, z); return f && f.casa ? 'casa' : f && f.i === TOP ? 'topo' : 'torre'; }
+  if (inTower(z)) { const f = floorAt(x, z); return f && f.casa ? 'casa' : f && f.fundo ? 'abfundo' : f && f.ab ? 'abismo' : f && f.i === TOP ? 'topo' : 'torre'; }
+  if (z < -300 && x > 1000) return CID_ZONA ? CID_ZONA(x, z) : 'cidade';
+  if (z < -300 && x > 650) return VALE_ZONA ? VALE_ZONA(x, z) : 'vale';
   if (z < -300 && x > 250) return typeof Floresta !== 'undefined' ? Floresta.zona(x, z) : 'floresta';
   if (z < -300 && x < -250) return PRAIA_ZONA ? PRAIA_ZONA(x, z) : 'praia';
   if (z < -300) { const dc = Math.hypot(x - VCITY.x, z - VCITY.z); return Math.hypot(x - VCAMP.x, z - VCAMP.z) < 18 ? 'acampamento' : dc < 40 ? 'valdora' : 'estrada'; }
@@ -391,6 +413,8 @@ function zoneOf(x, z) {
   return 'campos';
 }
 function height(x, z) {
+  if (z < -300 && x > 1000) return CID_H ? CID_H(x, z) : 0;
+  if (z < -300 && x > 650) return VALE_H ? VALE_H(x, z) : 0;
   if (z < -300 && x > 250) return typeof Floresta !== 'undefined' ? Floresta.h(x, z) : 0;
   if (z < -300 && x < -250) return PRAIA_H ? PRAIA_H(x, z) : 0;
   if (z < -300) return typeof Valdora !== 'undefined' ? Valdora.h(x, z) : 0;
@@ -588,7 +612,9 @@ function addOb(x, z, r) {
 }
 function blocked(x, z, r = 0.45) {
   if (inTower(z)) { const f = floorAt(x, z); if (!f || Math.hypot(x - f.x, z - f.z) > f.r - (f.casa ? 1 : 0.5) - r || (typeof Tower !== 'undefined' && Tower.selada(f, x, z))) return true; const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)); if (l) for (const o of l) if (Math.hypot(x - o.x, z - o.z) < o.r + r) return true; return false; }
-  if (z < -300 && x > 250) { if (typeof Floresta === 'undefined' || Floresta.out(x, z, r)) return true; }
+  if (z < -300 && x > 1000) { if (!CID_OUT || CID_OUT(x, z, r)) return true; }
+  else if (z < -300 && x > 650) { if (!VALE_OUT || VALE_OUT(x, z, r)) return true; }
+  else if (z < -300 && x > 250) { if (typeof Floresta === 'undefined' || Floresta.out(x, z, r)) return true; }
   else if (z < -300 && x < -250) { if (!PRAIA_OUT || PRAIA_OUT(x, z, r)) return true; }
   else if (z < -300) { if (typeof Valdora === 'undefined' || Valdora.out(x, z, r)) return true; }
   else if (Math.abs(x) > WX - 4 || Math.abs(z) > WZ - 4) return true;
@@ -624,6 +650,9 @@ for (let i = 0; i < 3200 && trees.length < 470; i++) {
   if (!freeSpot(x, z, 6)) continue;
   trees.push({ x, z, s: rr(0.8, 1.4) });
 }
+// nada de árvore na frente das passagens (a árvore nasce em lugar sorteado e às vezes travava o caminho da Praia)
+const longeDasPassagens = o => Math.hypot(o.x - RGATE_P.x, o.z - RGATE_P.z) > 16 && Math.hypot(o.x - VGATE_R.x, o.z - VGATE_R.z) > 16;
+for (let i = trees.length - 1; i >= 0; i--) if (!longeDasPassagens(trees[i])) trees.splice(i, 1);
 trees.forEach(t => addOb(t.x, t.z, 0.7));
 for (let i = 0; i < 1500 && cacti.length < 70; i++) {
   const x = rr(56, WX - 5), z = rr(-WZ + 5, WZ - 5);
@@ -633,6 +662,7 @@ for (let i = 0; i < 1500 && cacti.length < 70; i++) {
 for (let i = 0; i < 1500 && rocks.length < 90; i++) {
   const x = rr(-60, WX - 5), z = rr(-WZ + 5, WZ - 5);
   if (Math.hypot(x - OAS.x, z - OAS.z) < 34 || Math.hypot(x - CIT.x, z - CIT.z) < 30 || !freeSpot(x, z)) continue;
+  if (!longeDasPassagens({ x, z })) continue;
   const s = rr(0.5, x > 50 ? 1.8 : 1); rocks.push({ x, z, s }); addOb(x, z, s * 0.8);
 }
 for (let a = 0; a < TAU; a += TAU / 14) palms.push({ x: OAS.x + Math.cos(a) * 11.5, z: OAS.z + Math.sin(a) * 11.5, s: rr(0.9, 1.2), lean: rr(-0.2, 0.2) });
@@ -979,6 +1009,7 @@ const MOBDEF = {
   besouro:   { name: 'Larva Cristalina', lv: 9, hp: 200, atk: 19, def: 6, xp: 60, zeny: [12, 28], speed: 2.2, aggro: 8, respawn: 12, drops: [['red', 0.3], ['blue', 0.1]] },
   serpe:     { name: 'Sombra Errante', lv: 12, hp: 300, atk: 26, def: 8, xp: 95, zeny: [18, 40], speed: 2.6, aggro: 9, respawn: 14, drops: [['red', 0.3], ['blue', 0.15]] },
   kravenox:  { name: 'Kravenox', lv: 60, hp: 300000, atk: 140, def: 42, xp: 90000, zeny: [8000, 12000], speed: 3.4, aggro: 40, rad: 5, respawn: 1e9, boss: true, world: true, drops: [['blue', 1], ['blue', 1], ['blue', 1], ['red', 1], ['red', 1], ['red', 1]] },
+  vermeColosso: { name: 'Verme Colossal', lv: 100, hp: 900000, atk: 400, def: 85, xp: 260000, zeny: [15000, 25000], speed: 0, aggro: 0, rad: 6, respawn: 1e9, boss: true, world: true, drops: [['presa_verme', 1], ['presa_verme', 1], ['quitina_colossal', 0.5], ['blue', 1], ['red', 1]] },
   larva:     { name: 'Larva Alongada', lv: 14, hp: 520, atk: 34, def: 10, xp: 180, zeny: [20, 45], speed: 2.4, aggro: 13, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.15]] },
   verme:     { name: 'Larva Encouraçada', lv: 16, hp: 640, atk: 40, def: 12, xp: 230, zeny: [25, 55], speed: 2.0, aggro: 12, respawn: 1e9, drops: [['red', 0.4], ['blue', 0.2]] },
   esfera:    { name: 'Fragmento Errante', lv: 17, hp: 560, atk: 44, def: 16, xp: 260, zeny: [30, 60], speed: 3.0, aggro: 15, respawn: 1e9, drops: [['blue', 0.3]] },
@@ -996,6 +1027,26 @@ const MOBDEF = {
   larvaCristal: { name: 'Larva Cristalizada', lv: 46, hp: 6400, atk: 156, def: 50, xp: 3600, zeny: [170, 330], speed: 2.5, aggro: 13, respawn: 24, drops: [['red', 0.5], ['blue', 0.35]] },
   larvaAntiga: { name: 'Larva Antiga', lv: 50, hp: 8000, atk: 170, def: 58, xp: 4400, zeny: [200, 380], speed: 2.3, aggro: 14, respawn: 25, drops: [['red', 0.55], ['blue', 0.35]] },
   memoria: { name: 'Memória Aprisionada', lv: 53, hp: 7600, atk: 186, def: 50, xp: 5000, zeny: [220, 420], speed: 3.0, aggro: 15, respawn: 25, drops: [['blue', 0.5]] },
+  // Praia de Cômodo: bichos do mar na beira d'água (a vila e o píer continuam tranquilos)
+  caranguejo: { name: 'Caranguejo Rubro', lv: 18, hp: 900, atk: 50, def: 18, xp: 330, zeny: [40, 80], speed: 2.2, aggro: 8, respawn: 18, drops: [['red', 0.4], ['blue', 0.15]] },
+  medusa: { name: 'Medusa Errante', lv: 22, hp: 1300, atk: 62, def: 14, xp: 520, zeny: [50, 100], speed: 1.6, aggro: 10, respawn: 18, drops: [['blue', 0.3]] },
+  tartaruga: { name: 'Tartaruga Espinhosa', lv: 26, hp: 2400, atk: 70, def: 30, xp: 900, zeny: [60, 120], speed: 1.2, aggro: 7, respawn: 20, drops: [['red', 0.45], ['blue', 0.2]] },
+  serpenteOnda: { name: 'Serpente das Ondas', lv: 30, hp: 2600, atk: 95, def: 24, xp: 1300, zeny: [80, 160], speed: 3.0, aggro: 13, respawn: 22, drops: [['red', 0.45], ['blue', 0.25]] },
+  reiCaranguejo: { name: 'Rei Caranguejo', lv: 34, hp: 50000, atk: 140, def: 40, xp: 18000, zeny: [2500, 4000], speed: 2.4, aggro: 16, respawn: 300, boss: true, mini: true, drops: [['blue', 1], ['red', 1]] },
+  // Vale dos Mortos e Ponte dos Mortos (níveis 55–72)
+  maoPalida: { name: 'Mão Pálida', lv: 55, hp: 9000, atk: 200, def: 60, xp: 5600, zeny: [240, 460], speed: 1.0, aggro: 6, respawn: 25, drops: [['red', 0.55], ['blue', 0.35]] },
+  sussurro: { name: 'Sussurro da Névoa', lv: 58, hp: 9500, atk: 215, def: 55, xp: 6200, zeny: [260, 500], speed: 3.0, aggro: 14, respawn: 25, drops: [['blue', 0.45]] },
+  damaSemOlhos: { name: 'Dama sem Olhos', lv: 62, hp: 12000, atk: 240, def: 66, xp: 7600, zeny: [300, 560], speed: 2.6, aggro: 13, respawn: 26, drops: [['red', 0.55], ['blue', 0.4]] },
+  sombraVale: { name: 'Sombra do Vale', lv: 65, hp: 12500, atk: 260, def: 64, xp: 8400, zeny: [320, 600], speed: 3.2, aggro: 15, respawn: 26, drops: [['blue', 0.45]] },
+  guardaOssos: { name: 'Guarda de Ossos', lv: 68, hp: 16000, atk: 280, def: 80, xp: 9800, zeny: [360, 680], speed: 2.4, aggro: 14, respawn: 28, drops: [['red', 0.6], ['blue', 0.4]] },
+  primeiroGuardiao: { name: 'O Primeiro Guardião', lv: 72, hp: 220000, atk: 340, def: 90, xp: 120000, zeny: [12000, 18000], speed: 2.8, aggro: 18, respawn: 480, boss: true, mini: true, drops: [['blue', 1], ['red', 1]] },
+  // Cidade Submersa (níveis 70–86)
+  raizSuspensa: { name: 'Raiz Suspensa', lv: 70, hp: 17000, atk: 300, def: 84, xp: 11000, zeny: [420, 760], speed: 1.8, aggro: 12, respawn: 28, drops: [['red', 0.6], ['blue', 0.4]] },
+  cristalVivo: { name: 'Cristal Vivo', lv: 73, hp: 21000, atk: 320, def: 100, xp: 12500, zeny: [460, 820], speed: 2.0, aggro: 12, respawn: 28, drops: [['red', 0.6], ['blue', 0.4]] },
+  ecoCidade: { name: 'Eco da Cidade', lv: 76, hp: 18000, atk: 340, def: 80, xp: 13800, zeny: [480, 860], speed: 3.0, aggro: 15, respawn: 28, drops: [['blue', 0.5]] },
+  sentinelaSubmersa: { name: 'Sentinela Submersa', lv: 79, hp: 24000, atk: 360, def: 104, xp: 15500, zeny: [520, 920], speed: 2.6, aggro: 15, respawn: 30, drops: [['red', 0.6], ['blue', 0.45]] },
+  larvaAbismo: { name: 'Larva do Abismo', lv: 82, hp: 26000, atk: 380, def: 96, xp: 17000, zeny: [560, 980], speed: 2.6, aggro: 14, respawn: 30, drops: [['red', 0.6], ['blue', 0.45]] },
+  sombraFonte: { name: 'A Sombra da Fonte', lv: 86, hp: 320000, atk: 450, def: 110, xp: 200000, zeny: [18000, 26000], speed: 3.0, aggro: 20, respawn: 600, boss: true, mini: true, drops: [['blue', 1], ['red', 1]] },
   guardiaoBranco: { name: 'Guardião Branco', lv: 56, hp: 140000, atk: 235, def: 62, xp: 60000, zeny: [6000, 9000], speed: 2.8, aggro: 18, respawn: 420, boss: true, mini: true, drops: [['blue', 1], ['red', 1]] },
 };
 const ITEMS = { red: { name: 'Poção Vermelha', price: 25 }, blue: { name: 'Poção Azul', price: 90 } };
@@ -1005,6 +1056,7 @@ function mobModel(type) {
   const mt = c => { const m = new THREE.MeshLambertMaterial({ color: c }); mats.push(m); return m; };
   const ms = c => { const m = new THREE.MeshToonMaterial({ color: c }); mats.push(m); return m; };
   const r = { g, mats };
+  if (type === 'vermeColosso' && typeof Verme !== 'undefined') return Verme.modelo(r, mt);
   if (typeof Modelos3D !== 'undefined' && Modelos3D.has(type)) return Modelos3D.mob(type, r);   // monstros 3D do jogo de plataforma
   if (typeof SpriteKit !== 'undefined' && SpriteKit.ready && SPR_MOBS[type]) return spriteMob(type, r);
   if (['larva', 'verme', 'esfera', 'sentinela'].includes(type)) return towerMobModel(type, r, mt);
@@ -1112,6 +1164,9 @@ const SPR_MOBS = {
   kravenox:  { set: { kind: 'hero', base: 'k' }, px: 22 / 34 },        // o próprio Kravenox, gigante
   raizNegra: { img: 'e_raizRast', h: 2.4 }, ecoCinza: { img: 'e_eco', h: 2.2, float: true }, larvaCinza: { img: 'e_larvaLonga', h: 2.0 },
   sentinelaMuralha: { img: 'e_sentinela', h: 3.0 }, carrasco: { img: 'e_semRosto', h: 5.6 },
+  raizSuspensa: { img: 'e_raizRast', h: 3.0 }, cristalVivo: { img: 'e_fragmento', h: 3.0 }, ecoCidade: { img: 'e_eco', h: 2.4, float: true }, sentinelaSubmersa: { img: 'e_sentinela', h: 3.2 }, larvaAbismo: { img: 'e_larvaLonga', h: 2.8 }, sombraFonte: { img: 'e_sombra', h: 6.5, float: true },
+  maoPalida: { img: 'e_raizRast', h: 1.6 }, sussurro: { img: 'e_eco', h: 2.2, float: true }, damaSemOlhos: { img: 'e_eco', h: 2.7, float: true }, sombraVale: { img: 'e_sombra', h: 2.4, float: true }, guardaOssos: { img: 'e_sentinela', h: 3.0 }, primeiroGuardiao: { img: 'e_semRosto', h: 5.8 },
+  caranguejo: { img: 'e_larva', h: 1.1 }, reiCaranguejo: { img: 'e_larva', h: 3.0 }, medusa: { img: 'e_eco', h: 1.8, float: true }, tartaruga: { img: 'e_larva', h: 1.4 }, serpenteOnda: { img: 'e_larvaLonga', h: 2.2 },
   larvaPernalta: { img: 'e_larvaLonga', h: 2.6 }, raizOssuda: { img: 'e_raizRast', h: 2.8 }, larvaCristal: { img: 'e_larvaLonga', h: 2.4 }, larvaAntiga: { img: 'e_larvaLonga', h: 2.8 }, memoria: { img: 'e_eco', h: 2.4, float: true }, guardiaoBranco: { img: 'e_semRosto', h: 5.4 },
 };
 function spriteMob(type, r) {
@@ -1151,21 +1206,23 @@ const NPCS = [
   { id: 'healer', name: 'Irmã Celina', x: VIL.x - 6, z: VIL.z - 6, look: [0xffffff, 0xf2e6c9, 'veil'] },
   { id: 'shop', name: 'Mercador Bento', x: VIL.x + 6, z: VIL.z - 6, look: [0x7a5a2a, 0x5a3a1a, 'cap'] },
   { id: 'guard', name: 'Guarda Tobias', x: VIL.x + 40, z: VIL.z - 5, look: [0x6a6f7a, 0x333333, 'helm'] },
-  { id: 'healer', name: 'Curandeira Samira', x: OAS.x - 10, z: OAS.z - 18, look: [0xf4f0e6, 0x1a1a1a, 'veil'] },
+  { id: 'healer', name: 'Curandeira Samira', x: OAS.x - 4, z: OAS.z - 27, look: [0xf4f0e6, 0x1a1a1a, 'veil'] },
   { id: 'shop', name: 'Mercador Farid', x: OAS.x + 4, z: OAS.z - 21, look: [0xb5651d, 0x2a1a0a, 'turban'] },
   { id: 'watch', name: 'Vigia Morvan', x: CIT.x + 2, z: CIT.z - 16, look: [0x2a2430, 0x1a1a1a, 'helm'] },
   { id: 'healer', name: 'Curandeira Ilsa', x: CIT.x - 8, z: CIT.z + 2, look: [0x3a2848, 0xd8d8d8, 'veil'] },
   { id: 'shop', name: 'Mercador Dravo', x: CIT.x + 8, z: CIT.z + 3, look: [0x5a2a2a, 0x2a1a0a, 'cap'] },
   { id: 'smith', name: 'Ferreiro Doran', x: VIL.x - 12, z: VIL.z - 8, look: [0x4a3a2a, 0x2a1a0a, 'cap'] },
-  { id: 'warp', city: 'solmira', name: 'Guia de Viagem Lúcio', x: VIL.x - 6, z: VIL.z + 10, look: [0x3a5a8a, 0x2a1a0a, 'cap'] },
-  { id: 'warp', city: 'kharum', name: 'Guia de Viagem Nadira', x: OAS.x - 15, z: OAS.z - 17, look: [0xb5651d, 0x1a1a1a, 'veil'] },
-  { id: 'warp', city: 'cidadela', name: 'Guia de Viagem Bram', x: CIT.x - 7, z: CIT.z - 4, look: [0x3a3442, 0x1a1a1a, 'helm'] },
+  { id: 'warp', city: 'solmira', name: 'Guia de Viagem Lúcio', x: VIL.x - 2, z: VIL.z + 13, look: [0x3a5a8a, 0x2a1a0a, 'cap'] },
+  { id: 'warp', city: 'kharum', name: 'Guia de Viagem Nadira', x: OAS.x - 20, z: OAS.z - 12, look: [0xb5651d, 0x1a1a1a, 'veil'] },
+  { id: 'warp', city: 'cidadela', name: 'Guia de Viagem Bram', x: CIT.x - 12, z: CIT.z - 6, look: [0x3a3442, 0x1a1a1a, 'helm'] },
   { id: 'elder', name: 'Anciã Zahra', x: OAS.x + 14, z: OAS.z - 14, look: [0x6c3483, 0xe0e0e0, 'veil'] },
   // Acampamento dos refugiados de Valdora
   { id: 'refugee', name: 'Arlen, o Refugiado', x: VCAMP.x + 5, z: VCAMP.z - 4, look: [0x5a4a3a, 0x2a1a0a, 'cap'] },
   { id: 'healer', name: 'Curandeira Wenna', x: VCAMP.x - 7, z: VCAMP.z + 1, look: [0xd8d0c0, 0x6a4a2a, 'veil'] },
-  { id: 'shop', name: 'Mascate Iara', x: VCAMP.x + 7, z: VCAMP.z + 5, look: [0x8a5a2a, 0x2a1a0a, 'veil'] },
+  { id: 'shop', name: 'Mascate Iara', x: VCAMP.x + 4, z: VCAMP.z + 9, look: [0x8a5a2a, 0x2a1a0a, 'veil'] },
   { id: 'warp', city: 'acampamento', name: 'Guia de Viagem Tessa', x: VCAMP.x - 3, z: VCAMP.z + 8, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
+  // Nosferatur: menino da Praia de Cômodo (pedido do Rone, nome escrito assim mesmo)
+  { id: 'nosferatur', dsf: 'nosferatur', name: 'Nosferatur', crianca: true, x: PVILA.x - 3, z: PVILA.z + 4, look: [0x3a2a4a, 0x1a1a1a, 'cap'] },
   // Clareira de Lira (Floresta Morta)
   { id: 'lira', name: 'Lira', x: FCLAR.x - 4, z: FCLAR.z - 5, look: [0x2a2430, 0x0a0a0a, 'veil'] },
   { id: 'healer', name: 'Eremita Odila', x: FCLAR.x + 5, z: FCLAR.z - 4, look: [0xd8d0c0, 0x8a8a8a, 'veil'] },
@@ -1178,17 +1235,35 @@ const NPCS = [
   { id: 'warp', city: 'praia', name: 'Guia de Viagem Davi', x: PVILA.x + 7, z: PVILA.z + 7, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
   { id: 'pescador', name: 'Pescador Zé do Mar', x: -508, z: PPIER.z + 5, look: [0x8a6a3a, 0x6a6a6a, 'cap'] },
   { id: 'faroleira', name: 'Faroleira Rosa', x: PFAROL.x + 9, z: PFAROL.z + 8, look: [0x2a3a6a, 0x5a3a2a, 'veil'] },
+  // Vigília do Vale (Vale dos Mortos)
+  { id: 'maren', name: 'Coveira Maren', x: VIGIL.x + 3, z: VIGIL.z - 5, look: [0x3a3a3a, 0x8a8a8a, 'veil'] },
+  { id: 'healer', name: 'Curandeira Brisa', x: VIGIL.x - 5, z: VIGIL.z - 3, look: [0xe8e4dc, 0x6a4a2a, 'veil'] },
+  { id: 'shop', name: 'Mascate Osvaldo', x: VIGIL.x - 4, z: VIGIL.z + 6, look: [0x4a3a2a, 0x2a2a2a, 'cap'] },
+  { id: 'warp', city: 'vigilia', name: 'Guia de Viagem Tália', x: VIGIL.x + 6, z: VIGIL.z + 7, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
+  { id: 'desafio', dsf: 'severo', name: 'Vigia Severo', x: VIGIL.x + 9, z: VIGIL.z - 1, look: [0x2a2a3a, 0x4a4a4a, 'helm'] },
+  // Refúgio Suspenso (Cidade Submersa)
+  { id: 'ilene', name: 'Náufraga Ilene', x: CREF.x + 4, z: CREF.z - 5, look: [0x5a6a8a, 0x8a8a9a, 'veil'] },
+  { id: 'healer', name: 'Curandeira Nádia', x: CREF.x - 5, z: CREF.z - 4, look: [0xe8e4dc, 0x4a3a2a, 'veil'] },
+  { id: 'shop', name: 'Mascate Teodoro', x: CREF.x - 5, z: CREF.z + 5, look: [0x4a3a5a, 0x2a2a2a, 'cap'] },
+  { id: 'warp', city: 'refugio', name: 'Guia de Viagem Elói', x: CREF.x + 2, z: CREF.z + 8, look: [0x3a4a5a, 0x1a1a1a, 'cap'] },
+  { id: 'desafio', dsf: 'oren', name: 'Vidente Oren', x: CREF.x + 9, z: CREF.z + 1, look: [0x2a1a3a, 0x9a9aa8, 'veil'] },
   // mestres dos Desafios (desafios.js): caçadas e entregas longas com prêmios que só existem lá
+  { id: 'desafio', dsf: 'ludivicki', name: 'Ludivicki', x: VIL.x + 8, z: VIL.z + 13, look: [0x3a7a4a, 0x2a1a0a, 'cap'] },   // amigo do Rone
   { id: 'desafio', dsf: 'ivanna', name: 'Caçadora Ivanna', x: VIL.x + 12, z: VIL.z + 2, look: [0x4a6a2a, 0x6a3a1a, 'cap'] },
-  { id: 'desafio', dsf: 'zahir', name: 'Nômade Zahir', x: OAS.x + 9, z: OAS.z - 12, look: [0xc8a060, 0x1a1a1a, 'turban'] },
+  { id: 'desafio', dsf: 'zahir', name: 'Rivas', x: OAS.x + 9, z: OAS.z - 12, look: [0xc8a060, 0x1a1a1a, 'turban'] },
+  { id: 'desafio', dsf: 'imperium', name: 'Imperium', x: CIT.x - 10, z: CIT.z + 12, look: [0x5a1a6a, 0xffcf40, 'helm'] },   // amigo do Rone
   { id: 'desafio', dsf: 'vex', name: 'Arauto Vex', x: CIT.x + 5, z: CIT.z + 10, look: [0x2a1a3a, 0x0a0a0a, 'helm'] },
+  { id: 'desafio', dsf: 'skye', name: 'Skye', x: VCAMP.x - 8, z: VCAMP.z - 7, look: [0x2a1a2a, 0x1a1a1a, 'veil'] },   // amiga do Rone (Milena), assassina
+  { id: 'desafio', dsf: 'temmer', name: 'Michel Temmer', x: FCLAR.x - 9, z: FCLAR.z - 1, look: [0x6a3a2a, 0x2a1a1a, 'cap'] },   // amigo do Rone (Diogo)
+  { id: 'desafio', dsf: 'sacer', name: 'Will Sacer', x: VIGIL.x - 10, z: VIGIL.z - 3, look: [0xf0ecdc, 0xc8a050, 'cap'] },     // sacerdote
+  { id: 'desafio', dsf: 'urakin', name: 'Urakin Star', x: CREF.x - 2, z: CREF.z - 10, look: [0x2a3a6a, 0xfff0a0, 'cap'] },
   { id: 'desafio', dsf: 'brigida', name: 'Velha Brígida', x: VCAMP.x + 2, z: VCAMP.z - 10, look: [0x5a5a5a, 0xd0d0d0, 'veil'] },
 ];
-const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Nômade Zahir': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha', 'Lira': 'refugiada', 'Eremita Odila': 'velha', 'Mascate Corvo': 'mascate', 'Guia de Viagem Ione': 'aldea', 'Andarilho Teodor': 'estranho', 'Curandeira Marisa': 'senhora', 'Peixeiro Bené': 'mascate', 'Guia de Viagem Davi': 'aldeao', 'Pescador Zé do Mar': 'aldeao', 'Faroleira Rosa': 'aldea' };
+const NPC_SPR = { 'Mestra Odete': 'ancia', 'Irmã Celina': 'senhora', 'Mercador Bento': 'mascate', 'Guarda Tobias': 'aldeao', 'Curandeira Samira': 'aldea', 'Mercador Farid': 'mascate', 'Vigia Morvan': 'estranho', 'Curandeira Ilsa': 'refugiada', 'Mercador Dravo': 'refugiado', 'Anciã Zahra': 'velha', 'Ferreiro Doran': 'refugiado', 'Guia de Viagem Lúcio': 'aldeao', 'Guia de Viagem Nadira': 'aldea', 'Guia de Viagem Bram': 'estranho', 'Caçadora Ivanna': 'aldea', 'Rivas': 'mascate', 'Arauto Vex': 'estranho', 'Velha Brígida': 'velha', 'Lira': 'refugiada', 'Eremita Odila': 'velha', 'Mascate Corvo': 'mascate', 'Guia de Viagem Ione': 'aldea', 'Andarilho Teodor': 'estranho', 'Nosferatur': 'aldeao', 'Curandeira Marisa': 'senhora', 'Peixeiro Bené': 'mascate', 'Guia de Viagem Davi': 'aldeao', 'Pescador Zé do Mar': 'aldeao', 'Faroleira Rosa': 'aldea', 'Coveira Maren': 'velha', 'Curandeira Brisa': 'senhora', 'Mascate Osvaldo': 'mascate', 'Guia de Viagem Tália': 'aldea', 'Vigia Severo': 'estranho', 'Náufraga Ilene': 'refugiada', 'Curandeira Nádia': 'senhora', 'Mascate Teodoro': 'mascate', 'Guia de Viagem Elói': 'aldeao', 'Vidente Oren': 'velha', 'Skye': 'refugiada', 'Michel Temmer': 'refugiado', 'Will Sacer': 'aldeao', 'Urakin Star': 'estranho', 'Ludivicki': 'aldeao', 'Imperium': 'estranho' };
 function spriteNPCs() {
   for (const n of NPCS) {
     const a = SpriteKit.actor({ kind: 'dir', base: 's_' + (NPC_SPR[n.name] || 'aldeao') });
-    for (const c of [...n.g.children]) if (c !== n.bang) n.g.remove(c);
+    for (const c of [...n.g.children]) if (c !== n.bang && c !== n.papel) n.g.remove(c);
     n.g.add(a.root); n.spr = a; n.face0 = n.g.rotation.y; n.bangY = a.h + 0.45;
   }
 }
@@ -1197,7 +1272,7 @@ function upgradeNPCs() {
     const [cloth, hair, hat] = n.look, fem = ['veil', 'flower'].includes(hat);
     const inst = ModelKit.instance(fem ? 'hooded_adventurer' : 'worker', 1.72);
     if (!inst) return;
-    for (const c of [...n.g.children]) if (c !== n.bang) n.g.remove(c);
+    for (const c of [...n.g.children]) if (c !== n.bang && c !== n.papel) n.g.remove(c);
     if (fem) { inst.tint('DarkBrown', cloth); inst.tint('LightBrown', 0xe8d8b0); const sw = inst.obj.getObjectByName('Sword') || inst.mesh('Sword'); if (sw) sw.visible = false; }
     else { inst.tint('Shirt', cloth); inst.tint('Hair', hair); inst.tint('Pants', 0x4a3a2a); }
     inst.play(fem ? 'Idle' : 'Man_Idle');
@@ -1226,7 +1301,7 @@ function npcMark(n) {
   if (qm) k = qm; else
   if (false) { }
   else if (n.id === 'farm') k = P.farmSeen ? '' : '!:#7dff9a';
-  else if (n.id === 'desafio' && typeof Desafios !== 'undefined') k = Desafios.mark(n);
+  else if ((n.id === 'desafio' || n.id === 'nosferatur') && typeof Desafios !== 'undefined') k = Desafios.mark(n);
   else if (n.id === 'watch' && typeof Evo !== 'undefined') k = Evo.mark();
   const live = !!k && !k.endsWith('#7a7a88');
   if (n.beam && n.beam.visible) {                       // pulso do medalhão, coluna de luz e anel no chão
@@ -1241,6 +1316,15 @@ function npcMark(n) {
   }
   if (n.beam) { n.beam.visible = n.ring.visible = live; if (live) { const c = new THREE.Color(k.split(':')[1]); n.beam.material.color.copy(c); n.ring.material.color.copy(c); } }
 }
+// o que cada NPC de serviço faz, em cima da cabeça (ideia do Ludi): 🧪 consumíveis e equipamentos, ❤️ cura, ⚒️ ferreiro, 🧭 viagem
+const PAPEL = { shop: '🧪', healer: '❤️', smith: '⚒️', warp: '🧭', pescador: '🎣' };
+function iconeSprite(em) {
+  const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d');
+  x.fillStyle = 'rgba(16,10,24,.78)'; x.beginPath(); x.arc(48, 48, 44, 0, TAU); x.fill(); x.lineWidth = 5; x.strokeStyle = '#f2c86a'; x.stroke();
+  x.font = '54px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(em, 48, 52);
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: true, fog: false, toneMapped: false, transparent: true })); s.scale.setScalar(0.55); return s;
+}
 function bangSprite() {
   const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
   x.font = 'bold 54px Verdana'; x.textAlign = 'center'; x.lineWidth = 6; x.strokeStyle = '#000'; x.strokeText('!', 32, 52); x.fillStyle = '#ffcf40'; x.fillText('!', 32, 52);
@@ -1249,6 +1333,7 @@ function bangSprite() {
 for (const n of NPCS) {
   const [cloth, hair, hat] = n.look;
   const g = new THREE.Group(); g.position.set(n.x, groundY(n.x, n.z), n.z); scene.add(g);
+  if (n.crianca) g.scale.setScalar(0.62);                                       // criança: bem menor que os adultos
   g.rotation.y = Math.atan2(VIL.x - n.x, VIL.z - n.z) + (n.x > 0 ? Math.PI : 0);
   mesh(new THREE.CylinderGeometry(0.2, 0.36, 1.2, 10), toon(cloth), 0, 0.6, 0, g);
   mesh(new THREE.CylinderGeometry(0.18, 0.2, 0.25, 10), toon(cloth), 0, 1.3, 0, g);
@@ -1261,6 +1346,7 @@ for (const n of NPCS) {
   if (hat === 'turban') mesh(new THREE.TorusGeometry(0.15, 0.08, 8, 14), toon(0xf4d03f), 0, 1.72, 0, g).rotation.x = Math.PI / 2;
   if (hat === 'flower') for (let k = 0; k < 5; k++) mesh(new THREE.SphereGeometry(0.035, 6, 4), toon(0xff8ac0), 0.12 + Math.cos(k * TAU / 5) * 0.04, 1.72 + Math.sin(k * TAU / 5) * 0.04, 0.05, g, false);
   const bang = bangSprite(); bang.position.y = 2.3; g.add(bang); n.bang = bang; n.g = g;
+  const pap = PAPEL[n.id]; if (pap) { const ps = iconeSprite(pap); ps.position.y = 2.45; g.add(ps); n.papel = ps; }   // ícone do que ele faz (🧪 loja, ❤️ cura...)
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   addOutline(g);
   addOb(n.x, n.z, 1.6);
@@ -1284,7 +1370,7 @@ refreshSkills();
 // bônus de buffs: multiplicativos (atk, matk, aspd, speed) e aditivos (def, crit, poison, regen)
 function bmul(k) { let v = 1; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v *= m[k]; } return v; }
 function badd(k) { let v = 0; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v += m[k]; } return v; }
-const gearB = k => (typeof Vida !== 'undefined' ? Vida.gear(k) : 0);
+const gearB = k => (typeof Vida !== 'undefined' ? Vida.gear(k) : 0) + (typeof Mascotes !== 'undefined' ? Mascotes.bonus(k) : 0);   // equipamentos + mascote que está junto
 // vantagens da guilda (guilda.js): xp, cr, desc, hp, dano, drop
 const gBon = k => typeof Guilda !== 'undefined' && running ? (Guilda.bonus()[k] || 0) : 0;
 const stats = {
@@ -1325,7 +1411,7 @@ const camS = { yaw: Math.PI, pitch: 0.42, dist: 9, x: 0, y: 0, z: 0 };
 
 const SPAWNS = [
   { type: 'pompom', n: 16, area: [-58, 14, -84, 84] }, { type: 'zunzum', n: 9, area: [-58, 14, -84, 84] },
-  { type: 'fungolino', n: 9, area: [-40, 45, -84, 84] },
+  { type: 'fungolino', n: 15, area: [-40, 45, -84, 84] },
   { type: 'besouro', n: 14, area: [55, 145, -84, 84] }, { type: 'serpe', n: 10, area: [62, 145, -84, 84] },
   { type: 'guardiao', n: 1, at: RUIN },
   // Valdora
@@ -1337,6 +1423,23 @@ const SPAWNS = [
   { type: 'larvaCristal', n: 12, area: [420, 530, -760, -680] }, { type: 'larvaAntiga', n: 12, area: [490, 590, -800, -700] },
   { type: 'memoria', n: 6, area: [534, 556, -864, -838] }, { type: 'memoria', n: 3, area: [541, 549, -834, -816] },
   { type: 'guardiaoBranco', n: 1, at: { x: FGUARD.x, z: FGUARD.z - 4 } },
+  // Praia de Cômodo: só na beira do mar (longe da vila e do píer)
+  { type: 'caranguejo', n: 10, area: [-528, -505, -872, -815] }, { type: 'caranguejo', n: 10, area: [-528, -505, -740, -655] },
+  { type: 'medusa', n: 8, area: [-530, -514, -870, -812] }, { type: 'medusa', n: 6, area: [-530, -514, -745, -660] },
+  { type: 'tartaruga', n: 6, area: [-526, -500, -860, -818] }, { type: 'tartaruga', n: 6, area: [-526, -500, -720, -660] },
+  { type: 'serpenteOnda', n: 5, area: [-530, -505, -880, -862] }, { type: 'serpenteOnda', n: 5, area: [-530, -505, -680, -648] },
+  { type: 'reiCaranguejo', n: 1, at: { x: -510, z: -690 } },
+  // Vale dos Mortos (névoa e túmulos) e Ponte dos Mortos
+  { type: 'maoPalida', n: 14, area: [770, 880, -790, -690] }, { type: 'sussurro', n: 12, area: [790, 930, -820, -700] },
+  { type: 'damaSemOlhos', n: 10, area: [840, 960, -800, -670] }, { type: 'sombraVale', n: 10, area: [860, 980, -830, -760] },
+  { type: 'guardaOssos', n: 6, area: [897, 903, -868, -840] }, { type: 'guardaOssos', n: 6, area: [870, 930, -834, -812] },
+  { type: 'primeiroGuardiao', n: 1, at: { x: VGUARD.x, z: VGUARD.z } },
+  // Cidade Submersa: cada ilha com os seus (o Refúgio, a primeira, fica tranquilo)
+  { type: 'raizSuspensa', n: 10, area: [1126, 1154, -726, -698] }, { type: 'ecoCidade', n: 6, area: [1126, 1154, -726, -698] },
+  { type: 'cristalVivo', n: 8, area: [1178, 1202, -812, -788] }, { type: 'sentinelaSubmersa', n: 6, area: [1178, 1202, -812, -788] },
+  { type: 'cristalVivo', n: 6, area: [1236, 1264, -730, -702] }, { type: 'ecoCidade', n: 6, area: [1236, 1264, -730, -702] }, { type: 'larvaAbismo', n: 6, area: [1236, 1264, -730, -702] },
+  { type: 'larvaAbismo', n: 5, area: [1290, 1310, -816, -796] }, { type: 'sentinelaSubmersa', n: 4, area: [1290, 1310, -816, -796] },
+  { type: 'sombraFonte', n: 1, at: { x: 1306, z: -812 } },
 ];
 function spawnMob(type, area, at) {
   const d = MOBDEF[type]; let x, z, t = 0;
@@ -1436,17 +1539,19 @@ function applyRhythm(r) {
 function dmgMob(m, base, crit, magic, color) {
   if (m.dead) return 0;
   if (m.isPeer) return PvP.hit(m, base, crit);
+  if (m.invul) { floater(m.x, groundY(m.x, m.z) + 1, m.z, 'Imune', 'miss'); return 0; }      // Verme debaixo da terra
   let dmg = Math.max(1, Math.round(base * rand(0.9, 1.1) - m.d.def * (magic ? 0.4 : 1)));
   if (crit) dmg = Math.round(dmg * 1.8);
   m.hp -= dmg; m.flash = 0.12; m.state = 'chase'; m.lastHit = time;
-  if (m.type === 'kravenox') Kvx.addDmg(dmg);
+  if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') Verme.addDmg(dmg);
+  if (m.type === 'kravenox') { Kvx.addDmg(dmg); if (typeof Desafios !== 'undefined') Desafios.danoKvx(dmg); }
   if (m.d.field && typeof Chefes !== 'undefined') Chefes.addDmg(dmg);
   floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, dmg, crit ? 'crit' : magic ? 'mag' : '');
   Audio8.sfx(crit ? 'crit' : 'hit');
   _p.set(m.x, groundY(m.x, m.z) + m.model.h * 0.5, m.z);
   burst(_p.clone(), color ?? (crit ? 0xffcf40 : 0xffffff), crit ? 10 : 5, 3, 0.4);
   if (!magic && badd('poison') > 0) poison(m, stats.atk() * 0.3, 5);
-  if (m.nid && typeof Partilha !== 'undefined') { Partilha.dano(m, dmg); m.hp = Math.max(1, m.hp); return dmg; }
+  if (m.nid && typeof Partilha !== 'undefined') { Partilha.dano(m, dmg); if (m.hp <= 1 && !m.morrendo) m.morrendo = time; m.hp = Math.max(1, m.hp); return dmg; }
   if (m.hp <= 0) killMob(m);
   return dmg;
 }
@@ -1462,18 +1567,23 @@ function killMob(m, o = {}) {
   else scene.remove(m.model.g);
   if (o.semPremio) return;                                              // morreu na mão de outro jogador
   if (o.ajuda) {                                                       // ajudou a matar: XP pela parte do dano (e conta na missão se foi boa parte)
-    const xp = Math.max(1, Math.round(m.d.xp * o.ajuda * (1 + gBon('xp')))); if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
-    log(`🤝 <b>${m.d.name}</b> caiu com a sua ajuda! +${xp} XP`, 'xp'); gainXp(xp);
-    if (o.ajuda >= 0.25) { if (typeof Quests !== 'undefined') Quests.onKill(m); if (typeof Evo !== 'undefined') Evo.onKill(m); if (typeof Desafios !== 'undefined') Desafios.onKill(m); }
+    const dif = P.lv - m.d.lv, pen = o.grupo ? (dif > 8 ? 0.3 : dif > 5 ? 0.6 : 1) : 1;   // no grupo vale o mesmo desconto de nível de quem matou
+    const xp = Math.max(1, Math.round(m.d.xp * o.ajuda * pen * (1 + gBon('xp')))); if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
+    log(o.grupo ? `👥 O grupo derrotou <b>${m.d.name}</b>! +${xp} XP <small>(dividido entre ${o.n || 2}${o.w < 1 ? ', menos pela diferença de nível' : ''})</small>` : `🤝 <b>${m.d.name}</b> caiu com a sua ajuda! +${xp} XP`, 'xp'); gainXp(xp);
+    if (o.ajuda >= 0.25 || o.grupo) { if (typeof Quests !== 'undefined') Quests.onKill(m); if (typeof Evo !== 'undefined') Evo.onKill(m); if (typeof Desafios !== 'undefined') Desafios.onKill(m); }
     return;
   }
   drops.push(makeDrop('zeny', Math.round(irand(...m.d.zeny) * (1 + gBon('cr'))), m.x, m.z));
   const dropMul = bmul('drop') * (m.plundered && time - m.plundered < 3 ? 1.8 : 1) * (1 + gBon('drop'));
-  for (const [it, ch] of m.d.drops) if (Math.random() < ch * dropMul) drops.push(makeDrop(it, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
+  for (const [it, ch] of m.d.drops) if (Math.random() < ch * dropMul) {          // em grupo: cada item é sorteado entre quem está perto
+    const para = typeof Grupo !== 'undefined' && m.nid ? Grupo.sortear(m) : null;
+    if (para) Grupo.enviar(para, it, 1, m.d.name); else drops.push(makeDrop(it, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
+  }
   const diff = P.lv - m.d.lv, mult = diff > 8 ? 0.3 : diff > 5 ? 0.6 : 1;
-  const xp = Math.round(m.d.xp * mult * (o.parte ?? 1) * (1 + gBon('xp')));
+  const nGrupo = typeof Grupo !== 'undefined' && m.nid ? Grupo.quantosPerto(m) : 1;               // em grupo: XP dividido igual entre quem está perto
+  const xp = Math.round(m.d.xp * mult * (nGrupo > 1 ? Grupo.parteXp(m) : (o.parte ?? 1)) * (1 + gBon('xp')));
   if (typeof Guilda !== 'undefined') Guilda.contribuir(xp);
-  log(`Você derrotou <b>${m.d.name}</b>! +${xp} XP${o.parte != null && o.parte < 0.99 ? ` <small>(${Math.round(o.parte * 100)}% do dano)</small>` : ''}`, 'xp');
+  log(`Você derrotou <b>${m.d.name}</b>! +${xp} XP${nGrupo > 1 ? ` <small>(dividido no grupo entre ${nGrupo})</small>` : o.parte != null && o.parte < 0.99 ? ` <small>(${Math.round(o.parte * 100)}% do dano)</small>` : ''}`, 'xp');
   if (typeof Vida !== 'undefined') Vida.onKill(m);
   if (typeof Desafios !== 'undefined') Desafios.onKill(m);
   if (typeof Evo !== 'undefined') Evo.onKill(m);
@@ -1485,12 +1595,14 @@ function killMob(m, o = {}) {
   if (q && q.mob === m.type && P.qcount < q.n) { P.qcount++; if (P.qcount === q.n) log(`📜 Missão concluída! Volte à <b>Mestra Odete</b>.`, 'gold'); }
   if (m.type === 'guardiao') log('🏆 <b>A Sentinela sem Rosto caiu!</b> As ruínas estão livres.', 'gold');
   if (m.type === 'kravenox') { Kvx.onKill(m); return; }
+  if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') { Verme.onKill(m); return; }
   if (m.noRespawn || m.nid) return;                                     // os compartilhados renascem pelo servidor
   respawnQ.push({ type: m.type, area: m.area, at: m.at, t: m.d.respawn });
 }
 const dropGeo = { zeny: new THREE.CylinderGeometry(0.18, 0.18, 0.05, 12), red: new THREE.SphereGeometry(0.16, 10, 8), blue: new THREE.SphereGeometry(0.16, 10, 8) };
 dropGeo.mat = new THREE.BoxGeometry(0.26, 0.26, 0.26);
 const dropMat = { mat: new THREE.MeshLambertMaterial({ color: 0xc8b070, emissive: 0x302810 }), zeny: new THREE.MeshLambertMaterial({ color: 0xf5c518, emissive: 0x604000 }), red: new THREE.MeshLambertMaterial({ color: 0xe8312f, emissive: 0x400000 }), blue: new THREE.MeshLambertMaterial({ color: 0x2f7ae8, emissive: 0x001840 }) };
+let pegouN = 0;                                        // escalona os nomes que sobem da cabeça quando vários itens chegam juntos
 function makeDrop(id, n, x, z) {
   const m = typeof Vida !== 'undefined' && Vida.dropMesh ? Vida.dropMesh(id, n) : new THREE.Mesh(dropGeo[id] || dropGeo.mat, dropMat[id] || dropMat.mat); m.castShadow = true;
   if (id === 'zeny' && m.isMesh) m.rotation.x = Math.PI / 2;
@@ -1532,7 +1644,7 @@ function evoCard(dt) {
     el.addEventListener('click', () => { const t = Evo.target(); if (!t) return; Audio8.sfx('click'); const c = Evo.card(); if (c) P.evoMini = c.k; P.qGo = { ...t }; log(`🧭 A seta leva até <b>${t.name}</b>.`, 'sys'); if (typeof autoStart === 'function' && !inTower(P.z)) autoStart(); $('quest').dataset.h = ''; evoT = 0; });
   }
   const c = Evo.card();
-  if (!c) { el.classList.add('hidden'); return; }
+  if (!c || dialogOpen || !$('chatbox').classList.contains('hidden')) { el.classList.add('hidden'); return; }                       // não cobre as janelas de conversa
   const mini = c.k === 'hunt' || P.evoMini === c.k;
   if (mini && !(P.ui && P.ui.evo)) { el.classList.add('hidden'); return; }
   const html = mini ? `<div class="wb">⭐ ${c.mini} <b class="ev-ir">›</b></div>` : c.txt;
@@ -1571,9 +1683,9 @@ function railTick(dt) {
   let r = $('rail');
   if (!r) {
     r = document.createElement('div'); r.id = 'rail'; $('hud').appendChild(r);
-    r.innerHTML = '<button data-p="quest" title="Missões">📜<b></b></button><button data-p="evo" title="Evolução de classe">⭐<b></b></button><button data-p="kvx" title="Kravenox">☠️<b></b></button>';
+    r.innerHTML = '<button data-p="quest" title="Missões">📜<b></b></button><button data-p="evo" title="Evolução de classe">⭐<b></b></button><button data-p="amigos" title="Amigos">🤝<b></b></button><button data-p="kvx" title="Kravenox">☠️<b></b></button>';
     r.addEventListener('pointerdown', e => { const b = e.target.closest('[data-p]'); if (!b) return; e.preventDefault(); e.stopPropagation(); Audio8.sfx('click');
-      const k = b.dataset.p; if (k === 'quest') { if (typeof Quests !== 'undefined') Quests.journal(); return; }
+      const k = b.dataset.p; if (k === 'quest') { if (typeof Quests !== 'undefined') Quests.journal(); return; } if (k === 'amigos') { if (typeof Desafios !== 'undefined') Desafios.amigos(); railT = 0; return; }
       const was = P.ui[k]; P.ui.kvx = P.ui.evo = false; P.ui[k] = !was;
       if (k === 'evo' && P.ui.evo && typeof Evo !== 'undefined') { const c = Evo.card(); if (c) P.evoMini = c.k; }
       $('quest').dataset.h = ''; evoT = 0; railT = 0; });
@@ -1582,7 +1694,9 @@ function railTick(dt) {
   r.style.top = (st.bottom + 6) + 'px'; r.style.left = st.left + 'px';
   const set = (k, txt) => { const b = r.querySelector(`[data-p="${k}"]`); b.classList.toggle('on', !!P.ui[k]); const d = b.querySelector('b'); d.textContent = txt || ''; d.style.display = txt ? '' : 'none'; };
   const ready = typeof Quests !== 'undefined' && Quests.readyCount ? Quests.readyCount() : 0;
-  set('quest', ready ? String(ready) : ''); r.querySelector('[data-p="quest"]').classList.remove('on');
+  const novasQ = !ready && typeof Quests !== 'undefined' && Quests.novasCount ? Quests.novasCount() : 0;
+  set('quest', ready ? String(ready) : novasQ ? '!' : '');
+  set('amigos', typeof Desafios !== 'undefined' && Desafios.amigosAviso ? Desafios.amigosAviso() : ''); r.querySelector('[data-p="quest"]').classList.remove('on');
   const c = typeof Evo !== 'undefined' && Evo.card ? Evo.card() : null;
   r.querySelector('[data-p="evo"]').style.display = c ? '' : 'none';
   set('evo', c && c.k !== 'hunt' ? '!' : '');
@@ -1637,7 +1751,8 @@ function buildGraves() {
     scene.add(g); graveObjs.push(g);
   }
   const last = (P.graves || [])[P.graves ? P.graves.length - 1 : 0];
-  if (last && last.andar != null) P.qGo = { x: Tower.door.x, z: Tower.door.z, name: `sua sacola (${last.andar === TOP ? 'topo' : last.andar + 1 + 'º andar'} da Torre)`, grave: true };   // na Torre: a seta leva até a porta
+  if (last && last.andar >= 100) P.qGo = { x: LAIR.x, z: LAIR.z + 3, name: `sua sacola (${last.andar === AB_FUNDO ? 'Fundo' : last.andar - 99 + 'º andar'} do Abismo)`, grave: true };   // no Abismo: a seta leva até a cratera
+  else if (last && last.andar != null) P.qGo = { x: Tower.door.x, z: Tower.door.z, name: `sua sacola (${last.andar === TOP ? 'topo' : last.andar + 1 + 'º andar'} da Torre)`, grave: true };   // na Torre: a seta leva até a porta
   else if (last) P.qGo = { x: last.x, z: last.z, name: 'sua sacola', grave: true };
   else if (P.qGo && P.qGo.grave) P.qGo = null;
 }
@@ -1903,22 +2018,30 @@ function usePotion(id) {
 // ---------------------------------------------------------------- atualização
 const ZONES = {
   solmira: { name: 'Vila de Solmira', music: 'vila', town: true },
-  sitio: { name: 'Sítio de Solmira', music: 'vila' },
-  campos: { name: 'Campos Dourados', music: 'floresta' },
-  areias: { name: 'Areias Rubras', music: 'vale' },
-  lair: { name: 'Cratera do Cisma', music: 'abismo' },
+  sitio: { name: 'Sítio de Solmira', music: 'escolha' },
+  campos: { name: 'Campos Dourados', music: 'reino' },
+  areias: { name: 'Areias Rubras', music: 'alem' },
+  lair: { name: 'Cratera do Cisma', music: 'origem' },
+  abismo: { name: 'Abismo do Cisma', music: 'abismo' },
+  abfundo: { name: 'Ninho do Verme Colossal', music: 'reiVazio' },
   cidadela: { name: 'Cidadela do Cisma', music: 'fortaleza', town: true },
-  torre: { name: 'Torre do Cisma', music: 'torre' },          // metal ópera (scripts/compor_torre.py); a masmorra.mp4 antiga continua guardada
+  torre: { name: 'Torre do Cisma', music: 'torre_doom' },          // doom gótico (scripts/compor_torre2.py, versão B); a metal ópera ficou em torre_opera.mp4
   topo: { name: 'Topo da Torre do Cisma', music: 'chefe' },
-  casa: { name: 'Sua Casa', music: 'vila' },
+  casa: { name: 'Sua Casa', music: 'semNome' },
   kharum: { name: 'Oásis de Kharum', music: 'cidade', town: true },
-  acampamento: { name: 'Acampamento de Valdora', music: 'vila', town: true },
-  estrada: { name: 'Estrada de Valdora', music: 'abismo' },
-  clareira: { name: 'Clareira de Lira', music: 'vila', town: true },
-  floresta: { name: 'Floresta Morta', music: 'abismo' },
+  acampamento: { name: 'Acampamento de Valdora', music: 'despedida', town: true },
+  estrada: { name: 'Estrada de Valdora', music: 'guerra' },
+  clareira: { name: 'Clareira de Lira', music: 'aveline', town: true },
+  floresta: { name: 'Floresta Morta', music: 'floresta' },
   templo: { name: 'Templo da Primeira Raiz', music: 'masmorra' },
-  praia: { name: 'Praia de Cômodo', music: 'vila', town: true },
-  valdora: { name: 'Ruínas de Valdora', music: 'fortaleza' },
+  praia: { name: 'Praia de Cômodo', music: 'mar', town: true },
+  vigilia: { name: 'Vigília do Vale', music: 'antigo', town: true },
+  vale: { name: 'Vale dos Mortos', music: 'vale' },
+  ponte: { name: 'Ponte dos Mortos', music: 'ceus' },
+  refugio: { name: 'Refúgio Suspenso', music: 'estrelas', town: true },
+  cidade: { name: 'Cidade Submersa', music: 'submersa' },
+  fundo: { name: 'O Fundo da Cidade', music: 'devorador' },
+  valdora: { name: 'Ruínas de Valdora', music: 'valdora' },
 };
 function update(dt) {
   time += dt; windU.value = time; WAVES.offset.set(time * 0.012, time * 0.02);
@@ -1931,14 +2054,14 @@ function update(dt) {
     d.t += dt; d.m.rotation.y += dt * (d.m.userData.flat ? 0.6 : 3);
     // pega sozinho: depois de meio segundo no chão, o item voa direto para você (até 60 m de distância)
     const dd = Math.hypot(P.x - d.x, P.z - d.z);
-    if (d.t > 0.5 && !P.dead && dd < 60) { const k = Math.min(1, dt * (6 + d.t * 6)); d.x += (P.x - d.x) * k; d.z += (P.z - d.z) * k; d.m.position.set(d.x, P.y + 0.8 + Math.min(1.5, dd * 0.15), d.z); }
+    if (d.t > 1.1 && !P.dead && dd < 60) { const k = Math.min(1, dt * (6 + d.t * 6)); d.x += (P.x - d.x) * k; d.z += (P.z - d.z) * k; d.m.position.set(d.x, P.y + 0.8 + Math.min(1.5, dd * 0.15), d.z); }
     else d.m.position.y = groundY(d.x, d.z) + 0.4 + (d.m.userData.flat ? 0 : Math.sin(d.t * 4) * 0.1);
   }
   if (typeof Vida !== 'undefined') Vida.update(dt);
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); if (typeof Praia !== 'undefined') Praia.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); Net.tickMyBubble(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); if (typeof Praia !== 'undefined') Praia.update(dt); if (typeof Vale !== 'undefined') Vale.update(dt); if (typeof Cidade !== 'undefined') Cidade.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); if (typeof Grupo !== 'undefined') Grupo.update(dt); if (typeof Verme !== 'undefined') Verme.update(dt); if (typeof Mascotes !== 'undefined') Mascotes.update(dt); if (typeof Presenca !== 'undefined') Presenca.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); else if (c.m3) { c.m3.rotation.z = Math.min(Math.PI / 2, c.m3.rotation.z + dt * 6); } if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
   for (const n of NPCS) if (n.inst) n.inst.update(dt); else if (n.spr) n.spr.update(dt, { face: Math.hypot(P.x - n.x, P.z - n.z) < 7 ? Math.atan2(P.x - n.x, P.z - n.z) : n.face0 });
@@ -1956,7 +2079,7 @@ function update(dt) {
       fx.push({ m, v: new THREE.Vector3(rand(-0.2, 0.2), 0.8, rand(-0.2, 0.2)), life: 2.5, max: 2.5, kind: 'note', own: m.geometry });
     }
   }
-  for (const n of NPCS) { n.bang.position.y = (n.bangY || 2.3) + 0.35 + Math.sin(time * 3) * 0.15; npcMark(n); }
+  for (const n of NPCS) { n.bang.position.y = (n.bangY || 2.3) + 0.35 + (n.papel ? 0.75 : 0) + Math.sin(time * 3) * 0.15; if (n.papel) n.papel.position.y = (n.bangY || 2.3) + 0.25; npcMark(n); }
   const z = zoneOf(P.x, P.z);
   if (z !== zone) {
     zone = z; Audio8.play(ZONES[z].music); banner(ZONES[z].name); $('zonename').textContent = ZONES[z].name;
@@ -1974,7 +2097,9 @@ function update(dt) {
   skyMat.uniforms.horizon.value.copy(SKY_GREEN).lerp(SKY_DESERT, des); skyMat.uniforms.top.value.copy(SKY_TOP_G).lerp(SKY_TOP_D, des); const dark = inTower(P.z) ? 1 : smooth(150, 166, P.x);
   skyMat.uniforms.horizon.value.lerp(DAY.horizon, DAY.mixH); skyMat.uniforms.top.value.lerp(DAY.top, DAY.mixT);
   if (dark > 0) { skyMat.uniforms.horizon.value.lerp(DARK_H, dark); skyMat.uniforms.top.value.lerp(DARK_T, dark); }
-  if (inFlo(P.x, P.z)) { skyMat.uniforms.horizon.value.lerp(FLO_H, 0.9); skyMat.uniforms.top.value.lerp(FLO_T, 0.9); }
+  if (inCidade(P.x, P.z)) { skyMat.uniforms.horizon.value.lerp(CID_H_, 0.95); skyMat.uniforms.top.value.lerp(CID_T, 0.95); }
+  else if (inVale(P.x, P.z)) { skyMat.uniforms.horizon.value.lerp(VALE_H_, 0.9); skyMat.uniforms.top.value.lerp(VALE_T, 0.9); }
+  else if (inFlo(P.x, P.z)) { skyMat.uniforms.horizon.value.lerp(FLO_H, 0.9); skyMat.uniforms.top.value.lerp(FLO_T, 0.9); }
   else if (inVal(P.z) && !inPraia(P.x, P.z)) { skyMat.uniforms.horizon.value.lerp(ASH_H, 0.85); skyMat.uniforms.top.value.lerp(ASH_T, 0.85); }
   if (typeof Props !== 'undefined' && Props.setNight) Props.setNight(DAY.night);
   mountains.material.color.copy(skyMat.uniforms.horizon.value).multiplyScalar(0.5).lerp(MOUNT_C, 0.25);
@@ -2047,18 +2172,20 @@ function updatePlayer(dt) {
   if (P.y <= gy) { P.y = gy; P.vy = 0; P.onGround = true; } else P.onGround = P.y - gy < 0.05;
   if (Object.keys(P.buffs).length && Math.random() < 0.2) burst(new THREE.Vector3(P.x, P.y + rand(0.3, 1.5), P.z), CLS().colors.accent, 1, 0.8, 0.5);
 
-  for (const d of drops) if (d.t > 0.4 && Math.hypot(d.x - P.x, d.z - P.z) < 1.3) {
+  for (const d of drops) if (d.t > 1.1 && Math.hypot(d.x - P.x, d.z - P.z) < 1.3) {
     d.taken = true; scene.remove(d.m);
     if (d.id === 'zeny') { P.zeny += d.n; Audio8.sfx('coin'); floater(d.x, P.y + 1.5, d.z, `+${d.n} cr`, 'zeny'); }
-    else { P.inv[d.id] = (P.inv[d.id] || 0) + d.n; Audio8.sfx('pick'); if (!(typeof Vida !== 'undefined' && Vida.pickMsg(d.id, d.n))) log(`Você pegou <b>${ITEMS[d.id].name}</b>.`, 'item'); buildHotbar(); }
+    else { P.inv[d.id] = (P.inv[d.id] || 0) + d.n; Audio8.sfx('pick'); floater(P.x, P.y + 2.2 + (pegouN++ % 3) * 0.45, P.z, `+${ITEMS[d.id].ic || '📦'} ${ITEMS[d.id].name}`, 'item'); if (!(typeof Vida !== 'undefined' && Vida.pickMsg(d.id, d.n))) log(`Você pegou <b>${ITEMS[d.id].name}</b>.`, 'item'); buildHotbar(); }
   }
   drops = drops.filter(d => !d.taken);
   checkGrave();
 
   nearNpc = null;
   for (const n of NPCS) if (Math.hypot(n.x - P.x, n.z - P.z) < 3) nearNpc = n;
+  // quadro de caça mais perto que o NPC: fica com o quadro (antes o NPC do lado "roubava" o toque)
+  if (nearNpc && typeof Quests !== 'undefined' && Quests.quadroPerto && Quests.quadroPerto() < Math.hypot(nearNpc.x - P.x, nearNpc.z - P.z)) nearNpc = null;
   const pr = $('prompt');
-  nearUse = !nearNpc ? ((typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
+  nearUse = !nearNpc ? ((typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Mascotes !== 'undefined' && Mascotes.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
   if (nearNpc && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬 para falar com ${nearNpc.name}` : `<b>[F]</b> Falar com ${nearNpc.name}`; pr.classList.remove('hidden'); }
   else if (nearUse && !dialogOpen) { pr.innerHTML = TOUCH ? `Toque 💬: ${nearUse.label}` : `<b>[F]</b> ${nearUse.label}`; pr.classList.remove('hidden'); }
   else pr.classList.add('hidden');
@@ -2077,13 +2204,25 @@ function separarMobs(dt) {
   }
 }
 function updateMob(m, dt) {
+  // monstro compartilhado que zerou a vida: espera o servidor confirmar a morte sem atacar; sem resposta em 4 s, cai aqui mesmo
+  if (m.morrendo) {
+    m.moving = false; m.atkCd = Math.max(m.atkCd, 0.5);
+    if (time - m.morrendo > 4) { m.morrendo = 0; if (typeof Net !== 'undefined') Net.send({ t: 'd', id: m.nid, v: 1e6 }); killMob(m); return; }
+    return;
+  }
   if (m.dot) {
     m.dot.t -= dt; m.dot.acc += dt;
     if (m.dot.acc >= 1) { m.dot.acc = 0; const d = Math.max(1, Math.round(m.dot.dps)); if (m.nid && typeof Partilha !== 'undefined') { Partilha.dano(m, d); m.hp = Math.max(1, m.hp - d); } else m.hp -= d; floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, d, 'poison'); burst(new THREE.Vector3(m.x, groundY(m.x, m.z) + 0.6, m.z), 0x7dff4a, 4, 1.5, 0.5); if (m.hp <= 0) { killMob(m); return; } }
     if (m.dot && m.dot.t <= 0) m.dot = null;
   }
   m.flash = Math.max(0, m.flash - dt); m.atkCd -= dt; m.moving = false; m.swing = Math.max(0, (m.swing || 0) - dt * 2);
+  // Raiz Rastejante: de dia fica parada, disfarçada de tronco; à noite acorda, anda, ataca e vale mais XP
+  if (m.type === 'fungolino') {
+    const noite = !!(LASTDAY && LASTDAY.night > 0.35);
+    if (noite !== m.noite) { m.noite = noite; const b = MOBDEF.fungolino; m.d = noite ? { ...b, aggro: 9, speed: 2.0, xp: Math.round(b.xp * 1.5) } : { ...b, speed: 0.01 }; const sp = m.lab.querySelector('span'); if (sp) sp.innerHTML = `${b.name}${noite ? ' 🌙' : ' 💤'} <small>Nv ${b.lv}</small>`; }
+  }
   if (m.type === 'kravenox') Kvx.ai(m, dt);
+  else if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') Verme.ai(m, dt);
   if (m.nid && typeof Partilha !== 'undefined' && !Partilha.meu(m)) Partilha.mover(m, dt);
   else if ((m.d.field || m.d.mini) && typeof Chefes !== 'undefined' && Chefes.ai(m, dt)) return;
   else if (m.stun > 0) m.stun -= dt;
@@ -2179,7 +2318,7 @@ function animateLyra(dt) {
 
 function animateSprite(dt) {
   lyra.position.set(P.x, P.y, P.z); lyra.rotation.y = P.face;
-  L.sprite.update(dt, { face: P.face, moving: P.moving && P.onGround, atk: Math.max(P.attackAnim, P.cast), dead: P.dead, flash: P.hurtT > 0, fury: !!P.buffs.furia, sit: P.sit, gy: (running ? groundY(P.x, P.z) : P.y) - P.y });
+  L.sprite.update(dt, { face: P.face, moving: P.moving && P.onGround, atk: Math.max(P.attackAnim, P.cast), dead: P.dead, flash: P.hurtT > 0, fury: !!P.buffs.furia, sit: P.sit, dourado: typeof Cos !== 'undefined' && Cos.nivelIrmandade ? Cos.nivelIrmandade() : 0, gy: (running ? groundY(P.x, P.z) : P.y) - P.y });
   lyra.visible = true;
 }
 function animateModel(dt) {
@@ -2210,7 +2349,7 @@ function animateModel(dt) {
 
 // ---------------------------------------------------------------- câmera
 function updateCamera(dt) {
-  const big = inTower(P.z) && Tower.floor === TOP;                   // topo da torre: câmera para o gigante
+  const big = inTower(P.z) && (Tower.floor === TOP || Tower.floor === AB_FUNDO);                   // topo da torre: câmera para o gigante
   camS.pitch = clamp(camS.pitch, 0.08, 1.25); camS.dist = clamp(camS.dist, big ? 10 : 4, big ? 32 : 18);
   // a câmera nunca gira sozinha: só quem joga vira a câmera (antes ela se alinhava nas escadarias da Torre e trocava a direção do joystick)
   const tx = P.x, ty = P.y + (big ? 4.5 : 1.3), tz = P.z;
@@ -2284,8 +2423,10 @@ function updateHUD() {
   const qh = q ? `<div class="wt">📜 Missão</div><div class="wb">${q.txt}<br><b>${Math.min(P.qcount, q.n)} / ${q.n}</b>${P.qcount >= q.n ? ' — fale com a Mestra Odete' : ''}${qt && qd > 5 ? `<br><span class="qd">📍 ${qd} m · siga a seta dourada</span>` : ''}</div>` : '';
   const ui = P.ui || {};
   const qh2 = (ui.quest && typeof Evo !== 'undefined' && Evo.active ? Evo.html() : '') + (typeof Quests !== 'undefined' ? Quests.html(!ui.quest) : qh) || `<div class="wt">📜 Missões</div><div class="wb">Todas concluídas!</div>`;
-  if ($('quest').dataset.h !== qh2) { $('quest').innerHTML = qh2; $('quest').dataset.h = qh2; }
-  if (!$('quest').dataset.on) { $('quest').dataset.on = 1; $('quest').addEventListener('pointerdown', e => { if (e.target.closest('.wt, .qmore') && typeof Quests !== 'undefined') { Audio8.sfx('click'); Quests.journal(); return; } const t = e.target.closest('[data-q]'); if (t && typeof Quests !== 'undefined') { const same = P.qFocus === t.dataset.q; if (same && AUTO.on) autoStop('🚶 Parou.'); else { if (!same) Quests.follow(t.dataset.q); else Audio8.sfx('click'); P.qFocus = t.dataset.q; autoStart(); } $('quest').dataset.h = ''; } }); }
+  const dsf = (typeof Grupo !== 'undefined' ? Grupo.html() : '') + (typeof Desafios !== 'undefined' && Desafios.painel ? Desafios.painel() : '');                // etapa dos amigos/desafios que você está caçando
+  const qh3 = dsf ? (qh2.endsWith('</div></div>') ? qh2.slice(0, -6) + dsf + '</div>' : qh2 + `<div class="wb">${dsf}</div>`) : qh2;
+  if ($('quest').dataset.h !== qh3) { $('quest').innerHTML = qh3; $('quest').dataset.h = qh3; }
+  if (!$('quest').dataset.on) { $('quest').dataset.on = 1; $('quest').addEventListener('pointerdown', e => { if (e.target.closest('[data-grupo]') && typeof Grupo !== 'undefined') { Grupo.painel(); return; } if (e.target.closest('[data-dsf]') && typeof Desafios !== 'undefined') { Desafios.abrirFoco(); return; } if (e.target.closest('.wt, .qmore') && typeof Quests !== 'undefined') { Audio8.sfx('click'); Quests.journal(); return; } const t = e.target.closest('[data-q]'); if (t && typeof Quests !== 'undefined') { const same = P.qFocus === t.dataset.q; if (same && AUTO.on) autoStop('🚶 Parou.'); else { if (!same) Quests.follow(t.dataset.q); else Audio8.sfx('click'); P.qFocus = t.dataset.q; autoStart(); } $('quest').dataset.h = ''; } }); }
   if (!$('statwin').classList.contains('hidden')) renderStats();
 }
 // indicador de ritmo
@@ -2316,7 +2457,7 @@ function drawBeat() {
 }
 // minimapa
 const mm = $('minimap'), mg = mm.getContext('2d');
-mm.addEventListener('click', e => { e.stopPropagation(); Audio8.sfx('click'); BigMap.show(); });
+mm.addEventListener('click', e => { e.stopPropagation(); Audio8.sfx('click'); fecharJanelas('bigmap'); BigMap.show(); });
 const mmBase = document.createElement('canvas'); mmBase.width = mm.width; mmBase.height = mm.height;
 {
   const x = mmBase.getContext('2d'), c = new THREE.Color();
@@ -2329,8 +2470,8 @@ const mmBase = document.createElement('canvas'); mmBase.width = mm.width; mmBase
 }
 // ---------------------------------------------------------------- mapa grande (toque no minimapa)
 const BigMap = (() => {
-  let open = false, base = null, box = null, cv = null, g = null, view = null;   // view: null = reino inteiro; senão a cidade aberta
-  const PLACES = [[VIL, 'Vila de Solmira'], [FARM, 'Sítio'], [OAS, 'Oásis de Kharum'], [CIT, 'Cidadela do Cisma'], [TOWER, 'Torre do Cisma'], [LAIR, 'Cratera do Cisma'], [RUIN, 'Ruínas'], [VGATE_R, 'Passagem do Norte ↑']];
+  let open = false, base = null, box = null, cv = null, g = null, view = null, vm = null;   // vm: lugar aberto no mapa (null = onde a pessoa está)   // view: null = reino inteiro; senão a cidade aberta
+  const PLACES = [[VIL, 'Vila de Solmira'], [FARM, 'Sítio'], [OAS, 'Oásis de Kharum'], [CIT, 'Cidadela do Cisma'], [TOWER, 'Torre do Cisma'], [LAIR, 'Cratera do Cisma ↓ Abismo'], [RUIN, 'Ruínas'], [VGATE_R, 'Passagem do Norte ↑']];
   const CITIES = [{ c: VIL, z: 'solmira', n: 'Vila de Solmira', R: 32 }, { c: OAS, z: 'kharum', n: 'Oásis de Kharum', R: 36 }, { c: CIT, z: 'cidadela', n: 'Cidadela do Cisma', R: 34 }, { c: FARM, z: 'sitio', n: 'Sítio de Solmira', R: 24 }];
   const ICON = { master: '📘', healer: '✚', shop: '🛒', guard: '🛡️', watch: '👁️', elder: '🧓', farm: '🌾', smith: '⚒️', warp: '🧭' };
   function build() {
@@ -2345,11 +2486,91 @@ const BigMap = (() => {
     x.putImageData(img, 0, 0);
   }
   // área mostrada (em coordenadas do mundo)
-  const area = () => { if (view) return { x0: view.c.x - view.R * 1.6, z0: view.c.z - view.R, w: view.R * 3.2, h: view.R * 2 }; const M = curMap(); return { x0: M.x0, z0: M.z0, w: M.w, h: M.h }; };
-  const places = () => curMap().places || PLACES, cities = () => curMap().cities || CITIES;
+  const area = () => { if (view) return { x0: view.c.x - view.R * 1.6, z0: view.c.z - view.R, w: view.R * 3.2, h: view.R * 2 }; const M = vmMap(); return { x0: M.x0, z0: M.z0, w: M.w, h: M.h }; };
+  const vmMap = () => (vm && mapaReg(vm)) || curMap();
+  const places = () => vmMap().places || PLACES, cities = () => vmMap().cities || CITIES;
   const npcsOf = v => NPCS.filter(n => !n.hidden && Math.hypot(n.x - v.c.x, n.z - v.c.z) < v.R * 1.5);
-  function show(city) {
-    if (inTower(P.z)) { log('Dentro da Torre o mapa grande não funciona.', 'sys'); return; }
+  // ---------------- Mapa do Mundo: todos os lugares, os níveis, as passagens e "você está aqui"
+  const REG = [
+    { id: 'vale', n: 'Vale dos Mortos', lv: 'Nv 55–72', x: 0.52, y: 0.02, w: 0.22, h: 0.4, cor: '#4a4650', cid: ['Vigília do Vale', 'Ponte dos Mortos', '🚪 oeste → Floresta', '⬇ queda → Cidade'], M: () => typeof Vale !== 'undefined' && Vale.map },
+    { id: 'cidade', n: 'Cidade Submersa', lv: 'Nv 70–86', x: 0.76, y: 0.02, w: 0.22, h: 0.4, cor: '#2a2040', cid: ['Refúgio Suspenso', 'Jardim de Cristais', 'O Fundo', '⬆ luz → Vale'], M: () => typeof Cidade !== 'undefined' && Cidade.map },
+    { id: 'praia', n: 'Praia de Cômodo', lv: 'Nv 18–34 na beira do mar', x: 0.02, y: 0.52, w: 0.2, h: 0.36, cor: '#c8b478', cid: ['Vila de Cômodo · Farol', 'Píer (pesca)', '🚪 leste → Reino'], M: () => typeof Praia !== 'undefined' && Praia.map },
+    { id: 'reino', n: 'Reino Quebrado', lv: 'Nv 1–22', x: 0.27, y: 0.5, w: 0.44, h: 0.48, cor: '#6a8a4a', cid: ['Solmira · Sítio · Campos Dourados', 'Areias Rubras · Oásis de Kharum', 'Cidadela do Cisma · Cratera', '🚪 norte (Areias) → Valdora', '🚪 oeste (Sítio) → Praia'], M: () => Object.assign({}, REINO_MAP, { base }) },
+    { id: 'torre', n: 'Torre do Cisma', lv: 'Nv 18–60 · 30 andares', x: 0.77, y: 0.54, w: 0.21, h: 0.34, cor: '#5a3a7a', cid: ['Kravenox no topo', '(sábado, 20h)', '🚪 porta na Cidadela'] },
+    { id: 'valdora', n: 'Terras de Valdora', lv: 'Nv 24–40', x: 0.02, y: 0.02, w: 0.23, h: 0.4, cor: '#7a5a4a', cid: ['Acampamento · Ruínas', '🚪 sul → Reino', '🚪 leste → Floresta'], M: () => typeof Valdora !== 'undefined' && Valdora.map },
+    { id: 'floresta', n: 'Floresta Morta', lv: 'Nv 40–55', x: 0.27, y: 0.02, w: 0.23, h: 0.4, cor: '#3e3e52', cid: ['Clareira de Lira', 'Templo da Primeira Raiz', '🚪 oeste → Valdora', '🚪 leste → Vale'], M: () => typeof Floresta !== 'undefined' && Floresta.map },
+  ];
+  const LIG = [['praia', 'reino', 'arco do oeste (perto do Sítio)'], ['reino', 'valdora', 'Passagem do Norte (Areias Rubras)'], ['valdora', 'floresta', 'arco do leste de Valdora'], ['floresta', 'vale', 'arco do leste da Floresta'], ['vale', 'cidade', 'a queda no fim da ponte'], ['reino', 'torre', 'porta na Cidadela do Cisma']];
+  const regDe = () => inTower(P.z) ? 'torre' : mapaDe(P.x, P.z);
+  // o próximo passo do caminho até um lugar (passagem ou porta)
+  function rota(de, para) {
+    if (de === 'praia') return { x: PGATE.x - 4, z: PGATE.z, name: 'o arco de volta ao Reino' };
+    if (de === 'cidade') return { x: CGATE.x + 3, z: CGATE.z, name: 'a luz de volta ao Vale' };
+    if (de === 'vale') return para === 'cidade' ? { x: VGATE_C.x, z: VGATE_C.z + 3, name: 'a queda no fim da Ponte dos Mortos' } : { x: VALE_GATE.x + 4, z: VALE_GATE.z, name: 'o arco de volta à Floresta Morta' };
+    if (de === 'floresta') return para === 'vale' || para === 'cidade' ? { x: FGATE_V.x - 4, z: FGATE_V.z, name: 'o arco do leste (Vale dos Mortos)' } : { x: FGATE.x + 4, z: FGATE.z, name: 'o arco de volta a Valdora' };
+    if (de === 'valdora') return para === 'floresta' || para === 'vale' || para === 'cidade' ? { x: VGATE_VF.x - 4, z: VGATE_VF.z, name: 'o arco do leste (Floresta Morta)' } : { x: VGATE_V.x, z: VGATE_V.z + 4, name: 'a passagem de volta ao Reino' };
+    if (para === 'praia') return { x: RGATE_P.x + 4, z: RGATE_P.z, name: 'o arco do oeste (Praia de Cômodo)' };
+    if (para === 'torre') return { x: Tower.door.x, z: Tower.door.z + 5, name: 'a porta da Torre do Cisma' };
+    return { x: VGATE_R.x, z: VGATE_R.z - 4, name: 'a Passagem do Norte (Valdora)' };
+  }
+  // ---------------- o mapa de verdade: cada lugar desenhado do jeito que é, um do lado do outro
+  // (as terras do norte ficam longe do Reino no mundo; aqui elas encostam, para caber na tela)
+  const mapaReg = id => { const M = id === 'reino' ? Object.assign({}, REINO_MAP, { base }) : (REG.find(r => r.id === id) || {}).M?.(); if (M && M.pintar) M.pintar(); return M || null; };
+  // quadros do mapa (fração da tela 16:9): em cima as terras do norte, embaixo Praia, Reino e Torre
+  const QUAD = { valdora: [0.01, 0.02, 0.235, 0.46], floresta: [0.255, 0.02, 0.235, 0.46], vale: [0.5, 0.02, 0.235, 0.46], cidade: [0.745, 0.02, 0.245, 0.46], praia: [0.01, 0.52, 0.2, 0.46], reino: [0.225, 0.52, 0.53, 0.46], torre: [0.77, 0.52, 0.22, 0.46] };
+  function layout(W = 16, H = 9) {
+    const L = {};
+    for (const id in QUAD) {
+      const [qx, qy, qw, qh] = QUAD[id], x = qx * W, y = qy * H, w = qw * W, h = qh * H, faixa = h * 0.2, M = id === 'torre' ? null : mapaReg(id);
+      const T = { id, x, y, w, h, faixa, M };
+      if (M && M.w) { const k = Math.min(w / M.w, (h - faixa) / M.h); T.k = k; T.ox = x + (w - M.w * k) / 2; T.oy = y + faixa + (h - faixa - M.h * k) / 2; }
+      L[id] = T;
+    }
+    return L;
+  }
+  const ptQ = (T, x, z) => [T.ox + (x - T.M.x0) * T.k, T.oy + (z - T.M.z0) * T.k];
+  const regPt = (x, z) => { const r = inTower(z) ? 'torre' : mapaDe(x, z); return r; };
+  function cliqueMundo(fx, fy) {
+    const L = layout(1, 1), T = Object.values(L).find(T => fx > T.x && fx < T.x + T.w && fy > T.y && fy < T.y + T.h); if (!T) return;
+    Audio8.sfx('click'); const aqui = regDe();
+    if (T.id === 'torre') { if (aqui === 'torre') { log('Você já está na Torre do Cisma.', 'sys'); return; } if (aqui === 'reino') go(Tower.door.x, Tower.door.z + 5, 'a porta da Torre do Cisma'); else { const w = rota(aqui, 'torre'); go(w.x, w.z, `${w.name}, caminho para a Torre do Cisma`, { reg: 'torre', regN: 'Torre do Cisma' }); } return; }
+    show(null, T.id === aqui ? null : T.id);
+  }
+  function drawMundo() {
+    const W = cv.width, H = cv.height, L = layout(W, H), aqui = regDe(), t = performance.now() / 1000, f = Math.max(14, W / 60);
+    g.fillStyle = '#100c18'; g.fillRect(0, 0, W, H);
+    const caber = (txt, peso, tam, maxW) => { let k = tam; g.font = `${peso} ${Math.round(k)}px Nunito, sans-serif`; while (k > 9 && g.measureText(txt).width > maxW) { k -= 1; g.font = `${peso} ${Math.round(k)}px Nunito, sans-serif`; } };
+    // passagens: do arco de um quadro ao arco do outro
+    const PAS = [[VGATE_R, 'reino', VGATE_V, 'valdora'], [RGATE_P, 'reino', PGATE, 'praia'], [VGATE_VF, 'valdora', FGATE, 'floresta'], [FGATE_V, 'floresta', VALE_GATE, 'vale'], [VGATE_C, 'vale', CGATE, 'cidade']];
+    const pontas = [];
+    for (const [a, ra, b, rb] of PAS) if (L[ra].M && L[rb].M) pontas.push([ptQ(L[ra], a.x, a.z), ptQ(L[rb], b.x, b.z)]);
+    const torreR = L.reino.M ? ptQ(L.reino, Tower.door.x, Tower.door.z) : null, Tq = L.torre;
+    if (torreR) pontas.push([torreR, [Tq.x + Tq.w * 0.5, Tq.y + Tq.h * 0.6]]);
+    for (const id in L) {
+      const T = L[id], eu = id === aqui, r = REG.find(r => r.id === id);
+      g.fillStyle = id === 'torre' ? '#2a1a40' : '#1c1626'; g.fillRect(T.x, T.y, T.w, T.h);
+      if (T.M && T.M.base) { g.imageSmoothingEnabled = true; g.drawImage(T.M.base, T.ox, T.oy, T.M.w * T.k, T.M.h * T.k); }
+      if (id === 'torre') { g.textAlign = 'center'; g.font = `${Math.round(T.h * 0.42)}px sans-serif`; g.fillText('🗼', T.x + T.w / 2, T.y + T.h * 0.78); }
+      // faixa com o nome e o nível
+      g.fillStyle = 'rgba(10,6,16,.85)'; g.fillRect(T.x, T.y, T.w, T.faixa);
+      g.textAlign = 'center'; g.fillStyle = '#f7e2a8'; caber(r.n, 800, T.faixa * 0.5, T.w - 10); g.fillText(r.n, T.x + T.w / 2, T.y + T.faixa * 0.5);
+      g.fillStyle = '#ffb0d0'; const lv = id === 'praia' ? 'Nv 18–34' : id === 'torre' ? 'Nv 18–60 · 30 andares' : r.lv; caber(lv, 800, T.faixa * 0.36, T.w - 10); g.fillText(lv, T.x + T.w / 2, T.y + T.faixa * 0.9);
+      g.strokeStyle = eu ? '#ffcf40' : 'rgba(247,226,168,.6)'; g.lineWidth = eu ? Math.max(4, W / 220) : 1.5; g.strokeRect(T.x, T.y, T.w, T.h);
+      // cidades: ponto amarelo
+      if (T.M) { const cs = T.M.cities || (id === 'reino' ? CITIES : []); for (const c of cs) { const [x, y] = ptQ(T, c.c.x, c.c.z); g.fillStyle = '#ffcf40'; g.beginPath(); g.arc(x, y, f * 0.32, 0, TAU); g.fill(); g.strokeStyle = '#000'; g.lineWidth = 1.5; g.stroke(); } }
+    }
+    g.save(); g.setLineDash([f * 0.5, f * 0.35]); g.strokeStyle = 'rgba(255,233,168,.95)'; g.lineWidth = Math.max(2, W / 450);
+    for (const [[ax, ay], [bx, by]] of pontas) { g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke(); }
+    g.restore();
+    for (const pr of pontas) for (const [x, y] of pr) { g.fillStyle = 'rgba(16,10,24,.9)'; g.beginPath(); g.arc(x, y, f * 0.55, 0, TAU); g.fill(); g.textAlign = 'center'; g.font = `${Math.round(f * 0.65)}px sans-serif`; g.fillText('🚪', x, y + f * 0.23); }
+    // você está aqui
+    const T = L[aqui], pxy = aqui === 'torre' ? [Tq.x + Tq.w / 2, Tq.y + Tq.h * 0.55] : T && T.M ? ptQ(T, P.x, P.z) : null;
+    if (pxy) { const [px, py] = pxy, pul = 1 + Math.sin(t * 5) * 0.25; g.fillStyle = 'rgba(255,79,163,.35)'; g.beginPath(); g.arc(px, py, f * 1.1 * pul, 0, TAU); g.fill(); g.fillStyle = '#ff4fa3'; g.beginPath(); g.arc(px, py, f * 0.45, 0, TAU); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
+      g.font = `800 ${Math.round(f * 0.8)}px Nunito, sans-serif`; const tw = g.measureText('📍 VOCÊ').width / 2 + 6, ly = Math.min(H - 4, py + f * 2); g.fillStyle = 'rgba(255,79,163,.95)'; g.fillRect(px - tw, ly - f * 0.85, tw * 2, f * 1.1); g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText('📍 VOCÊ', px, ly); }
+  }
+  function show(city, reg) {
+    if (reg !== undefined || city === 'mundo') vm = reg || null;
+    const mundo = city === 'mundo' || (inTower(P.z) && !vm);
     build();
     if (!box) {
       box = document.createElement('div'); box.id = 'bigmap';
@@ -2357,45 +2578,72 @@ const BigMap = (() => {
       $('hud').appendChild(box); cv = box.querySelector('canvas'); g = cv.getContext('2d');
       box.addEventListener('click', e => {
         if (e.target.closest('.bm-x') || e.target === box) { Audio8.sfx('click'); hide(); return; }
-        if (e.target.closest('.bm-back')) { Audio8.sfx('click'); show(null); return; }
+        if (e.target.closest('.bm-back')) { Audio8.sfx('click'); if (view && view !== 'mundo') show(null); else show('mundo'); return; }
         const it = e.target.closest('[data-npc]'); if (it) { const n = NPCS[+it.dataset.npc]; go(n.x, n.z, n.name); return; }
       });
       cv.addEventListener('click', e => {
+        if (view === 'mundo') { const r = cv.getBoundingClientRect(); cliqueMundo((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); return; }
         const r = cv.getBoundingClientRect(), A = area(), wx = A.x0 + (e.clientX - r.left) / r.width * A.w, wz = A.z0 + (e.clientY - r.top) / r.height * A.h;
         if (!view) { const c = cities().find(c => Math.hypot(wx - c.c.x, wz - c.c.z) < 14); if (c) { Audio8.sfx('click'); show(c); return; } }
         if (view) { const n = npcsOf(view).find(n => Math.hypot(n.x - wx, n.z - wz) < 2.5); if (n) { go(n.x, n.z, n.name); return; } }
+        const aqui = regDe(), la = vm || aqui;
+        if (la !== aqui && la !== 'torre') {                                  // ponto em outro mapa: vai passagem por passagem
+          if (aqui === 'torre') { log('Saia da Torre primeiro (desça até o 1º andar).', 'sys'); return; }
+          const r = REG.find(r => r.id === la), w = rota(aqui, la); go(w.x, w.z, `${w.name}, caminho para ${r.n}`, { reg: la, regN: r.n, fim: { x: wx, z: wz } }); return;
+        }
         if (blocked(wx, wz) && !inTower(wz)) { let ok = false; for (let i = 1; i < 8 && !ok; i++) for (let k = 0; k < 8; k++) { const a = k / 8 * TAU, x = wx + Math.cos(a) * i, z = wz + Math.sin(a) * i; if (!blocked(x, z)) { go(x, z, 'o ponto marcado'); ok = true; break; } } if (!ok) log('Não dá para chegar aí.', 'bad'); return; }
         go(wx, wz, 'o ponto marcado');
       });
     }
+    if (mundo) return showMundo();
+    cv.style.margin = '';
     view = city || null;
-    box.querySelector('.bm-back').style.display = view ? '' : 'none';
-    box.querySelector('.bm-n').textContent = view ? '🏘️ ' + view.n : inFlo(P.x, P.z) ? '🗺️ Floresta Morta' : inPraia(P.x, P.z) ? '🗺️ Praia de Cômodo' : inVal(P.z) ? '🗺️ Terras de Valdora' : '🗺️ Mapa do Reino';
-    box.querySelector('.bm-back').textContent = inFlo(P.x, P.z) ? '← Floresta' : inPraia(P.x, P.z) ? '← Praia' : inVal(P.z) ? '← Valdora' : '← Reino';
+    box.querySelector('.bm-back').style.display = '';
+    const rvm = vm && REG.find(r => r.id === vm);
+    box.querySelector('.bm-n').textContent = view ? '🏘️ ' + view.n : rvm ? '🗺️ ' + rvm.n : inCidade(P.x, P.z) ? '🗺️ Cidade Submersa' : inVale(P.x, P.z) ? '🗺️ Vale dos Mortos' : inFlo(P.x, P.z) ? '🗺️ Floresta Morta' : inPraia(P.x, P.z) ? '🗺️ Praia de Cômodo' : inVal(P.z) ? '🗺️ Terras de Valdora' : '🗺️ Mapa do Reino';
+    box.querySelector('.bm-back').textContent = !view ? '🌍 Mundo' : rvm ? '← ' + rvm.n : inCidade(P.x, P.z) ? '← Cidade' : inVale(P.x, P.z) ? '← Vale' : inFlo(P.x, P.z) ? '← Floresta' : inPraia(P.x, P.z) ? '← Praia' : inVal(P.z) ? '← Valdora' : '← Reino';
     const list = box.querySelector('.bm-list');
     if (view) { list.style.display = ''; list.innerHTML = '<h4>Moradores</h4>' + npcsOf(view).map(n => `<div class="bm-npc" data-npc="${NPCS.indexOf(n)}"><span>${ICON[n.id] || '•'}</span><b>${n.name}</b><em>ir ›</em></div>`).join('') || '<i>Ninguém aqui.</i>'; }
     else list.style.display = 'none';
-    box.querySelector('.bm-leg').innerHTML = view ? '<span>Toque num morador (lista ou mapa) e o personagem vai sozinho até ele.</span>' : '<span>👆 toque num ponto: o personagem vai sozinho · toque numa cidade: abre o mapa dela</span><span><i style="background:#ffcf40"></i>NPC</span><span><i style="background:#ff8080"></i>monstro</span><span><i style="background:#ff3030"></i>chefe</span><span><i style="background:#6ab0ff"></i>jogador</span>';
+    box.querySelector('.bm-leg').innerHTML = view ? '<span>Toque num morador (lista ou mapa) e o personagem vai sozinho até ele.</span>' : '<span>👆 toque num ponto: o personagem vai sozinho até lá (mesmo em outro mapa) · toque numa cidade: abre o mapa dela</span><span><i style="background:#ffcf40"></i>NPC</span><span><i style="background:#ff8080"></i>monstro</span><span><i style="background:#ff3030"></i>chefe</span><span><i style="background:#6ab0ff"></i>jogador</span>';
     const A = area(), listW = view ? Math.min(220, innerWidth * 0.3) : 0;
     const r = Math.min((innerWidth - 40 - listW) / A.w, (innerHeight - 100) / A.h);
     cv.width = Math.round(A.w * r * (devicePixelRatio > 1 ? 1.5 : 1)); cv.height = Math.round(cv.width * A.h / A.w);
     cv.style.width = Math.round(A.w * r) + 'px'; cv.style.height = Math.round(A.h * r) + 'px';
     box.classList.remove('hidden'); open = true; draw();
   }
-  function go(x, z, name) {
+  function go(x, z, name, extra) {
     Audio8.sfx('click'); hide();
-    P.qGo = { x, z, name }; log(`🧭 Indo até <b>${name}</b>. Mexa o joystick para parar.`, 'sys');
+    if (!extra) { const aqui = regDe(), la = inTower(z) ? 'torre' : mapaDe(x, z), r = REG.find(r => r.id === la);   // morador ou ponto em outro mapa
+      if (r && la !== aqui && la !== 'torre' && aqui !== 'torre') { const w = rota(aqui, la); extra = { reg: la, regN: r.n, fim: { x, z } }; name = `${name} (${r.n})`; x = w.x; z = w.z; } }
+    P.qGo = { x, z, name, ...(extra || {}) }; log(`🧭 Indo até <b>${name}</b>. Mexa o joystick para parar.`, 'sys');
     if (typeof autoStart === 'function') autoStart(); $('quest').dataset.h = '';
   }
   function hide() { if (box) box.classList.add('hidden'); open = false; }
+  function showMundo() {
+    build(); view = 'mundo';
+    box.querySelector('.bm-back').style.display = 'none';
+    box.querySelector('.bm-n').textContent = '🌍 Mapa do Mundo';
+    box.querySelector('.bm-list').style.display = 'none';
+    box.querySelector('.bm-leg').innerHTML = '<span>👆 Toque num lugar para abrir o mapa dele ampliado e escolher para onde ir · 🚪 passagens · 🧭 Guias de Viagem levam entre cidades</span>';
+    const r = Math.min((innerWidth - 40) / 16, (innerHeight - 110) / 9);
+    cv.width = Math.round(16 * r * (devicePixelRatio > 1 ? 2 : 1)); cv.height = Math.round(cv.width * 9 / 16);
+    cv.style.width = Math.round(16 * r) + 'px'; cv.style.height = Math.round(9 * r) + 'px'; cv.style.margin = '0 auto';
+    box.classList.remove('hidden'); open = true; draw();
+  }
   function draw() {
     if (!open) return;
+    if (view === 'mundo') return drawMundo();
     const A = area(), k = cv.width / A.w, X = x => (x - A.x0) * k, Z = z => (z - A.z0) * k, u = view ? 3 : 1;
-    const M = curMap(), B = M.base || base; g.imageSmoothingEnabled = true; g.drawImage(B, (A.x0 - M.x0) * B.width / M.w, (A.z0 - M.z0) * B.height / M.h, A.w * B.width / M.w, A.h * B.height / M.h, 0, 0, cv.width, cv.height);
+    const M = vmMap(), B = M.base || base; g.imageSmoothingEnabled = true; g.drawImage(B, (A.x0 - M.x0) * B.width / M.w, (A.z0 - M.z0) * B.height / M.h, A.w * B.width / M.w, A.h * B.height / M.h, 0, 0, cv.width, cv.height);
     g.textAlign = 'center';
     if (!view) {
-      g.font = `800 ${Math.round(9 * k)}px Nunito, sans-serif`;
-      for (const [p, n] of places()) { const w = g.measureText(n).width / 2 + 4, lx = Math.min(cv.width - w, Math.max(w, X(p.x))), ly = Math.max(12 * k, Z(p.z) - 9 * k); g.fillStyle = 'rgba(0,0,0,.55)'; g.fillText(n, lx + 1, ly + 1); g.fillStyle = '#f7e2a8'; g.fillText(n, lx, ly); }
+      const fs = Math.round(Math.max(9 * k, 27)); g.font = `800 ${fs}px Nunito, sans-serif`;                // nomes grandes (no celular ficavam miúdos)
+      const usados = [];                                                                         // nomes não ficam um em cima do outro
+      for (const [p, n] of places()) { const w = g.measureText(n).width / 2 + 6, lx = Math.min(cv.width - w, Math.max(w, X(p.x))); let ly = Math.max(fs * 1.2, Z(p.z) - fs * 0.9);
+        for (let k = 0; k < 6 && usados.some(u => Math.abs(u.x - lx) < u.w + w && Math.abs(u.y - ly) < fs * 1.3); k++) ly += fs * 1.35;
+        usados.push({ x: lx, y: ly, w });
+        g.fillStyle = 'rgba(12,8,20,.7)'; g.fillRect(lx - w, ly - fs * 0.95, w * 2, fs * 1.25); g.fillStyle = '#ffe9a8'; g.fillText(n, lx, ly); }
       for (const c of cities()) { g.strokeStyle = 'rgba(247,226,168,.75)'; g.lineWidth = 1.5; g.setLineDash([4, 3]); g.beginPath(); g.arc(X(c.c.x), Z(c.c.z), 12 * k, 0, TAU); g.stroke(); g.setLineDash([]); }
     }
     for (const m of mobs) { if (m.x < A.x0 || m.x > A.x0 + A.w || m.z < A.z0 || m.z > A.z0 + A.h) continue; const s = (m.d.boss ? 3.2 : m.d.alfa ? 2.4 : 1.3) * k / u * (view ? 1.6 : 1); g.fillStyle = m.d.boss ? '#ff3030' : m.d.alfa ? '#ffcf40' : '#ff8080'; g.beginPath(); g.arc(X(m.x), Z(m.z), s, 0, TAU); g.fill(); }
@@ -2404,7 +2652,7 @@ const BigMap = (() => {
       if (view) { const x = X(n.x), z = Z(n.z); g.font = `${Math.round(13 * k / 2.2)}px sans-serif`; g.fillStyle = 'rgba(0,0,0,.6)'; g.beginPath(); g.arc(x, z, 7 * k / 2.2, 0, TAU); g.fill(); g.fillStyle = '#fff'; g.fillText(ICON[n.id] || '•', x, z + 4 * k / 2.2); }
       else { g.fillStyle = '#ffcf40'; g.fillRect(X(n.x) - 1.5 * k, Z(n.z) - 1.5 * k, 3 * k, 3 * k); }
     }
-    if (typeof Net !== 'undefined' && Net.peers) for (const r of Net.peers()) { g.fillStyle = '#6ab0ff'; g.beginPath(); g.arc(X(r.x), Z(r.z), 2.2 * k / u, 0, TAU); g.fill(); }
+    if (typeof Net !== 'undefined' && Net.peers) for (const r of Net.peers()) { g.fillStyle = r.s && r.s.gp && r.s.gp === P.grupo ? '#7dff6a' : '#6ab0ff'; g.beginPath(); g.arc(X(r.x), Z(r.z), 2.2 * k / u, 0, TAU); g.fill(); }
     const qt = questTarget(), px = X(P.x), pz = Z(P.z);
     if (qt) {
       const tx = X(qt.x), tz = Z(qt.z), q = k / u;
@@ -2416,7 +2664,7 @@ const BigMap = (() => {
     g.save(); g.translate(px, pz); g.rotate(-P.face + Math.PI); g.scale(k / u * (view ? 1.8 : 1), k / u * (view ? 1.8 : 1));
     g.fillStyle = '#fff'; g.strokeStyle = '#ff4fa3'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, -5); g.lineTo(3.4, 3.4); g.lineTo(-3.4, 3.4); g.closePath(); g.fill(); g.stroke(); g.restore();
   }
-  return { show: () => show(null), hide, draw, get open() { return open; } };
+  return { rota, show: () => show('mundo'), regiao: () => show(null, null), hide, draw, get open() { return open; } };
 })();
 function questTarget() {
   if (typeof Quests !== 'undefined') {
@@ -2425,8 +2673,10 @@ function questTarget() {
     // o caminho entre os mapas: Reino ↔ Valdora ↔ Floresta Morta
     if (aqui === 'praia') return { x: PGATE.x - 4, z: PGATE.z, name: 'Passagem para o Reino' };
     if (aqui === 'reino') return { x: VGATE_R.x, z: VGATE_R.z - 4, name: 'Passagem do Norte' };
-    if (aqui === 'floresta') return { x: FGATE.x + 4, z: FGATE.z, name: 'Passagem para Valdora' };
-    return la === 'floresta' ? { x: VGATE_VF.x - 4, z: VGATE_VF.z, name: 'Passagem da Floresta Morta' } : { x: VGATE_V.x, z: VGATE_V.z + 4, name: 'Passagem do Norte' };
+    if (aqui === 'cidade') return { x: CGATE.x + 3, z: CGATE.z, name: 'A luz de volta ao Vale' };
+    if (aqui === 'vale') return la === 'cidade' ? { x: VGATE_C.x, z: VGATE_C.z + 3, name: 'A queda no fim da Ponte dos Mortos' } : { x: VALE_GATE.x + 4, z: VALE_GATE.z, name: 'Passagem para a Floresta Morta' };
+    if (aqui === 'floresta') return la === 'vale' || la === 'cidade' ? { x: FGATE_V.x - 4, z: FGATE_V.z, name: 'Passagem do Vale dos Mortos' } : { x: FGATE.x + 4, z: FGATE.z, name: 'Passagem para Valdora' };
+    return la === 'floresta' || la === 'vale' || la === 'cidade' ? { x: VGATE_VF.x - 4, z: VGATE_VF.z, name: 'Passagem da Floresta Morta' } : { x: VGATE_V.x, z: VGATE_V.z + 4, name: 'Passagem do Norte' };
   }
   const q = QUESTS[P.quest]; if (!q || inTower(P.z)) return null;
   if (P.qcount >= q.n) { const n = NPCS.find(n => n.id === 'master'); return { x: n.x, z: n.z }; }
@@ -2460,7 +2710,7 @@ function updateQuestArrow() {
   qArrow.material.opacity = 0.55 + 0.45 * Math.sin(slide * Math.PI);
 }
 const REINO_MAP = { x0: -WX, z0: -WZ, w: WX * 2, h: WZ * 2 };
-function curMap() { return inPraia(P.x, P.z) && typeof Praia !== 'undefined' ? Praia.map : inFlo(P.x, P.z) && typeof Floresta !== 'undefined' ? Floresta.map : inVal(P.z) && typeof Valdora !== 'undefined' ? Valdora.map : REINO_MAP; }
+function curMap() { return inCidade(P.x, P.z) && typeof Cidade !== 'undefined' ? Cidade.map : inVale(P.x, P.z) && typeof Vale !== 'undefined' ? Vale.map : inPraia(P.x, P.z) && typeof Praia !== 'undefined' ? Praia.map : inFlo(P.x, P.z) && typeof Floresta !== 'undefined' ? Floresta.map : inVal(P.z) && typeof Valdora !== 'undefined' ? Valdora.map : REINO_MAP; }
 function drawMinimap() {
   const M = curMap(), sx = mm.width / M.w, sz = mm.height / M.h;
   mg.drawImage(M.mm || mmBase, 0, 0, mm.width, mm.height);
@@ -2468,6 +2718,9 @@ function drawMinimap() {
   if (inTower(P.z)) { if (zoneOf(P.x, P.z) === 'casa') { mg.fillStyle = '#2a1e14'; mg.fillRect(0, 0, mm.width, mm.height); mg.fillStyle = '#f2c86a'; mg.font = 'bold 16px Georgia'; mg.textAlign = 'center'; mg.fillText('🏠 Sua Casa', mm.width / 2, mm.height / 2 + 6); mg.textAlign = 'left'; return; } Tower.minimap(mg); return; }
   if (!inVal(P.z)) Kvx.minimap(mg, sx, sz);
   for (const n of NPCS) { const mk = n.markK || '', nw = mk.startsWith('!'), rd = mk.startsWith('?') && !mk.endsWith('#7a7a88'), s = nw || rd ? 5 : 3; mg.fillStyle = nw ? '#7dff6a' : rd ? '#6ab0ff' : '#ffcf40'; mg.fillRect((n.x - M.x0) * sx - s / 2, (n.z - M.z0) * sz - s / 2, s, s); }
+  if (typeof Net !== 'undefined' && Net.peers && !inTower(P.z)) for (const r of Net.peers()) {            // outros jogadores (verde = do seu grupo)
+    const gr = r.s && r.s.gp && r.s.gp === P.grupo, x = (r.x - M.x0) * sx, z = (r.z - M.z0) * sz; if (x < 0 || z < 0 || x > mm.width || z > mm.height) continue;
+    mg.fillStyle = gr ? '#7dff6a' : '#6ab0ff'; mg.beginPath(); mg.arc(x, z, gr ? 3.5 : 2.5, 0, TAU); mg.fill(); if (gr) { mg.strokeStyle = '#000'; mg.lineWidth = 1; mg.stroke(); } }
   const px = (P.x - M.x0) * sx, pz = (P.z - M.z0) * sz;
   const qt = questTarget();
   if (qt) {                                                     // destino da missão: linha tracejada e estrela dourada
@@ -2623,7 +2876,8 @@ function scaleSkill(s, L) {
   if (s.life) o.life = Math.round(s.life * (1 + 0.15 * k));
   if (s.poison) o.poison = s.poison * (1 + 0.2 * k);
   if (s.mods) { o.mods = {}; for (const [m, v] of Object.entries(s.mods)) o.mods[m] = ['def', 'crit', 'poison', 'regen'].includes(m) ? v * (1 + 0.25 * k) : 1 + (v - 1) * (1 + 0.25 * k); }
-  o.sp = Math.round(s.sp * (1 + 0.12 * k) * (1 + P.lv / 20));          // custo cresce com o nível do personagem (no 60, 4x), senão o SP nunca acaba
+  // custo cresce com o nível do personagem (no 60, ~2,2x), mas nenhuma habilidade passa de 20% do SP máximo
+  o.sp = Math.max(s.sp, Math.round(Math.min(s.sp * (1 + 0.1 * k) * (1 + P.lv / 50), stats.maxSp() * 0.2)));
   return o;
 }
 function reqMet(i) { return tierOk(SKILLS[i]) && (SK_REQ[i] || []).every(([j, lv]) => (P.skillLv[SKILLS[j].id] || 0) >= lv); }
@@ -2719,7 +2973,21 @@ function talkBase(n) {
       shop(); break;
     }
     case 'master': dialog(nm, `${bv}, <b>${eu}</b>. A Essência está vazando pelas rachaduras do Reino e as criaturas ficaram agitadas.<br>Cada cidade precisa de ajuda: fale com os moradores, leia os Quadros de Caça e explore. Dizem que há tesouros escondidos pelos mapas...<br><small>Dica: ${TOUCH ? 'toque 🧘' : 'aperte <b>X</b>'} para sentar e recuperar HP/SP mais rápido.</small>`); break;
+    case 'nosferatur': {
+      const falas = ['Eu sou o <b>Nosferatur</b>! O terror da Praia de Cômodo! ...Tá bom, eu só tenho um pouquinho de medo do escuro.',
+        'Shhh! Tô escondido da minha mãe. Se ela perguntar, você não me viu, tá?',
+        'Eu nasci aqui em Cômodo. O mar daqui é o mais bonito do mundo inteiro, pode perguntar pro Zé do Mar.',
+        `Quando eu crescer vou subir os <b>trinta andares</b> da Torre do Cisma. Você já subiu, ${eu}? Conta como é lá em cima!`,
+        'Você já viu o <b>Kravenox</b>? Eu não tenho medo dele. Quase nada. Só um pouco. De noite.',
+        'Sabia que o farol daqui nunca apaga? Um dia eu vou pescar uma <b>Pérola de Cômodo</b> lá na ponta do píer.',
+        'Eu treino com espada de madeira todo dia na areia. Olha: zás! zás! ...ai, entrou areia no meu olho.'];
+      let txt = falas[Math.floor(Math.random() * falas.length)];
+      if (!P.nosfe) { P.nosfe = 1; P.inv.maca = (P.inv.maca || 0) + 3; txt += '<br><br>Toma, pega essas <b>3 Maçãs Silvestres</b>. É pra você não ficar com fome na aventura!'; Audio8.sfx('pick'); }
+      dialog(`💬 ${n.name}`, txt, [{ label: '🦇 A Grande Aventura do Nosferatur', fn: () => { if (typeof Desafios !== 'undefined') Desafios.talk(n); return true; } }, { label: 'Valeu, Nosferatur!' }]); break;
+    }
     case 'pescador': case 'faroleira': if (typeof Praia !== 'undefined') Praia.talk(n); break;
+    case 'ilene': dialog(nm, `Você também caiu da ponte, <b>${eu}</b>? Aqui não tem chão nem céu: é o lugar onde o Reino guarda aquilo que não consegue destruir.<br><small>Ande pelas pontes. Onde não houver ponte, confie nos seus pés.</small>`); break;
+    case 'maren': dialog(nm, `Não responda às vozes, <b>${eu}</b>. O vale se alimenta de lembranças: ele usa a voz de quem você ama para te chamar para a névoa.<br><small>Ao norte fica a Ponte dos Mortos. Quem atravessa não volta.</small>`); break;
     case 'lira': dialog(nm, `— Essa pergunta é engraçada vindo de você, <b>${eu}</b>.<br>As árvores contam tudo. Algumas coisas continuam falando depois de morrer.<br><small>O Templo da Primeira Raiz fica ao norte, depois dos pilares da Ordem.</small>`); break;
     case 'refugee': dialog(nm, `Você... veio da Passagem? Ninguém vem <i>para</i> cá, ${eu}. Todo mundo foge.<br>Valdora caiu. As muralhas estão no chão, as torres queimam, e as <b>Sentinelas do Vazio</b> andam pelas ruas. No meio da praça desenharam com sangue um símbolo enorme: <b>três espinhos</b>.<br>A estrada até lá está tomada pelas <b>Raízes Negras</b>. Cuidado.`); break;
     case 'farm': P.farmSeen = 1; Vida.talkFarm(eu); break;
@@ -2746,6 +3014,11 @@ function buy(id, n) {
 }
 
 // ---------------------------------------------------------------- entrada
+// nada de zoom da página: toque duplo, pinça do iPhone (gesture) e Ctrl+roda
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', e => { if (e.touches && e.touches.length > 1 && !e.target.closest('#chat-hist, .dtext, #avisos')) e.preventDefault(); }, { passive: false });
+let _ultToque = 0; document.addEventListener('touchend', e => { const t = Date.now(); if (t - _ultToque < 300 && (e.target.tagName === 'CANVAS' || e.target === document.body || e.target.id === 'hud' || e.target.id === 'labels')) e.preventDefault(); _ultToque = t; }, { passive: false });
 const cvEl = renderer.domElement;
 let drag = null;
 cvEl.addEventListener('contextmenu', e => e.preventDefault());
@@ -2811,7 +3084,7 @@ const joy = { x: 0, y: 0, id: null };
   if (TOUCH) $('touch').classList.remove('hidden');
 }
 function toggleMusic() { const on = Audio8.toggleMusic(); $('btn-music').textContent = on ? '🎵' : '🔇'; }
-const HELP_OPTS = () => [{ label: 'Fechar' }, { label: (() => { let o = true; try { o = localStorage.getItem('monstros3d') !== '0'; } catch (e) { } return o ? '👾 Monstros: 3D (trocar para desenho)' : '👾 Monstros: desenho (trocar para 3D)'; })(), fn: () => { try { localStorage.setItem('monstros3d', localStorage.getItem('monstros3d') === '0' ? '1' : '0'); } catch (e) { } save(); location.reload(); } }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }, { label: '📢 Avisos, novidades e uso de internet', fn: () => { if (typeof Avisos !== 'undefined') Avisos.mostrar(true); } }, { label: '🚪 Sair da conta', fn: () => { save(); Nuvem.sair(); } }];
+const HELP_OPTS = () => [{ label: 'Fechar' }, { label: (() => { let o = true; try { o = localStorage.getItem('monstros3d') !== '0'; } catch (e) { } return o ? '👾 Monstros: 3D (trocar para desenho)' : '👾 Monstros: desenho (trocar para 3D)'; })(), fn: () => { try { localStorage.setItem('monstros3d', localStorage.getItem('monstros3d') === '0' ? '1' : '0'); } catch (e) { } save(); location.reload(); } }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }, { label: '📢 Avisos, novidades e uso de internet', fn: () => { if (typeof Avisos !== 'undefined') Avisos.mostrar(true); } }, { label: '🐾 Livro de Mascotes (quais dá para capturar)', fn: () => { if (typeof Mascotes !== 'undefined') Mascotes.livro(); return true; } }, { label: '📅 Presença do mês (prêmio de login)', fn: () => { if (typeof Presenca !== 'undefined') Presenca.abrir(); return true; } }, { label: '🎮 Mais jogos do Kravenox (e mandar o link para um amigo)', fn: () => { if (typeof MaisJogos !== 'undefined') MaisJogos.mostrar(); } }, { label: '🚪 Sair da conta', fn: () => { save(); Nuvem.sair(); } }];
 function showHelp() {
   const extra = `📜 <b>Missões:</b> 🟡 principal (a história), 🔵 secundárias (moradores), 🟢 caça (Quadros de Caça nas cidades, repetíveis) e 🟣 ocultas (escondidas pelo mapa). <b>!</b> na cabeça do NPC = missão nova; <b>?</b> = entregar. As ativas aparecem no canto direito.<br>
   📜 <b>Missões:</b> toque numa missão do quadro (direita) e o personagem anda sozinho até ela. Mexa o joystick para parar.<br>
@@ -2833,12 +3106,69 @@ function showHelp() {
   <b>F</b> falar / usar · <b>C</b> atributos · <b>K</b> habilidades · <b>X</b> sentar · <b>M</b> música<br><br>${extra}<br><br>
   Caminho: Solmira → Campos Dourados → Areias Rubras → Cidadela do Cisma. O jogo salva sozinho.`, HELP_OPTS());
 }
-function openChat() { $('chatbox').classList.remove('hidden'); $('chat-in').focus(); for (const k in keys) keys[k] = false; }
-function sendChat() { const i = $('chat-in'); Net.say(i.value); i.value = ''; $('chatbox').classList.add('hidden'); i.blur(); setTimeout(fitScreen, 400); }
+// ---------------- uma janela de cada vez: abrir uma fecha as outras (antes ficavam empilhadas: mochila + diário + guilda + loja...)
+const JANELAS = ['statwin', 'skillwin', 'invwin', 'bestwin', 'coswin', 'guildwin', 'bauwin', 'chatbox', 'dialog', 'bigmap', 'avisos', 'kvx'];
+function fecharJanelas(exceto) {
+  for (const id of JANELAS) {
+    if (id === exceto) continue; const el = $(id); if (!el) continue;
+    if (id === 'dialog') { if (dialogOpen) closeDialog(); continue; }
+    if (id === 'bigmap') { if (typeof BigMap !== 'undefined' && BigMap.open) BigMap.hide(); continue; }
+    if (id === 'kvx') { if (P.ui) P.ui.kvx = false; continue; }
+    if (id === 'chatbox') { if (!el.classList.contains('hidden')) { el.classList.add('hidden'); $('chat-in').blur(); } continue; }
+    el.classList.add('hidden');
+  }
+}
+// qual janela cada botão abre (as outras fecham antes)
+const JANELA_DO_BOTAO = { 'btn-stat': 'statwin', 'btn-skill': 'skillwin', 'btn-bag': 'invwin', 'btn-best': 'bestwin', 'btn-shop': 'coswin', 'btn-guild': 'guildwin', 'btn-chat': 'chatbox', 'btn-help': 'dialog', 'btn-grupo': 'dialog' };
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('#menu button'); if (!b || !(b.id in JANELA_DO_BOTAO)) return;
+  fecharJanelas(JANELA_DO_BOTAO[b.id]);
+}, true);
+document.addEventListener('pointerdown', e => {
+  const b = e.target.closest && e.target.closest('#rail [data-p]'); if (!b) return;
+  const k = b.dataset.p; if (k === 'evo') return;
+  fecharJanelas(k === 'kvx' ? 'kvx' : 'dialog');
+}, true);
+// ---------------- chat: 🌍 mundo todo, 👥 grupo e 🛡️ guilda, com histórico só das conversas
+const CHAT_HIST = []; let chatCanal = 'mundo', chatNovas = 0;
+const semTokens = t => String(t || '').replace(/\[\[i:([a-z0-9_]{1,40})\]\]/g, (m, id) => ITEMS[id] ? `[${ITEMS[id].name}]` : '');   // balão em cima da cabeça
+// item no chat: [[i:id]] vira o nome do item, colorido, que abre a ficha
+function itemLinks(html, dono) {
+  return html.replace(/\[\[i:([a-z0-9_]{1,40})\]\]/g, (m, id) => { const I = ITEMS[id]; if (!I) return ''; const c = typeof Vida !== 'undefined' && I.kind === 'equip' ? Vida.RARITY[I.rar || 0].c : I.kind === 'carta' ? '#ffb640' : '#ffe9a8';
+    return `<a class="itemlink" data-item="${id}" data-dono="${dono || ''}" style="color:${c}">[${I.ic} ${I.name}]</a>`; });
+}
+function chatMsg(html, cls, eu = false) {
+  const dono = (html.match(/<b>(?:\[[^\]]*\] )?([^<:]{1,24})<\/b>:/) || [])[1] || '';
+  html = itemLinks(html, dono);
+  log(html, cls);
+  const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  CHAT_HIST.push(`<div class="${cls}"><small>${hora}</small> ${html}</div>`); while (CHAT_HIST.length > 60) CHAT_HIST.shift();
+  const h = $('chat-hist'); if (h) { h.innerHTML = CHAT_HIST.join(''); h.scrollTop = h.scrollHeight; }
+  if ($('chatbox').classList.contains('hidden') && !eu) { chatNovas++; $('btn-chat').classList.add('badge'); $('btn-chat').dataset.n = chatNovas; }
+}
+function canalTxt() { return chatCanal === 'grupo' ? '👥 Grupo' : chatCanal === 'guilda' ? '🛡️ Guilda' : '🌍 Mundo'; }
+function trocarCanal() {
+  const ok = ['mundo', ...(P.grupo ? ['grupo'] : []), ...(typeof Guilda !== 'undefined' && Guilda.minha() ? ['guilda'] : [])];
+  chatCanal = ok[(ok.indexOf(chatCanal) + 1) % ok.length] || 'mundo';
+  $('chat-canal').textContent = canalTxt(); $('chat-in').placeholder = chatCanal === 'grupo' ? 'Mensagem só para o seu grupo…' : chatCanal === 'guilda' ? 'Mensagem só para a sua guilda…' : 'Mensagem para o mundo todo…';
+  if (ok.length === 1) log('💬 Entre num grupo (👥) ou numa guilda (🛡️) para falar só com eles.', 'sys');
+}
+function openChat() {
+  if ((chatCanal === 'grupo' && !P.grupo) || (chatCanal === 'guilda' && !(typeof Guilda !== 'undefined' && Guilda.minha()))) chatCanal = 'mundo';
+  $('chat-canal').textContent = canalTxt();
+  chatNovas = 0; $('btn-chat').classList.remove('badge');
+  $('chatbox').classList.remove('hidden'); const h = $('chat-hist'); h.innerHTML = CHAT_HIST.join(''); h.scrollTop = h.scrollHeight;
+  $('chat-in').focus(); for (const k in keys) keys[k] = false;
+}
+function sendChat() { const i = $('chat-in'); if (i.value.trim()) Net.say(i.value, chatCanal); i.value = ''; i.focus(); }
+function fecharChat() { $('chatbox').classList.add('hidden'); $('chat-in').blur(); setTimeout(fitScreen, 400); }
+$('chat-canal').onclick = trocarCanal; $('chat-x').onclick = fecharChat;
+$('chat-item').onclick = () => { if (typeof Vida === 'undefined') return; Vida.escolherParaChat(id => { const i = $('chat-in'); if ((i.value.match(/\[\[i:/g) || []).length >= 2) { log('Até 2 itens por mensagem.', 'bad'); return; } i.value = (i.value.trim() + ' [[i:' + id + ']]').trim().slice(0, 80); setTimeout(() => i.focus(), 50); }); };
+$('chat-hist').addEventListener('click', e => { const a = e.target.closest('.itemlink'); if (a && typeof Vida !== 'undefined') Vida.ficha(a.dataset.item, a.dataset.dono); });
 $('btn-chat').onclick = openChat;
 $('chat-send').onclick = sendChat;
 $('chat-in').addEventListener('blur', () => setTimeout(fitScreen, 400));
-$('chat-in').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') sendChat(); if (e.key === 'Escape') { $('chatbox').classList.add('hidden'); e.target.blur(); } });
+$('chat-in').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') sendChat(); if (e.key === 'Escape') fecharChat(); });
 $('btn-stat').onclick = toggleStats; $('btn-skill').onclick = toggleSkills; $('btn-music').onclick = toggleMusic; $('btn-help').onclick = showHelp;
 $('btn-sit').onclick = () => { P.sit = !P.sit; };
 
@@ -2846,7 +3176,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -2889,7 +3219,7 @@ function start(fromSave) {
   $('pname').textContent = P.name;
   SPAWNS.forEach((s, si) => { for (let i = 0; i < s.n; i++) { const m = spawnMob(s.type, s.area, s.at); m.nid = si + '-' + i; } });
   if (typeof Quests !== 'undefined') Quests.migrate();
-  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (typeof Cos !== 'undefined') Cos.init(); if (typeof PvP !== 'undefined') PvP.init(); buildGraves(); Kvx.init(); if (typeof Partilha !== 'undefined') Partilha.init(); Net.init(); if (typeof Guilda !== 'undefined') Guilda.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
+  applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (typeof Cos !== 'undefined') Cos.init(); if (typeof Grupo !== 'undefined') Grupo.init(); if (typeof PvP !== 'undefined') PvP.init(); buildGraves(); Kvx.init(); if (typeof Partilha !== 'undefined') Partilha.init(); Net.init(); if (typeof Guilda !== 'undefined') Guilda.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
   const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
