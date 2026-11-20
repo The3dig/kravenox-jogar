@@ -1363,13 +1363,15 @@ const P = {
 };
 const CLS = () => CLASSES[P.cls] || CLASSES.dancarina;
 let SKILLS = [];
-function refreshSkills() { SKILLS = [...CLS().skills, ...((typeof TIER_SKILLS !== 'undefined' && TIER_SKILLS[P.cls]) || [])].map((s, i) => ({ ...s, key: String(i + 1) })); }
+function refreshSkills() { SKILLS = [...CLS().skills, ...((typeof TIER_SKILLS !== 'undefined' && TIER_SKILLS[P.cls]) || []), ...((typeof EXTRA_SKILLS !== 'undefined' && EXTRA_SKILLS[P.cls]) || [])].map((s, i) => ({ ...s, key: String(i + 1) })); }
+// passivas: soma de cada bônus × nível aprendido (sempre ligado)
+function pas(k) { let v = 0; for (const s of SKILLS) if (s.type === 'passiva' && s.pas && s.pas[k] && tierOk(s)) v += s.pas[k] * ((P.skillLv && P.skillLv[s.id]) || 0); return v; }
 const tierOk = s => (s.tier || 0) <= (P.tier || 0);
 const tierName = () => (typeof TIERS !== 'undefined' && TIERS[P.cls] ? TIERS[P.cls][P.tier || 0] : className(P.cls, P.gender));
 refreshSkills();
 // bônus de buffs: multiplicativos (atk, matk, aspd, speed) e aditivos (def, crit, poison, regen)
-function bmul(k) { let v = 1; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v *= m[k]; } return v; }
-function badd(k) { let v = 0; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v += m[k]; } return v; }
+function bmul(k) { let v = 1 + (['atk', 'matk', 'aspd', 'speed'].includes(k) && typeof pas === 'function' ? pas(k) : 0); for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v *= m[k]; } return v; }
+function badd(k) { let v = ['def', 'crit', 'regen'].includes(k) && typeof pas === 'function' ? pas(k) : 0; for (const id in P.buffs) { const m = P.buffs[id].mods; if (m && m[k] !== undefined) v += m[k]; } return v; }
 const gearB = k => (typeof Vida !== 'undefined' ? Vida.gear(k) : 0) + (typeof Mascotes !== 'undefined' ? Mascotes.bonus(k) : 0);   // equipamentos + mascote que está junto
 // vantagens da guilda (guilda.js): xp, cr, desc, hp, dano, drop
 const gBon = k => typeof Guilda !== 'undefined' && running ? (Guilda.bonus()[k] || 0) : 0;
@@ -1377,11 +1379,11 @@ const stats = {
   atk: () => { const c = CLS(); const main = c.dmg === 'dex' ? P.dex * 2 + P.str * 0.5 : P.str * 2 + P.dex * 0.5; return Math.round((6 + P.lv + main + P.luk * 0.3 + (c.magic ? 0 : gearB('pow'))) * bmul('atk') * (1 + gBon('dano'))); },
   matk: () => Math.round((6 + P.lv + P.int * 3 + P.dex * 0.3 + (CLS().magic ? gearB('pow') : 0)) * bmul('matk') * (1 + gBon('dano'))),
   def: () => Math.floor(P.vit * 0.6) + badd('def') + gearB('def'),
-  maxHp: () => Math.round(((80 + P.vit * 13 + P.lv * 11) * CLS().hp * (1 + 0.12 * (P.tier || 0)) + gearB('hp')) * (1 + gBon('hp'))),
-  maxSp: () => Math.round((25 + P.int * 7 + P.lv * 3) * CLS().sp + gearB('sp')),
+  maxHp: () => Math.round(((80 + P.vit * 13 + P.lv * 11) * CLS().hp * (1 + 0.12 * (P.tier || 0)) + gearB('hp')) * (1 + gBon('hp')) * (1 + pas('hp'))),
+  maxSp: () => Math.round(((25 + P.int * 7 + P.lv * 3) * CLS().sp + gearB('sp')) * (1 + pas('sp'))),
   aspd: () => Math.max(0.2, CLS().aspd * (1 - P.agi * 0.009 - P.dex * 0.003)) / bmul('aspd'),
   speed: () => 6.2 * bmul('speed') * (1 + gearB('spd')),
-  flee: () => Math.min(0.6, 0.03 + P.agi * 0.011 + P.luk * 0.003),
+  flee: () => Math.min(0.6, 0.03 + P.agi * 0.011 + P.luk * 0.003 + pas('flee')),
   crit: () => Math.min(0.75, CLS().crit + P.luk * 0.004 + badd('crit') + gearB('crit')),
 };
 // nível máximo 200 (como o Ragnarok, cada nível pesa bem mais que o anterior)
@@ -1540,13 +1542,16 @@ function dmgMob(m, base, crit, magic, color) {
   if (m.dead) return 0;
   if (m.isPeer) return PvP.hit(m, base, crit);
   if (m.invul) { floater(m.x, groundY(m.x, m.z) + 1, m.z, 'Imune', 'miss'); return 0; }      // Verme debaixo da terra
-  let dmg = Math.max(1, Math.round(base * rand(0.9, 1.1) - m.d.def * (magic ? 0.4 : 1)));
+  // monstro comum bem mais fraco que você cai mais rápido (lv 62 contra lv 12: golpe 3x). Chefe, mini e chefe de campo não.
+  const gapLv = !m.d.boss && !m.d.mini && !m.d.field && !m.d.alfa ? Math.max(0, P.lv - (m.d.lv || 1)) : 0;
+  let dmg = Math.max(1, Math.round(base * (1 + Math.min(2, gapLv * 0.04)) * rand(0.9, 1.1) - m.d.def * (magic ? 0.4 : 1)));
   if (crit) dmg = Math.round(dmg * 1.8);
   m.hp -= dmg; m.flash = 0.12; m.state = 'chase'; m.lastHit = time;
   if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') Verme.addDmg(dmg);
   if (m.type === 'kravenox') { Kvx.addDmg(dmg); if (typeof Desafios !== 'undefined') Desafios.danoKvx(dmg); }
   if (m.d.field && typeof Chefes !== 'undefined') Chefes.addDmg(dmg);
   floater(m.x, groundY(m.x, m.z) + m.model.h, m.z, dmg, crit ? 'crit' : magic ? 'mag' : '');
+  const rb = pas('roubo'); if (rb > 0 && !P.dead) P.hp = Math.min(stats.maxHp(), P.hp + dmg * rb);      // passiva de roubo de vida
   Audio8.sfx(crit ? 'crit' : 'hit');
   _p.set(m.x, groundY(m.x, m.z) + m.model.h * 0.5, m.z);
   burst(_p.clone(), color ?? (crit ? 0xffcf40 : 0xffffff), crit ? 10 : 5, 3, 0.4);
@@ -1575,9 +1580,11 @@ function killMob(m, o = {}) {
   }
   drops.push(makeDrop('zeny', Math.round(irand(...m.d.zeny) * (1 + gBon('cr'))), m.x, m.z));
   const dropMul = bmul('drop') * (m.plundered && time - m.plundered < 3 ? 1.8 : 1) * (1 + gBon('drop'));
-  for (const [it, ch] of m.d.drops) if (Math.random() < ch * dropMul) {          // em grupo: cada item é sorteado entre quem está perto
+  const bc = typeof Vida !== 'undefined' && Vida.bonusCarta ? Vida.bonusCarta(m.type) : 1;          // nível de caça do bestiário: carta um pouco mais fácil
+  for (const [it, ch] of m.d.drops) if (Math.random() < ch * dropMul * (it.startsWith('carta_') ? bc : 1)) {          // em grupo: cada item é sorteado entre quem está perto
     const para = typeof Grupo !== 'undefined' && m.nid ? Grupo.sortear(m) : null;
-    if (para) Grupo.enviar(para, it, 1, m.d.name); else drops.push(makeDrop(it, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
+    const id2 = it.startsWith('carta_') && typeof Vida !== 'undefined' && Vida.tierCarta ? Vida.tierCarta(it) : it;      // carta: Simples, Forte, Invocada ou Suprema
+    if (para) Grupo.enviar(para, id2, 1, m.d.name); else drops.push(makeDrop(id2, 1, m.x + rand(-1, 1), m.z + rand(-1, 1)));
   }
   const diff = P.lv - m.d.lv, mult = diff > 8 ? 0.3 : diff > 5 ? 0.6 : 1;
   const nGrupo = typeof Grupo !== 'undefined' && m.nid ? Grupo.quantosPerto(m) : 1;               // em grupo: XP dividido igual entre quem está perto
@@ -1716,6 +1723,7 @@ function hurtFlash(k) {
 // Guarde as coisas no baú da sua casa para não perder. Até 3 sacolas; a mais velha some.
 const LOOT_KINDS = ['mat', 'carta', 'colheita', 'equip'];
 function onDeath() {
+  P.mortes = (P.mortes || 0) + 1;
   const lost = Math.min(P.xp, Math.floor(xpNeed(P.lv) * 0.05));
   P.xp -= lost; P.deathXp = lost;
   Audio8.sfx('die');
@@ -1837,9 +1845,10 @@ function nearestN(r, n) {
 function useSkill(i) {
   const c = CLS();
   if (!SKILLS[i] || P.dead || dialogOpen) return;
+  if (SKILLS[i].type === 'passiva') { log(`${SKILLS[i].icon} <b>${SKILLS[i].name}</b> é passiva: já vale sozinha, não precisa usar.`, 'sys'); return; }
   const L = P.skillLv[SKILLS[i].id] || 0;
   if (!L) { log(`${SKILLS[i].name} ainda não foi aprendida. Use a árvore de habilidades (${TOUCH ? '📜' : 'K'}).`, 'bad'); return; }
-  const s = scaleSkill(SKILLS[i], L);
+  let s = scaleSkill(SKILLS[i], L);
   if ((P.cds[s.id] || 0) > 0) return;
   if (P.sp < s.sp) { log('SP insuficiente!', 'bad'); return; }
   if (s.hpCost && P.hp <= stats.maxHp() * s.hpCost + 1) { log('HP insuficiente para o pacto!', 'bad'); return; }
@@ -1912,11 +1921,14 @@ function useSkill(i) {
     }
     case 'buff':
       addBuff(s.id, s.dur, s.mods, s.icon); Audio8.sfx('buff'); VFX.buff(s);
-      if (s.heal) healP(stats.maxHp() * s.heal);
+      if (s.heal) { s = { ...s, heal: s.heal * (1 + pas('cura')) }; healP(stats.maxHp() * s.heal); }
       log(`${s.icon} <b>${s.name}</b> ativo por ${s.dur}s.`, 'gold');
+      if (typeof Grupo !== 'undefined') Grupo.apoio(s);              // proteção também no grupo perto
       break;
     case 'heal':
+      s = { ...s, pct: s.pct * (1 + pas('cura')) };                   // passivas de cura
       Audio8.sfx('heal'); healP(stats.maxHp() * s.pct); VFX.heal(s);
+      if (typeof Grupo !== 'undefined') Grupo.apoio(s);              // cura também no grupo perto
       break;
     case 'summon':
       Audio8.sfx('skill'); VFX.summon(s); summon(s.minion, s.life);
@@ -2061,7 +2073,7 @@ function update(dt) {
   if (typeof Quests !== 'undefined') Quests.update(dt);
   if ((ambAcc += dt) > 0.25) { ambAcc = 0; const zz = zoneOf(P.x, P.z); Audio8.ambient(zz === 'areias' || zz === 'kharum' ? 'deserto' : zz === 'torre' || zz === 'topo' || zz === 'cidadela' || zz === 'lair' ? 'torre' : zz === 'solmira' || zz === 'sitio' ? 'vila' : 'campo', (LASTDAY ? LASTDAY.night : 0) > 0.5); }
   if (P.moving && P.onGround && !P.dead && (stepAcc += dt * stats.speed() / 6.2) > 0.34) { stepAcc = 0; Audio8.step(P.x > 48); }
-  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); if (typeof Praia !== 'undefined') Praia.update(dt); if (typeof Vale !== 'undefined') Vale.update(dt); if (typeof Cidade !== 'undefined') Cidade.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); if (typeof Grupo !== 'undefined') Grupo.update(dt); if (typeof Verme !== 'undefined') Verme.update(dt); if (typeof Mascotes !== 'undefined') Mascotes.update(dt); if (typeof Presenca !== 'undefined') Presenca.update(dt); Net.tickMyBubble(dt);
+  updateFx(dt); updateProjs(dt); updateMinions(dt); Tower.update(dt); if (typeof Valdora !== 'undefined') Valdora.update(dt); if (typeof Floresta !== 'undefined') Floresta.update(dt); if (typeof Praia !== 'undefined') Praia.update(dt); if (typeof Vale !== 'undefined') Vale.update(dt); if (typeof Cidade !== 'undefined') Cidade.update(dt); Kvx.update(dt); decorTick(dt); Net.update(dt); if (typeof Partilha !== 'undefined') Partilha.update(dt); if (typeof Guilda !== 'undefined') Guilda.update(dt); if (typeof Grupo !== 'undefined') Grupo.update(dt); if (typeof Verme !== 'undefined') Verme.update(dt); if (typeof Mascotes !== 'undefined') Mascotes.update(dt); if (typeof Presenca !== 'undefined') Presenca.update(dt); if (typeof Jornada !== 'undefined') Jornada.update(dt); Net.tickMyBubble(dt);
   for (const c of corpses) { c.t -= dt; if (c.inst) c.inst.update(dt); else if (c.spr) c.spr.update(dt, { dead: true, face: c.face, fade: Math.min(1, c.t * 1.5) }); else if (c.m3) { c.m3.rotation.z = Math.min(Math.PI / 2, c.m3.rotation.z + dt * 6); } if (c.t < 0.5) c.g.position.y -= dt * 2; if (c.t <= 0) scene.remove(c.g); }
   corpses = corpses.filter(c => c.t > 0);
   for (const n of NPCS) if (n.inst) n.inst.update(dt); else if (n.spr) n.spr.update(dt, { face: Math.hypot(P.x - n.x, P.z - n.z) < 7 ? Math.atan2(P.x - n.x, P.z - n.z) : n.face0 });
@@ -2143,6 +2155,15 @@ function updatePlayer(dt) {
   P.moving = false;
   let vx = 0, vz = 0;
   if ((ix || iz) && AUTO.on) autoStop('');
+  if ((ix || iz) && P.caca) P.caca = null;
+  if ((ix || iz) && P.falarCom) P.falarCom = null;
+  if (P.falarCom && !dialogOpen && Math.hypot(P.falarCom.x - P.x, P.falarCom.z - P.z) < 3.2) { const n = P.falarCom; P.falarCom = null; if (AUTO.on) autoStop(''); talk(n); }
+  if (!ix && !iz && P.caca && !dialogOpen) {                       // PC: monstro clicado — vai até ele e ataca até cair
+    const m = P.caca, d = Math.hypot(m.x - P.x, m.z - P.z);
+    if (m.dead || !mobs.includes(m) || d > 45 || P.dead) P.caca = null;
+    else { P.face = Math.atan2(m.x - P.x, m.z - P.z); const alc = CLS().range + 0.2 + (m.d.rad ?? (m.d.boss ? 1.6 : 0));
+      if (d > alc) { const sp = stats.speed(); vx = (m.x - P.x) / d * sp; vz = (m.z - P.z) / d * sp; P.moving = true; P.sit = false; } else attack(); }
+  }
   if (!ix && !iz && AUTO.on && !dialogOpen) {                      // andando sozinho até o objetivo da missão
     const d = autoDir(dt);
     if (d) {
@@ -2223,6 +2244,18 @@ function updateMob(m, dt) {
   }
   if (m.type === 'kravenox') Kvx.ai(m, dt);
   else if (m.type === 'vermeColosso' && typeof Verme !== 'undefined') Verme.ai(m, dt);
+  // chefe e mini-chefe que ficam presos (ex.: Primeiro Guardião na entrada da ponte) pulam até o jogador em vez de parar de atacar
+  if ((m.d.boss || m.d.mini) && !m.d.world && !m.invul && !m.morrendo && !P.dead && m.type !== 'kravenox' && m.type !== 'vermeColosso') {
+    const dP = Math.hypot(m.x - P.x, m.z - P.z), parado = Math.hypot(m.x - (m.px ?? m.x), m.z - (m.pz ?? m.z)) < dt * 0.4;
+    m.presoT = m.state === 'chase' && dP < 25 && dP > (m.d.rad || 1.6) + 3.5 && parado ? (m.presoT || 0) + dt : 0; m.px = m.x; m.pz = m.z;
+    if (m.presoT > 2.5) {
+      m.presoT = 0; let nx = P.x + (m.x - P.x) / dP * 2.6, nz = P.z + (m.z - P.z) / dP * 2.6;
+      if (blocked(nx, nz, 0.8)) { nx = P.x; nz = P.z; }
+      burst(new THREE.Vector3(m.x, groundY(m.x, m.z) + 1, m.z), 0xffffff, 18, 3, 0.5);
+      m.x = m.tx = nx; m.z = m.tz = nz; ring(nx, nz, 3, 0xff6040, 0.5); Audio8.sfx('boom'); m.atkCd = 0.6;
+      if (!m.pulouAviso) { m.pulouAviso = 1; log(`💥 <b>${m.d.name}</b> saltou até você: chefe não fica preso.`, 'bad'); }
+    }
+  }
   if (m.nid && typeof Partilha !== 'undefined' && !Partilha.meu(m)) Partilha.mover(m, dt);
   else if ((m.d.field || m.d.mini) && typeof Chefes !== 'undefined' && Chefes.ai(m, dt)) return;
   else if (m.stun > 0) m.stun -= dt;
@@ -2790,7 +2823,7 @@ function ensureBar() {
   if (Array.isArray(P.bar) && P.bar.length === BAR_N) return P.bar;
   // barra antiga (12 espaços): guarda os 8 primeiros atalhos que estavam ocupados
   const velha = Array.isArray(P.bar) ? P.bar.filter(Boolean) : null;
-  const l = velha && velha.length ? velha : SKILLS.filter(tierOk).map(s => 's:' + s.id).concat((P.hot || ['red', 'blue']).filter(id => ITEMS[id]).map(id => 'i:' + id));
+  const l = velha && velha.length ? velha : SKILLS.filter(s => tierOk(s) && s.type !== 'passiva').map(s => 's:' + s.id).concat((P.hot || ['red', 'blue']).filter(id => ITEMS[id]).map(id => 'i:' + id));
   P.bar = Array.from({ length: BAR_N }, (_, i) => l[i] || null);
   return P.bar;
 }
@@ -2809,7 +2842,7 @@ function barUse(e) {
 // escolher o que vai num espaço
 function barPick(i) {
   const b = ensureBar(), opts = [];
-  SKILLS.forEach(s => { if (tierOk(s) && P.skillLv[s.id] > 0) opts.push({ label: `${s.icon} ${s.name}${b[i] === 's:' + s.id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('s:' + s.id); if (o >= 0) b[o] = null; b[i] = 's:' + s.id; buildHotbar(); } }); });
+  SKILLS.forEach(s => { if (tierOk(s) && P.skillLv[s.id] > 0 && s.type !== 'passiva') opts.push({ label: `${s.icon} ${s.name}${b[i] === 's:' + s.id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('s:' + s.id); if (o >= 0) b[o] = null; b[i] = 's:' + s.id; buildHotbar(); } }); });
   Object.keys(ITEMS).filter(id => (ITEMS[id].use || ITEMS[id].heal || ITEMS[id].spH || id === 'red' || id === 'blue') && P.inv[id] > 0).forEach(id => opts.push({ label: `${ITEMS[id].ic || '🧪'} ${ITEMS[id].name} ×${P.inv[id]}${b[i] === 'i:' + id ? ' ✔' : ''}`, fn: () => { const o = b.indexOf('i:' + id); if (o >= 0) b[o] = null; b[i] = 'i:' + id; buildHotbar(); } }));
   opts.push({ label: '⬜ Deixar vazio', fn: () => { b[i] = null; buildHotbar(); } }, { label: 'Fechar' });
   dialog(`✏️ Atalho ${BAR_KEYS[i]}`, 'Escolha o que fica neste espaço. Quando terminar, toque em ✏️ de novo.', opts);
@@ -2843,12 +2876,40 @@ function renderStats() {
   const w = $('statwin');
   const row = k => `<div class="srow"><span class="sl">${STAT_NAMES[k]}</span><b>${P[k]}</b><button data-st="${k}" ${P.statPts >= custoStat(P[k]) ? '' : 'disabled'} title="custa ${custoStat(P[k])} ponto(s)">+${custoStat(P[k]) > 1 ? `<small>${custoStat(P[k])}</small>` : ''}</button><span class="si">${STAT_INFO[k]}</span></div>`;
   const html = `<div class="wt">📊 ${className(P.cls, P.gender)} · Nv ${P.lv}<button class="x" data-close>×</button></div>
-    <div class="pts${P.statPts ? ' tem' : ''}">Pontos para distribuir: <b>${P.statPts}</b>${P.statPts ? ' · toque em <b>+</b>' : ' · ganhe mais subindo de nível'}</div>
+    <div class="pts${P.statPts ? ' tem' : ''}">Pontos para distribuir: <b>${P.statPts}</b>${P.statPts ? ' · toque em <b>+</b>' : ' · ganhe mais subindo de nível'} ${botaoReset('atr')}</div>
     <div class="sgrid">${STAT_KEYS.map(row).join('')}</div>
     <div class="derived">ATQ <b>${stats.atk()}</b> · MATQ <b>${stats.matk()}</b> · DEF <b>${stats.def()}</b> · Ataques/s <b>${(1 / stats.aspd()).toFixed(2)}</b> · Esquiva <b>${Math.round(stats.flee() * 100)}%</b> · Crítico <b>${Math.round(stats.crit() * 100)}%</b></div>`;
   if (w.dataset.h !== html) { w.innerHTML = html; w.dataset.h = html; }
 }
-$('statwin').addEventListener('click', e => { const b = e.target.closest('[data-close]'); if (b) toggleStats(); });
+$('statwin').addEventListener('click', e => { const b = e.target.closest('[data-close]'); if (b) toggleStats(); if (e.target.closest('[data-reset]')) pedirReset('atr'); });
+// ---------------- Reset de atributos e de habilidades (20/11): 3 de graça de cada; depois, só com o item comprado no Mercador (caro)
+const RESET_GRATIS = 3;
+const RESET_INFO = { hab: { nome: 'habilidades', item: 'reset_hab', ic: '📜' }, atr: { nome: 'atributos', item: 'reset_atr', ic: '🔄' } };
+const resetGratisRestam = t => Math.max(0, RESET_GRATIS - (((P.resetUsos || {})[t]) || 0));
+function botaoReset(t) { const g = resetGratisRestam(t), n = P.inv[RESET_INFO[t].item] || 0; return `<button class="btn-reset" data-reset="${t}" title="Devolve todos os pontos para escolher de novo">♻️ Resetar ${g ? `<small>(${g} grátis)</small>` : n ? `<small>(tem ${n} ${RESET_INFO[t].ic})</small>` : ''}</button>`; }
+function fazerReset(t) {
+  if (t === 'atr') {
+    const r = CLASSES[P.cls].hero ? {} : (RACES[P.race] || { bonus: {} }).bonus, c = CLASSES[P.cls].bonus || {};
+    for (const k of STAT_KEYS) P[k] = Math.max(1, 3 + (r[k] || 0) + (c[k] || 0));
+    P.statPts = ptsTotais(P.lv, P.tier);
+  } else {
+    let tot = 0; for (const id in P.skillLv) tot += P.skillLv[id] || 0;
+    const primeira = SKILLS[0].id; P.skillLv = { [primeira]: 1 }; P.skillPts += Math.max(0, tot - 1);
+    const b = ensureBar(); for (let i = 0; i < b.length; i++) if (b[i] && b[i].startsWith('s:') && !(P.skillLv[b[i].slice(2)] > 0)) b[i] = null;
+  }
+  P.hp = Math.min(P.hp, stats.maxHp()); P.sp = Math.min(P.sp, stats.maxSp());
+  burst(new THREE.Vector3(P.x, P.y + 1, P.z), 0xb8d8ff, 30, 3, 0.8); Audio8.sfx('level'); buildHotbar(); save();
+  if (t === 'atr') { log(`🔄 Atributos resetados! Você tem <b>${P.statPts}</b> pontos para distribuir de novo.`, 'gold'); if ($('statwin').classList.contains('hidden')) toggleStats(); else renderStats(); }
+  else { log(`📜 Habilidades resetadas! Você tem <b>${P.skillPts}</b> pontos para escolher de novo.`, 'gold'); if ($('skillwin').classList.contains('hidden')) toggleSkills(); else renderSkills(); }
+}
+function pedirReset(t, viaItem) {
+  const I = RESET_INFO[t], it = ITEMS[I.item], g = resetGratisRestam(t), tem = P.inv[I.item] || 0;
+  const aviso = `Todos os pontos de <b>${I.nome}</b> voltam para você escolher de novo${t === 'hab' ? ' (a 1ª habilidade fica no nível 1)' : ''}.`;
+  const usar = gratis => () => { if (gratis) { P.resetUsos = P.resetUsos || {}; P.resetUsos[t] = (P.resetUsos[t] || 0) + 1; } else { if (!(P.inv[I.item] > 0)) return; P.inv[I.item]--; } fazerReset(t); };
+  if (!viaItem && g > 0) return dialog(`♻️ Resetar ${I.nome}`, `${aviso}<br>Você ainda tem <b>${g} de ${RESET_GRATIS}</b> resets grátis de ${I.nome}. Depois disso, só com ${it.ic} <b>${it.name}</b> (${it.price.toLocaleString('pt-BR')} cr no Mercador).`, [{ label: `♻️ Resetar (grátis, sobram ${g - 1})`, fn: usar(true) }, { label: 'Cancelar' }]);
+  if (tem > 0) return dialog(`${it.ic} ${it.name}`, `${aviso}<br>Gasta 1 ${it.ic} <b>${it.name}</b> (você tem ${tem}).`, [{ label: `${it.ic} Usar e resetar`, fn: usar(false) }, { label: 'Cancelar' }]);
+  dialog(`♻️ Resetar ${I.nome}`, `Seus ${RESET_GRATIS} resets grátis de ${I.nome} já foram usados.<br>Agora precisa de ${it.ic} <b>${it.name}</b>, que o <b>Mercador</b> vende por <b>${it.price.toLocaleString('pt-BR')} cr</b>. É caro de propósito: pense bem no seu caminho! 😉`, [{ label: 'Entendi' }]);
+}
 // segurar o + vai adicionando sozinho (cada vez mais rápido)
 let statHold = null;
 const addStat = k => { const c = k ? custoStat(P[k]) : 1e9; if (k && P.statPts >= c) { P[k]++; P.statPts -= c; Audio8.sfx('click'); renderStats(); return true; } return false; };
@@ -2863,7 +2924,7 @@ addEventListener('pointerup', stopHold); addEventListener('pointercancel', stopH
 function toggleStats() { $('skillwin').classList.add('hidden'); $('statwin').classList.toggle('hidden'); renderStats(); }
 
 // ---------------------------------------------------------------- árvore de habilidades
-const SK_MAX = 5;
+const SK_MAX = 10;                 // cada habilidade vai até o 10; os pontos (1 por nível) não dão para tudo
 // estrutura igual para todas as classes: [inicial] → [ramo A, ramo B] → [final]
 const SK_REQ = [[], [[0, 2]], [[0, 3]], [[1, 3], [2, 2]], [[3, 1]], [[4, 2]], [[5, 2]], [[6, 3]]];
 function scaleSkill(s, L) {
@@ -2880,16 +2941,18 @@ function scaleSkill(s, L) {
   o.sp = Math.max(s.sp, Math.round(Math.min(s.sp * (1 + 0.1 * k) * (1 + P.lv / 50), stats.maxSp() * 0.2)));
   return o;
 }
-function reqMet(i) { return tierOk(SKILLS[i]) && (SK_REQ[i] || []).every(([j, lv]) => (P.skillLv[SKILLS[j].id] || 0) >= lv); }
+function reqMet(i) { const s = SKILLS[i]; return tierOk(s) && (SK_REQ[i] || []).every(([j, lv]) => (P.skillLv[SKILLS[j].id] || 0) >= lv) && (!s.pre || (P.skillLv[s.pre[0]] || 0) >= s.pre[1]); }
 function canLearn(i) { const s = SKILLS[i]; return P.skillPts > 0 && (P.skillLv[s.id] || 0) < SK_MAX && P.lv >= s.lv && reqMet(i); }
 function learn(i) {
   if (!canLearn(i)) return;
   const s = SKILLS[i]; P.skillLv[s.id] = (P.skillLv[s.id] || 0) + 1; P.skillPts--;
   Audio8.sfx(P.skillLv[s.id] === 1 ? 'buff' : 'click');
-  if (P.skillLv[s.id] === 1) { log(`✨ Você aprendeu <b>${s.icon} ${s.name}</b>!`, 'gold'); if (!ensureBar().includes('s:' + s.id) && ensureBar().includes(null)) ensureBar()[ensureBar().indexOf(null)] = 's:' + s.id; }
+  if (P.skillLv[s.id] === 1) { log(`✨ Você aprendeu <b>${s.icon} ${s.name}</b>!`, 'gold'); if (s.type !== 'passiva' && !ensureBar().includes('s:' + s.id) && ensureBar().includes(null)) ensureBar()[ensureBar().indexOf(null)] = 's:' + s.id; }
   buildHotbar(); renderSkills(); save();
 }
+const PAS_N = { atk: ['ataque', '%'], matk: ['magia', '%'], aspd: ['vel. de golpe', '%'], speed: ['velocidade', '%'], hp: ['HP', '%'], sp: ['SP', '%'], def: ['defesa', ''], crit: ['crítico', '%'], flee: ['esquiva', '%'], regen: ['HP por segundo', '%'], roubo: ['roubo de vida', '%'], cura: ['cura', '%'] };
 function describe(s, L) {
+  if (s.type === 'passiva') return Object.entries(s.pas).map(([k, v]) => { const [n, u] = PAS_N[k] || [k, '']; const t = v * Math.max(1, L); return `+${u ? (Math.round(t * 1000) / 10).toString().replace('.', ',') + '%' : Math.round(t * 10) / 10} de ${n}`; }).join(' · ');
   const e = scaleSkill(s, Math.max(1, L)), bits = [];
   if (e.mult) bits.push(`${Math.round(e.mult * 100)}% de dano${e.hits > 1 ? ` ×${e.hits}` : ''}`);
   if (e.stun) bits.push(`atordoa ${e.stun.toFixed(1)}s`);
@@ -2906,27 +2969,31 @@ function renderSkills() {
     const s = SKILLS[i], L = P.skillLv[s.id] || 0;
     const reqs = [];
     if (P.lv < s.lv) reqs.push(`nível ${s.lv}`);
+    if (s.pre && (P.skillLv[s.pre[0]] || 0) < s.pre[1]) { const ps = SKILLS.find(o => o.id === s.pre[0]); if (ps) reqs.push(`${ps.name} Nv ${s.pre[1]}`); }
     if (!tierOk(s)) reqs.push(`${s.tier === 1 ? '2ª' : '3ª'} classe (${TIERS[P.cls][s.tier]})`);
     for (const [j, lv] of (SK_REQ[i] || [])) if ((P.skillLv[SKILLS[j].id] || 0) < lv) reqs.push(`${SKILLS[j].name} Nv ${lv}`);
     return `<div class="snode ${cls} ${L ? 'learned' : ''} ${reqs.length && !L ? 'locked' : ''}">
       <span class="si2">${s.icon}</span>
-      <div class="sb"><div class="sn">${s.name}</div><div class="sl2">Nível ${L}/${SK_MAX}</div>
+      <div class="sb"><div class="sn">${s.name}${s.type === 'passiva' ? ' <small style="color:#8affb0">· passiva</small>' : ''}</div><div class="sl2">Nível ${L}/${SK_MAX}</div>
       <div class="sd">${s.desc}<br>${L ? 'Atual: ' + describe(s, L) : 'Nv 1: ' + describe(s, 1)}${L && L < SK_MAX ? '<br>Próximo: ' + describe(s, L + 1) : ''}</div>
       ${reqs.length ? `<div class="req">Requer: ${reqs.join(', ')}</div>` : ''}</div>
-      <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button>${L && tierOk(s) ? `<button class="spin" data-pin="${i}" title="Pôr/tirar da barra de atalhos">${ensureBar().includes('s:' + s.id) ? '✖' : '📌'}</button>` : ''}</div>`;
+      <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button>${L && tierOk(s) && s.type !== 'passiva' ? `<button class="spin" data-pin="${i}" title="Pôr/tirar da barra de atalhos">${ensureBar().includes('s:' + s.id) ? '✖' : '📌'}</button>` : ''}</div>`;
   };
+  // as habilidades novas (passivas e ativas) de cada classe, embaixo das antigas
+  const extras = t => { const l = SKILLS.map((s, i) => [s, i]).filter(([s, i]) => i >= 8 && (s.tier || 0) === t); return l.length ? `<div class="stree">${l.map(([s, i]) => node(i, s.type === 'passiva' ? 'pas' : '')).join('')}</div>` : ''; };
   const html = `<div class="wt">📜 Habilidades — ${className(P.cls, P.gender)} <button class="x" data-close>×</button></div>
-    <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(ganhe 1 por nível)</small></div>
+    <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(1 por nível · não dá para pegar tudo: escolha o seu caminho)</small> ${botaoReset('hab')}</div>
     <div class="stier">1ª classe — <b>${TIERS[P.cls] ? TIERS[P.cls][0] : ''}</b></div>
-    <div class="stree">${node(0, 'root')}<div class="sarrow">▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼</div>${node(1, '')}${node(2, '')}<div class="sarrow">▼</div>${node(3, 'ult')}</div>
+    <div class="stree">${node(0, 'root')}<div class="sarrow">▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼</div>${node(1, '')}${node(2, '')}<div class="sarrow">▼</div>${node(3, 'ult')}</div>${extras(0)}
     ${SKILLS.length > 4 ? `<div class="stier ${(P.tier || 0) >= 1 ? '' : 'off'}">2ª classe — <b>${TIERS[P.cls][1]}</b> ${(P.tier || 0) >= 1 ? '✅' : '<small>🔒 provação a partir do nível 20 (fale com o Vigia Morvan, na Cidadela)</small>'}</div>
-    <div class="stree">${node(4, '')}${node(5, '')}</div>
+    <div class="stree">${node(4, '')}${node(5, '')}</div>${extras(1)}
     <div class="stier ${(P.tier || 0) >= 2 ? '' : 'off'}">3ª classe — <b>${TIERS[P.cls][2]}</b> ${(P.tier || 0) >= 2 ? '✅' : '<small>🔒 provação a partir do nível 40</small>'}</div>
-    <div class="stree">${node(6, '')}${node(7, 'ult')}</div>` : ''}`;
+    <div class="stree">${node(6, '')}${node(7, 'ult')}</div>${extras(2)}` : ''}`;
   if (w.dataset.h !== html) { w.innerHTML = html; w.dataset.h = html; }
 }
 $('skillwin').addEventListener('click', e => {
   if (e.target.closest('[data-close]')) return toggleSkills();
+  if (e.target.closest('[data-reset]')) return pedirReset('hab');
   const b = e.target.closest('[data-learn]'); if (b) learn(+b.dataset.learn);
   const pn = e.target.closest('[data-pin]'); if (pn) { const s = SKILLS[+pn.dataset.pin], r = barToggle('s:' + s.id); Audio8.sfx('click'); if (r === true) log(`📌 <b>${s.name}</b> foi para a barra de atalhos.`, 'sys'); renderSkills(); }
 });
@@ -2967,6 +3034,10 @@ function talkBase(n) {
         { label: `🦋 Asa de Borboleta — 900 cr cada (volta à cidade) · tem ${P.inv.asa_borboleta || 0}`, fn: () => { qty('asa_borboleta', shop); return true; } },
         { label: `🧪 Poção Vermelha — quantidade…`, fn: () => { qty('red', shop); return true; } },
         { label: `💧 Poção Azul — quantidade…`, fn: () => { qty('blue', shop); return true; } },
+        { label: `♻️ Resets (habilidades e atributos) — ${ITEMS.reset_hab.price.toLocaleString('pt-BR')} cr`, fn: () => { const lj = () => dialog('♻️ Resets', `Todo mundo tem <b>${RESET_GRATIS} resets grátis</b> de habilidades e ${RESET_GRATIS} de atributos (botão ♻️ nas janelas). Depois disso, só com estes itens.<br><small>Grátis: 📜 ${resetGratisRestam('hab')} · 🔄 ${resetGratisRestam('atr')} · Coroas: <b>${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, [
+          { label: `📜 Pergaminho do Esquecimento (habilidades) — ${ITEMS.reset_hab.price.toLocaleString('pt-BR')} cr · tem ${P.inv.reset_hab || 0}`, fn: () => { buy('reset_hab', 1); lj(); return true; } },
+          { label: `🔄 Pedra do Recomeço (atributos) — ${ITEMS.reset_atr.price.toLocaleString('pt-BR')} cr · tem ${P.inv.reset_atr || 0}`, fn: () => { buy('reset_atr', 1); lj(); return true; } },
+          { label: '← Voltar', fn: () => { shop(); return true; } }]); lj(); return true; } },
         { label: '⚔️ Equipamentos', fn: () => { Vida.gearShop(); return true; } },
         { label: '💰 Vender materiais e colheita', fn: () => { Vida.sellAll(); shop(); return true; } },
         { label: 'Sair' }]);
@@ -3010,7 +3081,10 @@ function qty(id, back) {
 function buy(id, n) {
   const c = Math.round(ITEMS[id].price * n * (1 - gBon('desc')));
   if (P.zeny < c) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); return; }
-  P.zeny -= c; P.inv[id] = (P.inv[id] || 0) + n; Audio8.sfx('coin'); log(`Comprou ${n}x <b>${ITEMS[id].name}</b>.`, 'item'); buildHotbar();
+  P.zeny -= c; P.inv[id] = (P.inv[id] || 0) + n; Audio8.sfx('coin'); log(`Comprou ${n}x <b>${ITEMS[id].name}</b>.`, 'item');
+  // asas: vão sozinhas para um espaço livre da barra de atalhos (o Ludi comprou e não achava)
+  if ((id === 'asa_mosca' || id === 'asa_borboleta') && typeof ensureBar === 'function') { const b = ensureBar(); if (!b.includes('i:' + id)) { const k = b.indexOf(null); if (k >= 0) { b[k] = 'i:' + id; log(`${ITEMS[id].ic} <b>${ITEMS[id].name}</b> foi para o atalho ${k + 1}.`, 'sys'); } } }
+  buildHotbar();
 }
 
 // ---------------------------------------------------------------- entrada
@@ -3025,8 +3099,7 @@ cvEl.addEventListener('contextmenu', e => e.preventDefault());
 cvEl.addEventListener('pointerdown', e => {
   if (!running) return;
   Audio8.init();
-  drag = { x: e.clientX, y: e.clientY, b: e.button, id: e.pointerId };
-  if (e.button === 0 && e.pointerType === 'mouse') attack();
+  drag = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now(), b: e.button, id: e.pointerId, mouse: e.pointerType === 'mouse' };
 });
 addEventListener('pointermove', e => {
   if (!drag || e.pointerId !== drag.id) return;
@@ -3034,19 +3107,46 @@ addEventListener('pointermove', e => {
   camS.yaw -= (e.clientX - drag.x) * 0.006 * ts; camS.pitch += (e.clientY - drag.y) * 0.005;
   drag.x = e.clientX; drag.y = e.clientY;
 });
-addEventListener('pointerup', e => { if (drag && e.pointerId === drag.id) drag = null; });
+addEventListener('pointerup', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const d = drag; drag = null;
+  // PC: clique rápido (sem arrastar) = clicar no mundo, como no Ragnarok. Arrastar continua girando a câmera.
+  if (d.mouse && d.b === 0 && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 7 && performance.now() - d.t0 < 450) cliqueMundo(e.clientX, e.clientY);
+});
+// o que está debaixo do mouse: monstro (o mais perto do cursor na tela) ou NPC
+function soMouse(cx, cy) {
+  let best = null, bd = 46;
+  for (const m of mobs) { if (m.dead || m.isPeer) continue; const sp = toScreen(m.x, groundY(m.x, m.z) + (m.model.h || 1.5) * 0.55, m.z); if (!sp.vis) continue; const d = Math.hypot(sp.x - cx, sp.y - cy); if (d < bd) { bd = d; best = { tipo: 'mob', o: m }; } }
+  if (!best) for (const n of NPCS) { if (n.hidden) continue; const sp = toScreen(n.x, groundY(n.x, n.z) + 1.1, n.z); if (!sp.vis) continue; const d = Math.hypot(sp.x - cx, sp.y - cy); if (d < 40 && d < bd) { bd = d; best = { tipo: 'npc', o: n }; } }
+  return best;
+}
+const _ray = new THREE.Raycaster(), _ndc = new THREE.Vector2(), _plano = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), _pt = new THREE.Vector3();
+function cliqueMundo(cx, cy) {
+  if (P.dead || dialogOpen) return;
+  const alvo = soMouse(cx, cy);
+  if (alvo && alvo.tipo === 'mob') { if (AUTO.on) autoStop(''); P.caca = alvo.o; P.face = Math.atan2(alvo.o.x - P.x, alvo.o.z - P.z); return; }        // clicou no monstro: vai até ele e ataca até cair
+  if (alvo && alvo.tipo === 'npc') { const n = alvo.o; P.caca = null; if (Math.hypot(n.x - P.x, n.z - P.z) < 3.2) talk(n); else { P.qGo = { x: n.x, z: n.z, name: n.name }; P.falarCom = n; if (typeof autoStart === 'function') autoStart(); } return; }
+  // clicou no chão: anda até lá
+  const r = cvEl.getBoundingClientRect(); _ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+  _ray.setFromCamera(_ndc, camera); _plano.constant = -P.y; if (!_ray.ray.intersectPlane(_plano, _pt)) return;
+  if (Math.hypot(_pt.x - P.x, _pt.z - P.z) > 80) return;
+  P.caca = null; P.qGo = { x: _pt.x, z: _pt.z, name: 'o ponto marcado' }; ring(_pt.x, _pt.z, 0.8, 0xffcf40, 0.4);
+  if (typeof autoStart === 'function') autoStart();
+}
+// cursor muda em cima de monstro (mira) e de NPC (mão)
+cvEl.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || drag || !running) return; const a = soMouse(e.clientX, e.clientY); cvEl.style.cursor = !a ? 'default' : a.tipo === 'mob' ? 'crosshair' : 'pointer'; });
 addEventListener('pointercancel', e => { if (drag && e.pointerId === drag.id) drag = null; });
 cvEl.addEventListener('wheel', e => { camS.dist += e.deltaY * 0.01; e.preventDefault(); }, { passive: false });
 addEventListener('keydown', e => {
   if (!running || e.target.tagName === 'INPUT') return;
   const k = e.key.toLowerCase();
   if (k === ' ' || k.startsWith('arrow')) e.preventDefault();
-  if (k === 'escape') { closeDialog(); $('statwin').classList.add('hidden'); $('skillwin').classList.add('hidden'); return; }
+  if (k === 'escape') { if (typeof fecharJanelas === 'function') fecharJanelas(null); else closeDialog(); $('statwin').classList.add('hidden'); $('skillwin').classList.add('hidden'); P.caca = null; if (AUTO.on) autoStop(''); return; }
   if (dialogOpen) return;
   keys[k] = true;
   if (e.repeat) return;
   { const bi = BAR_KEYS.indexOf(k.toUpperCase()); if (bi >= 0) barUse(ensureBar()[bi]); }
-  if (k === 'j' || k === 'k') attack();
+  if (k === 'j') attack();
   if (k === ' ') doJump();
   if (k === 'shift') doDash();
   if (k === 'f' && nearNpc) talk(nearNpc); else if (k === 'f' && nearUse) nearUse.fn();
@@ -3054,7 +3154,15 @@ addEventListener('keydown', e => {
   if (k === 'enter') { e.preventDefault(); openChat(); return; }
   if (k === 'k') toggleSkills();
   if (k === 'x') { P.sit = !P.sit; log(P.sit ? 'Você se sentou para descansar.' : 'Você se levantou.', 'sys'); }
-  if (k === 'm') toggleMusic();
+  if (k === 'm') { fecharJanelas('bigmap'); BigMap.show(); }
+  if (k === 'u') toggleMusic();
+  if (k === 'q' && typeof Quests !== 'undefined') { fecharJanelas('dialog'); Quests.journal(); }
+  if (k === 'g' && typeof Grupo !== 'undefined') { fecharJanelas('dialog'); Grupo.painel(); }
+  if (k === 'o' && typeof Desafios !== 'undefined') { fecharJanelas('dialog'); Desafios.amigos(); }
+  if (k === 'i') { fecharJanelas('invwin'); if (typeof Vida !== 'undefined') Vida.bag(); }
+  if (k === 'l') { fecharJanelas('bestwin'); if (typeof Vida !== 'undefined') Vida.bestiary(); }
+  if (k === 'p' && typeof Mascotes !== 'undefined') { fecharJanelas('dialog'); Mascotes.livro(); }
+  if (k === 'tab') { e.preventDefault(); const m = nearestMob(18, false); if (m) { P.caca = m; if (AUTO.on) autoStop(''); log(`🎯 Alvo: <b>${m.d.name}</b>`, 'sys'); } }
   if (k === 'h') showHelp();
 });
 addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
@@ -3084,9 +3192,9 @@ const joy = { x: 0, y: 0, id: null };
   if (TOUCH) $('touch').classList.remove('hidden');
 }
 function toggleMusic() { const on = Audio8.toggleMusic(); $('btn-music').textContent = on ? '🎵' : '🔇'; }
-const HELP_OPTS = () => [{ label: 'Fechar' }, { label: (() => { let o = true; try { o = localStorage.getItem('monstros3d') !== '0'; } catch (e) { } return o ? '👾 Monstros: 3D (trocar para desenho)' : '👾 Monstros: desenho (trocar para 3D)'; })(), fn: () => { try { localStorage.setItem('monstros3d', localStorage.getItem('monstros3d') === '0' ? '1' : '0'); } catch (e) { } save(); location.reload(); } }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }, { label: '📢 Avisos, novidades e uso de internet', fn: () => { if (typeof Avisos !== 'undefined') Avisos.mostrar(true); } }, { label: '🐾 Livro de Mascotes (quais dá para capturar)', fn: () => { if (typeof Mascotes !== 'undefined') Mascotes.livro(); return true; } }, { label: '📅 Presença do mês (prêmio de login)', fn: () => { if (typeof Presenca !== 'undefined') Presenca.abrir(); return true; } }, { label: '🎮 Mais jogos do Kravenox (e mandar o link para um amigo)', fn: () => { if (typeof MaisJogos !== 'undefined') MaisJogos.mostrar(); } }, { label: '🚪 Sair da conta', fn: () => { save(); Nuvem.sair(); } }];
+const HELP_OPTS = () => [{ label: 'Fechar' }, { label: (() => { let o = true; try { o = localStorage.getItem('monstros3d') !== '0'; } catch (e) { } return o ? '👾 Monstros: 3D (trocar para desenho)' : '👾 Monstros: desenho (trocar para 3D)'; })(), fn: () => { try { localStorage.setItem('monstros3d', localStorage.getItem('monstros3d') === '0' ? '1' : '0'); } catch (e) { } save(); location.reload(); } }, { label: '🔄 Trocar de personagem', fn: () => { if (typeof Contas !== 'undefined') Contas.trocar(); } }, { label: '📢 Avisos, novidades e uso de internet', fn: () => { if (typeof Avisos !== 'undefined') Avisos.mostrar(true); } }, { label: '📜 Minha Jornada (tudo que você já fez)', fn: () => { if (typeof Jornada !== 'undefined') Jornada.abrir(); return true; } }, { label: '🐾 Livro de Mascotes (quais dá para capturar)', fn: () => { if (typeof Mascotes !== 'undefined') Mascotes.livro(); return true; } }, { label: '📅 Presença do mês (prêmio de login)', fn: () => { if (typeof Presenca !== 'undefined') Presenca.abrir(); return true; } }, { label: '🎮 Mais jogos do Kravenox (e mandar o link para um amigo)', fn: () => { if (typeof MaisJogos !== 'undefined') MaisJogos.mostrar(); } }, { label: '🚪 Sair da conta', fn: () => { save(); Nuvem.sair(); } }];
 function showHelp() {
-  const extra = `📜 <b>Missões:</b> 🟡 principal (a história), 🔵 secundárias (moradores), 🟢 caça (Quadros de Caça nas cidades, repetíveis) e 🟣 ocultas (escondidas pelo mapa). <b>!</b> na cabeça do NPC = missão nova; <b>?</b> = entregar. As ativas aparecem no canto direito.<br>
+  const extra = `${!TOUCH ? `⌨️ <b>No PC:</b> <b>WASD</b> anda · <b>clique no chão</b> anda até lá · <b>clique no monstro</b> vai até ele e ataca até cair · <b>clique no NPC</b> conversa · <b>arraste</b> para girar a câmera · <b>roda do mouse</b> aproxima/afasta · <b>J</b> ataca · <b>1 a 8</b> atalhos · <b>Espaço</b> pula · <b>Shift</b> esquiva · <b>F</b> fala/usa · <b>Tab</b> mira o monstro mais perto · <b>I</b> ou <b>B</b> mochila · <b>C</b> atributos · <b>K</b> habilidades · <b>Q</b> diário · <b>M</b> mapa · <b>L</b> bestiário · <b>G</b> grupo · <b>O</b> amigos · <b>P</b> mascotes · <b>Enter</b> chat · <b>X</b> senta · <b>U</b> música · <b>H</b> ajuda · <b>Esc</b> fecha tudo<br>` : ''}📜 <b>Missões:</b> 🟡 principal (a história), 🔵 secundárias (moradores), 🟢 caça (Quadros de Caça nas cidades, repetíveis) e 🟣 ocultas (escondidas pelo mapa). <b>!</b> na cabeça do NPC = missão nova; <b>?</b> = entregar. As ativas aparecem no canto direito.<br>
   📜 <b>Missões:</b> toque numa missão do quadro (direita) e o personagem anda sozinho até ela. Mexa o joystick para parar.<br>
   🎒 <b>Mochila:</b> abas por tipo; toque num item para ver de perto. Equipamentos em 8 espaços, troca e banca.<br>
   🃏 <b>Cartas:</b> caem raramente dos monstros; encaixe no tipo de peça indicado na carta.<br>
@@ -3176,7 +3284,7 @@ $('btn-sit').onclick = () => { P.sit = !P.sit; };
 let SAVE_KEY = 'reino-slot-0';   // uma chave por vaga de personagem (contas.js)
 function save() {
   if (!running) return;
-  const keep = ['presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
+  const keep = ['tempo', 'resetUsos', 'mortes', 'bestCard', 'presenca', 'pets', 'petAtivo', 'grupo', 'grRec', 'dsfFoco', 'kvxDmg', 'vermeDmg', 'vermeCiclo', 'vermeKills', 'abismoCp', 'abismoBest', 'casaSeen', 'cidadeSeen', 'florestaSeen', 'praiaSeen', 'valdoraSeen', 'valeSeen', 'nosfe', 'pesca', 'statV', 'dsf', 'bar', 'towerCp', 'towerBest', 'qs', 'qFocus', 'evoMini', 'ui', 'hot', 'qGo', 'grave', 'graves', 'casa', 'cos', 'flag', 'pvpOn', 'pkCount', 'alfaKills', 'fb', 'fbDone', 'fieldKills', 'cards', 'refine', 'warps', 'secrets', 'tier', 'evo', 'bestiary', 'equip', 'qSeen', 'farmSeen', 'skillLv', 'skillPts', 'kvxWeek', 'kvxKills', 'title', 'name', 'race', 'cls', 'gender', 'hair', 'skin', 'dex', 'luk', 'lv', 'xp', 'zeny', 'statPts', 'str', 'agi', 'vit', 'int', 'hp', 'sp', 'inv', 'x', 'z', 'face', 'home', 'quest', 'qcount', 'best'];
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(Object.fromEntries(keep.map(k => [k, P[k]])))); } catch (e) { }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
@@ -3222,8 +3330,9 @@ function start(fromSave) {
   applyQuality(); running = true; if (typeof VFX !== 'undefined') setTimeout(() => VFX.warm(), 300); if (typeof Cos !== 'undefined') Cos.init(); if (typeof Grupo !== 'undefined') Grupo.init(); if (typeof PvP !== 'undefined') PvP.init(); buildGraves(); Kvx.init(); if (typeof Partilha !== 'undefined') Partilha.init(); Net.init(); if (typeof Guilda !== 'undefined') Guilda.init(); buildHotbar(); if (typeof Vida !== 'undefined') Vida.init();
   const who = CLASSES[P.cls].hero ? `no papel de ${className(P.cls, P.gender)}` : `${className(P.cls, P.gender)} ${RACES[P.race].name.toLowerCase()}`;
   if (fromSave) log(`${P.gender === 'm' ? 'Bem-vindo' : 'Bem-vinda'} de volta, <b>${P.name}</b>!`, 'gold');
+  if (!TOUCH) log('🖱️ <b>No PC:</b> clique no chão para andar, clique no monstro para atacar até ele cair, arraste para girar a câmera. <b>H</b> mostra todas as teclas.', 'sys');
   else if (TOUCH) { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (toque 💬 perto dela).`, 'gold'); log('Toque ❓ para ver como jogar.', 'sys'); }
-  else { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (aperte <b>F</b> perto dela).`, 'gold'); log('Aperte <b>H</b> para ver os controles.', 'sys'); }
+  else { log(`<b>${P.name}</b>, ${who}, chegou a Solmira! Fale com a <b>Mestra Odete</b> (aperte <b>F</b> perto dela).`, 'gold'); }
 }
 
 // ---------------------------------------------------------------- criação de personagem
