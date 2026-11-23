@@ -421,6 +421,8 @@ const Vida = (() => {
   const postG = new THREE.CylinderGeometry(0.1, 0.12, 1.15, 8), pontaG = new THREE.ConeGeometry(0.1, 0.2, 8), railG = new THREE.CylinderGeometry(0.055, 0.06, 1, 7).rotateZ(Math.PI / 2);
   const fenceLine = (ax, az, bx, bz, gap) => {
     const len = Math.hypot(bx - ax, bz - az), n = Math.round(len / 1.6);
+    // a cerca agora segura o personagem (antes dava para atravessar): obstáculos ao longo dela, menos no portão
+    for (let d = 0; d <= len; d += 0.6) { const t = d / len; if (gap && Math.abs(t - 0.5) < 0.12) continue; addOb(ax + (bx - ax) * t, az + (bz - az) * t, 0.3); }
     for (let i = 0; i <= n; i++) {
       const t = i / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t;
       if (gap && Math.abs(t - 0.5) < 0.14) continue;
@@ -1065,6 +1067,7 @@ const Vida = (() => {
     if (!list.length) { dialog('🤝 Trocar', 'Chegue perto de outro jogador (até 10 m) para trocar.'); return; }
     dialog('🤝 Trocar com…', 'Escolha o jogador:', [...list.map(r => ({ label: r.n, fn: () => { tr = { to: r.peer, id: Math.random().toString(36).slice(2, 8), give: {}, ok: false }; tradeWin(); return true; } })), { label: 'Cancelar' }]);
   }
+  function trocarCom(peer) { if (!online()) return soloMsg(); const r = peers.find(x => x.peer === peer); if (!r) return; if (!near(r, 10)) { log('🤝 Chegue mais perto (até 10 m) para trocar.', 'bad'); return; } tr = { to: r.peer, id: Math.random().toString(36).slice(2, 8), give: {}, ok: false }; tradeWin(); }
   function partnerOf() { return tr && peers.find(r => r.peer === tr.to); }
   function tradeWin() {
     const pr = partnerOf();
@@ -1438,5 +1441,5 @@ const Vida = (() => {
     opts.push({ label: 'Cancelar' });
     dialog('🎒 Mostrar um item no chat', 'Escolha o item: ele aparece na mensagem e quem tocar no nome vê a ficha completa.', opts);
   }
-  return { tierCarta, bonusCarta, nivelCaca, ficha, escolherParaChat, use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
+  return { trocarCom, tierCarta, bonusCarta, nivelCaca, ficha, escolherParaChat, use, smith, useSlot, init, update, nearest, onPeers, pres, sellAll, bag, talkFarm, gear, gearShop, dropMesh, pickMsg, bestiary, onKill, migrateEquip, SLOTS, RARITY, get stall() { return st.stall; } };
 })();

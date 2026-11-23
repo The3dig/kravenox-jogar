@@ -795,3 +795,80 @@ body.touch #t-auto span { font-size: 11px; }
 #bauwin .bau-q { display: inline-flex; align-items: center; gap: 2px; }
 #bauwin .bau-q b { min-width: 30px; text-align: center; }
 #bauwin .igrid { max-height: 170px; overflow-y: auto; }
+/* 👥 painel do grupo (grupo.js) */
+#grupowin { position: absolute; left: 50%; top: calc(52px + env(safe-area-inset-top)); transform: translateX(-50%); width: min(460px, 94vw); max-height: calc(100% - 60px); overflow-y: auto; z-index: 34; }
+#grupowin .wt { display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 1; } #grupowin .wt small { color: var(--mut); font-family: 'Nunito', sans-serif; }
+#grupowin .wt .x { margin-left: auto; cursor: pointer; font-size: 20px; padding: 0 8px; }
+#grupowin .gr-b { padding: 6px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+#grupowin .gr-sec { margin-top: 6px; color: var(--gold); font: 800 12px 'Nunito', sans-serif; letter-spacing: .5px; text-transform: uppercase; }
+#grupowin .gr-reg { cursor: pointer; }
+#grupowin .gr-card { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: linear-gradient(90deg, rgba(93,224,122,.10), rgba(255,255,255,.03)); border: 1px solid rgba(93,224,122,.35); }
+#grupowin .gr-card.eu { background: linear-gradient(90deg, rgba(242,200,106,.14), rgba(255,255,255,.03)); border-color: rgba(242,200,106,.45); }
+#grupowin .gr-av { width: 38px; height: 38px; flex: none; border-radius: 50%; display: grid; place-items: center; font: 900 18px 'Cinzel', serif; color: #1a1208; background: radial-gradient(circle at 35% 30%, #fff2c0, #d9a63a); box-shadow: 0 0 0 2px rgba(0,0,0,.35); }
+#grupowin .gr-card:not(.eu) .gr-av { background: radial-gradient(circle at 35% 30%, #d8ffe0, #3aa860); }
+#grupowin .gr-info { flex: 1; min-width: 0; } #grupowin .gr-info small { color: var(--mut); }
+#grupowin .gr-lv { font: 800 11px 'Nunito', sans-serif; background: rgba(255,255,255,.1); border-radius: 6px; padding: 0 5px; margin-left: 4px; }
+#grupowin .gr-perto { color: #7dff6a; font-weight: 800; }
+#grupowin .gr-hp { height: 6px; background: #2a2036; border-radius: 3px; margin-top: 4px; overflow: hidden; } #grupowin .gr-hp i { display: block; height: 100%; border-radius: 3px; transition: width .3s; }
+#grupowin .gr-bt button, #grupowin .gr-fora button, #grupowin .gr-fim button { background: var(--glass2); color: var(--txt); border: 1px solid var(--line); border-radius: 9px; padding: 5px 10px; font-weight: 700; cursor: pointer; }
+#grupowin .gr-fora { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); }
+#grupowin .gr-fora small { color: var(--mut); } #grupowin .gr-vazio { color: var(--mut); font-size: 12px; padding: 4px 2px; }
+#grupowin .gr-txt { font-size: 12px; color: var(--txt); line-height: 1.45; background: rgba(255,255,255,.03); border-radius: 10px; padding: 8px 10px; }
+#grupowin .gr-fim { display: flex; justify-content: flex-end; margin-top: 6px; } #grupowin .perigo { border-color: rgba(255,90,90,.6) !important; color: #ffb0a0 !important; }
+/* 🛡️ painel da guilda em abas (guilda.js) */
+#guildwin { width: min(580px, 94vw); }
+#guildwin .gw-banner { display: flex; gap: 12px; align-items: center; margin: 4px 0 8px; padding: 12px; border-radius: 14px; background: linear-gradient(135deg, rgba(154,20,36,.55), rgba(40,20,30,.6)); border: 1px solid rgba(242,200,106,.55); box-shadow: inset 0 0 20px rgba(0,0,0,.35); }
+#guildwin .gw-escudo { width: 64px; height: 72px; flex: none; display: grid; place-items: center; font-size: 34px; background: radial-gradient(circle at 40% 30%, #ffe8a0, #b0781a); clip-path: polygon(50% 0, 100% 12%, 94% 62%, 50% 100%, 6% 62%, 0 12%); box-shadow: 0 0 0 3px #3a1a10; }
+#guildwin .gw-tit { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#guildwin .gw-tit b { font: 800 19px 'Cinzel', Georgia, serif; color: #ffe39a; text-shadow: 0 1px 2px #000; }
+#guildwin .gw-sig { font: 800 12px 'Nunito', sans-serif; color: #f2c86a; letter-spacing: 1px; }
+#guildwin .gw-tit small { color: #e8dcc8; opacity: .85; }
+#guildwin .gw-xp { height: 8px; border-radius: 4px; background: rgba(0,0,0,.45); overflow: hidden; margin-top: 4px; } #guildwin .gw-xp i { display: block; height: 100%; background: linear-gradient(90deg, #d9a63a, #ffe080); }
+#guildwin .gw-abas { display: flex; gap: 4px; margin-bottom: 8px; overflow-x: auto; }
+#guildwin .gw-abas button { flex: 1; min-width: 72px; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 4px; border-radius: 10px; background: rgba(255,255,255,.04); color: var(--txt); border: 1px solid rgba(255,255,255,.1); font: 700 11px 'Nunito', sans-serif; cursor: pointer; }
+#guildwin .gw-abas button span { font-size: 18px; } #guildwin .gw-abas button.on { background: rgba(242,200,106,.2); border-color: rgba(242,200,106,.75); color: #ffe39a; }
+#guildwin .gw-card { padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); margin-bottom: 8px; line-height: 1.45; }
+#guildwin .gw-card small { color: var(--mut); }
+#guildwin .gw-cast { display: flex; align-items: center; gap: 12px; background: linear-gradient(90deg, rgba(242,200,106,.14), rgba(255,255,255,.03)); border-color: rgba(242,200,106,.45); }
+#guildwin .gw-cast > div:nth-child(2) { flex: 1; display: flex; flex-direction: column; } #guildwin .gw-cast-ic { font-size: 34px; }
+#guildwin .gw-grande { padding: 10px 14px; border-radius: 12px; border: 1px solid #f2c86a; background: linear-gradient(180deg, #c08a2a, #7a4a10); color: #fff6d8; font: 800 13px 'Nunito', sans-serif; cursor: pointer; white-space: nowrap; }
+#guildwin .gw-vivo { border-color: #5de07a; box-shadow: 0 0 12px rgba(93,224,122,.35); }
+#guildwin .gw-mb { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 12px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); margin-bottom: 6px; }
+#guildwin .gw-mb.eu { border-color: rgba(242,200,106,.45); }
+#guildwin .gw-av { position: relative; width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center; font: 900 16px 'Cinzel', serif; color: #1a1208; background: radial-gradient(circle at 35% 30%, #e8e0f0, #8a7aa0); }
+#guildwin .gw-mb.on .gw-av { background: radial-gradient(circle at 35% 30%, #fff2c0, #d9a63a); }
+#guildwin .gw-av i { position: absolute; right: -1px; bottom: -1px; width: 10px; height: 10px; border-radius: 50%; background: #6a6a7a; box-shadow: 0 0 0 2px #1a1420; } #guildwin .gw-mb.on .gw-av i { background: #5de07a; }
+#guildwin .gw-mbi { flex: 1; min-width: 0; display: flex; flex-direction: column; } #guildwin .gw-mbi small { color: var(--mut); }
+#guildwin .gw-mbb { display: flex; gap: 4px; } #guildwin .gw-mbb button { width: 32px; height: 30px; padding: 0; border-radius: 8px; }
+#guildwin .gw-vant > div { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; margin-bottom: 4px; background: rgba(255,255,255,.03); }
+#guildwin .gw-vant > div.on { background: rgba(93,224,122,.1); } #guildwin .gw-vant > div.off { opacity: .6; } #guildwin .gw-vant small { min-width: 36px; color: var(--gold); font-weight: 800; }
+/* 👤 menu do jogador (jogadores.js): o nome dos outros jogadores é tocável */
+.plabel[data-peer] { pointer-events: auto; cursor: pointer; }
+.dmg.emo { font-size: 34px !important; color: #fff !important; text-shadow: 0 2px 6px rgba(0,0,0,.6); }
+#dialog .dopts.emo-grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; } #dialog .dopts.emo-grade button { font-size: 24px; padding: 6px 0; }
+#dialog .dopts.emo-grade button:last-child { grid-column: 1 / -1; font-size: 14px; }
+/* 📣 anúncio grande (anuncio.js) */
+#anuncio { position: fixed; left: 50%; top: calc(70px + env(safe-area-inset-top)); transform: translate(-50%, -160%); z-index: 70; width: min(620px, 92vw); display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 18px; color: #fff; pointer-events: auto; cursor: pointer; transition: transform .45s cubic-bezier(.2,1.3,.4,1), opacity .35s; opacity: 0; box-shadow: 0 12px 40px rgba(0,0,0,.6), inset 0 0 0 2px rgba(255,255,255,.12); }
+#anuncio.on { transform: translate(-50%, 0); opacity: 1; }
+#anuncio.an-ouro { background: linear-gradient(135deg, rgba(120,80,10,.96), rgba(40,24,6,.96)); border: 2px solid #f2c86a; }
+#anuncio.an-sangue { background: linear-gradient(135deg, rgba(140,10,20,.96), rgba(30,4,8,.96)); border: 2px solid #ff6060; }
+#anuncio.an-azul { background: linear-gradient(135deg, rgba(30,60,140,.96), rgba(10,16,40,.96)); border: 2px solid #8ab8ff; }
+#anuncio.an-verde { background: linear-gradient(135deg, rgba(20,110,60,.96), rgba(6,30,16,.96)); border: 2px solid #7dff9a; }
+#anuncio .an-ic { font-size: 52px; line-height: 1; filter: drop-shadow(0 3px 6px rgba(0,0,0,.6)); animation: anPulsa 1.2s ease-in-out infinite; }
+#anuncio .an-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#anuncio .an-tx small { font: 900 11px 'Nunito', sans-serif; letter-spacing: 2px; opacity: .85; }
+#anuncio .an-tx b { font: 800 24px 'Cinzel', Georgia, serif; color: #ffe9a0; text-shadow: 0 2px 4px #000; line-height: 1.1; }
+#anuncio.an-sangue .an-tx b { color: #ffd0c8; } #anuncio.an-azul .an-tx b { color: #e0ecff; } #anuncio.an-verde .an-tx b { color: #d8ffe0; }
+#anuncio .an-tx span { font: 600 13px 'Nunito', sans-serif; opacity: .92; }
+#anuncio button { flex: none; padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.6); background: rgba(255,255,255,.15); color: #fff; font: 800 13px 'Nunito', sans-serif; }
+body.touch #anuncio { top: calc(56px + env(safe-area-inset-top)); padding: 10px 14px; } body.touch #anuncio .an-ic { font-size: 40px; } body.touch #anuncio .an-tx b { font-size: 19px; }
+@keyframes anPulsa { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { #anuncio .an-ic { animation: none; } #anuncio { transition: opacity .3s; } }
+#netpausa .volta-aqui { display: block; margin: 14px auto 0; padding: 12px 20px; border-radius: 14px; border: 1px solid #f2c86a; background: linear-gradient(180deg, #c08a2a, #7a4a10); color: #fff6d8; font: 800 15px 'Nunito', sans-serif; cursor: pointer; pointer-events: auto; }
+
+/* 💬 chat com o teclado aberto: ocupa só o espaço que sobra acima do teclado, conversa em cima e caixa de texto embaixo */
+#chatbox.teclado { position: fixed; bottom: auto !important; left: calc(6px + env(safe-area-inset-left)); right: calc(6px + env(safe-area-inset-right)); width: auto; transform: none; gap: 4px; z-index: 90; }
+#chatbox.teclado #chat-hist { flex: 1 1 auto; min-height: 0; max-height: none !important; padding: 4px 8px; font-size: 12px; }
+#chatbox.teclado .chat-linha { flex: 0 0 auto; }
+#chatbox.teclado input { padding: 6px 10px; }
+#chatbox.teclado #chat-canal, #chatbox.teclado #chat-item, #chatbox.teclado #chat-x, #chatbox.teclado #chat-send { padding: 0 8px !important; font-size: 12px; }

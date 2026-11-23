@@ -22,11 +22,13 @@ function salaServidor(url, aoMsg) {
   function conectar() {
     if (parado) return;
     const tk = typeof Nuvem !== 'undefined' && Nuvem.token ? (url.includes('?') ? '&' : '?') + 'token=' + Nuvem.token : '';
-    try { ws = new WebSocket(url + tk); } catch (e) { setTimeout(conectar, espera = Math.min(espera * 2, 30000)); return; }
+    let este; try { este = ws = new WebSocket(url + tk); } catch (e) { setTimeout(conectar, espera = Math.min(espera * 2, 30000)); return; }
+    const velha = () => ws !== este;                                   // uma conexão antiga minha (a internet caiu e o jogo já abriu outra): os avisos dela não valem
     ws.onopen = () => { aberta = true; espera = 1000; falhas = 0; if (pend) mandar(JSON.stringify({ t: 'p', s: pend })); };
     // os nomes de personagem são únicos: alguém com o meu nome é uma conexão velha minha (o fantasma de mim mesmo)
     const souEu = s => !!(s && typeof P !== 'undefined' && P.name && s.n === P.name);
     ws.onmessage = e => {
+      if (velha()) return;
       uso.in += (e.data.length || 0) + 4;
       if (e.data === 'pong') return;
       let m; try { m = JSON.parse(e.data); } catch (_) { return; }
@@ -38,6 +40,7 @@ function salaServidor(url, aoMsg) {
       if (aoMsg) aoMsg(m);                                                      // monstros compartilhados e o resto
     };
     ws.onclose = async ev => {
+      if (velha()) return;
       const eraAberta = aberta;
       aberta = false; const left = [...peers.keys()].map(peer => ({ peer })); peers.clear(); me = null; emit([], left);
       if (aoMsg) aoMsg({ t: 'caiu' });
@@ -92,7 +95,7 @@ const Net = (() => {
       if (!RACES[look.race]) look.race = 'humano';
       if (!CLASSES[look.cls]) look.cls = OLD_TO_HERO[look.cls] || 'kravenox';
       const L2 = buildAvatar(g, look);
-      const lab = document.createElement('div'); lab.className = 'alabel plabel'; $('labels').appendChild(lab);
+      const lab = document.createElement('div'); lab.className = 'alabel plabel'; lab.dataset.peer = p.peer; $('labels').appendChild(lab);   // tocar no nome abre o menu do jogador (jogadores.js)
       const bub = document.createElement('div'); bub.className = 'bubble hidden'; $('labels').appendChild(bub);
       r = { g, L: L2, look, lookKey, lab, bub, x: s.x, z: s.z, y: s.y || 0, f: s.f || 0, k: s.k || 0 };
       remotes.set(p.peer, r);
@@ -128,7 +131,11 @@ const Net = (() => {
     const h = msg || '🌐 Sem conexão com o Reino. Reconectando…<small>O jogo continua de onde parou assim que a internet voltar.</small>';
     if (el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; }
   }
-  function fora(msg) { foraMsg = msg; if (typeof Nuvem !== 'undefined') Nuvem.parar(); pausaTela(true, `🔌 ${esc(msg)}<small>Feche e abra o jogo para continuar aqui.</small>`); }
+  function fora(msg) {
+    foraMsg = msg; if (typeof Nuvem !== 'undefined') Nuvem.parar();
+    pausaTela(true, `🔌 ${esc(msg)}<small>Pode ser outra aba, o atalho da Tela de Início ou outro celular com o seu usuário.</small><button id="volta-aqui" class="volta-aqui">▶️ Continuar jogando aqui</button>`);
+    setTimeout(() => { const b = document.getElementById('volta-aqui'); if (b) b.addEventListener('pointerdown', e => { e.stopPropagation(); try { save(); } catch (er) { } location.reload(); }); }, 50);
+  }
   // ---------------- laço
   function update(dt) {
     if (!room) return;
@@ -145,7 +152,7 @@ const Net = (() => {
       const pres = {
         n: P.name, lv: P.lv, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), f: +P.face.toFixed(2), st, k: P.atkSeq || 0,
         hp: Math.round(P.hp / stats.maxHp() * 100), look: { race: P.race, cls: P.cls, gender: P.gender, hair: P.hair, skin: P.skin },
-        kd: P.kvxDmg || null, fb: P.fb || null, ...(typeof Cos !== 'undefined' ? Cos.pres() : {}), ...(typeof PvP !== 'undefined' ? PvP.pres() : {}), title: P.title || null, say: P.say || null, tj: typeof Trajes !== 'undefined' ? Trajes.cor() || null : null, ...(typeof Montaria !== 'undefined' ? Montaria.pres() : {}),
+        kd: P.kvxDmg || null, fb: P.fb || null, ...(typeof Cos !== 'undefined' ? Cos.pres() : {}), ...(typeof PvP !== 'undefined' ? PvP.pres() : {}), title: P.title || null, say: P.say || null, tj: typeof Trajes !== 'undefined' ? Trajes.cor() || null : null, ...(typeof Jogadores !== 'undefined' ? Jogadores.pres() : {}), ...(typeof Montaria !== 'undefined' ? Montaria.pres() : {}), ...(typeof Tower !== 'undefined' && Tower.pres ? Tower.pres() : {}),
         ...(typeof Vida !== 'undefined' ? Vida.pres() : {}), ...(typeof Guilda !== 'undefined' ? Guilda.pres() : {}), ...(typeof Grupo !== 'undefined' ? Grupo.pres() : {}), ...(typeof Verme !== 'undefined' ? Verme.pres() : {}), ...(typeof dgPres === 'function' ? dgPres() : {}),
       };
       const j = JSON.stringify(pres);
@@ -178,7 +185,7 @@ const Net = (() => {
       const sp = toScreen(r.x, r.g.position.y + 2.15, r.z);
       const near = Math.hypot(r.x - P.x, r.z - P.z) < 45;
       // o Sítio e a casa são só seus: ninguém aparece lá, e você não vê quem está no Sítio dele
-      const priv = typeof zoneOf === 'function' && (['sitio', 'casa'].includes(zoneOf(P.x, P.z)) || ['sitio', 'casa'].includes(zoneOf(r.x, r.z)));
+      const priv = typeof zoneOf === 'function' && (['sitio', 'casa'].includes(zoneOf(P.x, P.z)) || ['sitio', 'casa'].includes(zoneOf(r.x, r.z)) || ((zoneOf(P.x, P.z) === 'castelo' || zoneOf(r.x, r.z) === 'castelo') && !(typeof Guilda !== 'undefined' && Guilda.aliado(s))));   // no castelo, só a sua guilda
       r.g.visible = !priv; if (priv) { r.lab.style.display = 'none'; continue; }
       r.lab.style.display = sp.vis && near ? 'block' : 'none';
       r.lab.style.transform = `translate(${sp.x | 0}px,${sp.y | 0}px) translate(-50%,-100%)`;

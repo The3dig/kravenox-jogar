@@ -155,10 +155,10 @@ function watchFps(dt) {
 }
 // ---------------------------------------------------------------- andar sozinho até a missão (toque na missão do quadro)
 const AUTO = { on: false, t: 0, side: 1, chk: 0, cx: 0, cz: 0, hp: 0, tg: null, tgT: 0 };
-function autoStart() {
-  if (!questTarget()) { log('Essa missão não tem um lugar para ir agora.', 'sys'); return; }
-  Object.assign(AUTO, { on: true, chk: 0, cx: P.x, cz: P.z, hp: P.hp, tgT: 0 }); document.body.classList.add('walking');
-  log('🚶 Andando sozinho até o objetivo. Mexa o joystick para parar.', 'sys');
+function autoStart(quieto) {
+  if (!questTarget()) { if (!quieto) log('Essa missão não tem um lugar para ir agora.', 'sys'); return; }
+  Object.assign(AUTO, { on: true, chk: 0, cx: P.x, cz: P.z, hp: P.hp, tgT: 0, fuga: null, stuck: 0 }); document.body.classList.add('walking');
+  if (!quieto) log('🚶 Andando sozinho até o objetivo. Mexa o joystick para parar.', 'sys');
 }
 function autoStop(msg) { if (!AUTO.on) return; AUTO.on = false; document.body.classList.remove('walking'); if (msg) log(msg, 'sys'); $('quest').dataset.h = ''; }
 // próximo ponto do caminho: se o rio estiver no meio, passa pela ponte mais perto
@@ -183,14 +183,19 @@ function autoDir(dt) {
   let a = Math.atan2(dx, dz);
   // desvia de árvores, casas e pedras: testa o caminho à frente e gira até achar passagem
   const free = ang => !blocked(P.x + Math.sin(ang) * 1.3, P.z + Math.cos(ang) * 1.3) && !blocked(P.x + Math.sin(ang) * 0.6, P.z + Math.cos(ang) * 0.6);
-  if (!free(a)) {
-    let ok = false;
-    for (const k of [1, 2, 3, 4, 5]) for (const s of [AUTO.side, -AUTO.side]) { const b = a + s * k * 0.45; if (!ok && free(b)) { a = b; ok = true; AUTO.side = s; } }
+  // obstáculo grande (tenda, casa): contorna pelo mesmo lado até ver o alvo livre de novo (antes desviava pouco e ficava
+  // indo e voltando na frente da tenda da Zaíra seguindo o Ludi)
+  if (AUTO.fuga && AUTO.fuga.t > 0 && free(AUTO.fuga.a)) { AUTO.fuga.t -= dt; a = AUTO.fuga.a; }
+  else if (!free(a)) {
+    let ok = false; const lado = AUTO.side || 1;
+    for (const k of [1, 2, 3, 4, 5, 6, 7]) for (const s of [lado, -lado]) { const b = a + s * k * 0.42; if (!ok && free(b)) { a = b; ok = true; AUTO.side = s; } }
     if (!ok) a += Math.PI;
+    else if (Math.abs(a - Math.atan2(dx, dz)) > 0.8) AUTO.fuga = { a, t: 0.5 };              // desvio grande: segue nele meio segundo
   }
-  if ((AUTO.chk += dt) > 2.5) {                                    // preso: tenta o outro lado; se não sair, desiste
+  if ((AUTO.chk += dt) > 2) {                                      // preso: foge para o lado e tenta pelo outro; se não sair, desiste
     const moved = Math.hypot(P.x - AUTO.cx, P.z - AUTO.cz);
-    if (moved < 0.8) { AUTO.side = -AUTO.side; AUTO.stuck = (AUTO.stuck || 0) + 1; if (AUTO.stuck > 3) { AUTO.stuck = 0; autoStop('🚶 Caminho bloqueado. Ande um pouco e toque na missão de novo.'); return null; } }
+    if (moved < 0.8) { AUTO.side = -(AUTO.side || 1); AUTO.stuck = (AUTO.stuck || 0) + 1; AUTO.fuga = { a: Math.atan2(dx, dz) + AUTO.side * (1.3 + AUTO.stuck * 0.3), t: 1.2 };
+      if (AUTO.stuck > 5) { AUTO.stuck = 0; autoStop('🚶 Caminho bloqueado. Ande um pouco e toque na missão de novo.'); return null; } }
     else AUTO.stuck = 0;
     AUTO.chk = 0; AUTO.cx = P.x; AUTO.cz = P.z;
   }
@@ -400,7 +405,8 @@ const CRIPTA = { i: 'cripta', mina: true, zona: 'cripta', x: 800, z: TZ, y: 0, r
 const MASMORRAS = {};
 // Templo do Eco Selado (templo.js): 6 salas retangulares em fila, fora do mapa (uma de cada vez é desenhada)
 const FORTE = { i: 'forte', mina: true, zona: 'forte', x: 1400, z: TZ, y: 0, r: 26 };          // 🏰 Fortaleza das Bandeiras (guerra.js)
-const ARENA = { i: 'arena', mina: true, zona: 'arena', x: 1300, z: TZ, y: 0, r: 22 };          // ⚔️ Arena de Solmira (arena.js)
+const ARENA = { i: 'arena', mina: true, zona: 'arena', x: 1300, z: TZ, y: 0, r: 22 };
+const CASTELO = { i: 'castelo', mina: true, zona: 'castelo', x: 1520, z: TZ, y: 0, r: 28 };   // 🏰 castelo da guilda (castelo.js): cada guilda só vê os seus          // ⚔️ Arena de Solmira (arena.js)
 const TEMPLO = Array.from({ length: 6 }, (_, i) => ({ i: 'templo' + i, mina: true, templo: true, zona: 'eco', sala: i, x: 900 + i * 50, z: TZ, y: 0, r: 17 }));                                                                           // masmorras "escape" (minas.js) registradas pela zona
 function floorAt(x, z) {
   const row = Math.round((z - TZ - 140) / 110), col = Math.round((x + 250) / 100), f = row >= 0 && col >= 0 && col < 10 ? (row >= 4 ? ABF[(row - 4) * 10 + col] : FLOORS[row * 10 + col]) : null;
@@ -412,6 +418,7 @@ function floorAt(x, z) {
   for (const S of TEMPLO) if (Math.abs(x - S.x) < 20 && Math.abs(z - S.z) < 20) return S;
   if (Math.hypot(x - ARENA.x, z - ARENA.z) < ARENA.r + 6) return ARENA;
   if (Math.hypot(x - FORTE.x, z - FORTE.z) < FORTE.r + 6) return FORTE;
+  if (Math.hypot(x - CASTELO.x, z - CASTELO.z) < CASTELO.r + 6) return CASTELO;
   return null;
 }
 // altura nas escadarias laterais (rampa suave sob os degraus)
@@ -1616,7 +1623,13 @@ function killMob(m, o = {}) {
   else if (m.model.m3) corpses.push({ g: m.model.g, m3: m.model.body, t: 1.0 });
   else scene.remove(m.model.g);
   if (o.semPremio) return;                                              // morreu na mão de outro jogador
+  if (o.leech) {                                                        // 🍼 carona do grupo: só XP (sem missão, item nem bestiário), no máximo 0,8% de um nível por bicho
+    const xp = Math.max(1, Math.round(Math.min(m.d.xp * 0.6, xpNeed(P.lv) * 0.008) * (1 + gBon('xp'))));
+    if (!P.leechAviso2) { P.leechAviso2 = 1; log('🍼 <b>Carona no grupo:</b> quando alguém bem mais forte do seu grupo mata perto de você, você ganha um pouco de XP (até 0,8% de um nível por bicho). Missões e itens só valem caçando você mesmo!', 'gold'); }
+    log(`🍼 +${xp} XP de carona${o.de ? ` (${o.de} derrotou ${m.d.name})` : ''}`, 'xp'); gainXp(xp); return;
+  }
   if (!o.ajuda || o.ajuda >= 0.25 || o.grupo) { P.kills = (P.kills || 0) + 1; if (typeof Trajes !== 'undefined') Trajes.kill(); }
+  if (m.castelo && typeof Castelo !== 'undefined') Castelo.onKill(m);
   if (typeof Tarefas !== 'undefined' && (!o.ajuda || o.ajuda >= 0.25 || o.grupo)) { Tarefas.evento('mata'); if (m.d.boss || m.d.mini || m.d.alfa || m.d.field || m.towerGuard) Tarefas.evento('chefe'); }   // 📅 tarefas
   if (o.ajuda) {                                                       // ajudou a matar: XP pela parte do dano (e conta na missão se foi boa parte)
     const dif = P.lv - m.d.lv, pen = o.grupo ? (dif > 8 ? 0.3 : dif > 5 ? 0.6 : 1) : 1;   // no grupo vale o mesmo desconto de nível de quem matou
@@ -2278,7 +2291,7 @@ function updatePlayer(dt) {
   // quadro de caça mais perto que o NPC: fica com o quadro (antes o NPC do lado "roubava" o toque)
   if (nearNpc && typeof Quests !== 'undefined' && Quests.quadroPerto && Quests.quadroPerto() < Math.hypot(nearNpc.x - P.x, nearNpc.z - P.z)) nearNpc = null;
   const pr = $('prompt');
-  nearUse = !nearNpc ? ((typeof Ranking !== 'undefined' && Ranking.nearest()) || (typeof Eventos !== 'undefined' && Eventos.nearest()) || (typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Comodos !== 'undefined' && Comodos.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Mascotes !== 'undefined' && Mascotes.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
+  nearUse = !nearNpc ? ((typeof Ranking !== 'undefined' && Ranking.nearest()) || (typeof Eventos !== 'undefined' && Eventos.nearest()) || (typeof Praia !== 'undefined' && Praia.nearest()) || (typeof Casa !== 'undefined' && Casa.nearest()) || (typeof Comodos !== 'undefined' && Comodos.nearest()) || (typeof Castelo !== 'undefined' && Castelo.nearest()) || (typeof Vida !== 'undefined' && Vida.nearest()) || (typeof Mascotes !== 'undefined' && Mascotes.nearest()) || (typeof Quests !== 'undefined' && Quests.nearest()) || null) : null;
   if (nearNpc && !dialogOpen) { pr.innerHTML = typeof Controle !== 'undefined' && Controle.ligado ? `🎮 <b>[A]</b> Falar com ${nearNpc.name}` : TOUCH ? `Toque 💬 para falar com ${nearNpc.name}` : `<b>[F]</b> Falar com ${nearNpc.name}`; pr.classList.remove('hidden'); }
   else if (nearUse && !dialogOpen) { pr.innerHTML = typeof Controle !== 'undefined' && Controle.ligado ? `🎮 <b>[A]</b> ${nearUse.label}` : TOUCH ? `Toque 💬: ${nearUse.label}` : `<b>[F]</b> ${nearUse.label}`; pr.classList.remove('hidden'); }
   else pr.classList.add('hidden');
@@ -2802,9 +2815,22 @@ const BigMap = (() => {
   }
   return { rota, show: () => show('mundo'), regiao: () => show(null, null), hide, draw, get open() { return open; } };
 })();
+function entradaDe(t) {
+  const z = zoneOf(t.x, t.z), quem = t.name ? ` (${t.name} está lá dentro)` : '';
+  if (z === 'abismo' || z === 'abfundo') return { x: LAIR.x, z: LAIR.z + 6, name: 'a boca do Abismo, na Cratera' + quem };
+  if (typeof MASMORRAS !== 'undefined' && MASMORRAS[z] && MASMORRAS[z].saida) return { x: MASMORRAS[z].saida.x, z: MASMORRAS[z].saida.z, name: 'a entrada da masmorra' + quem };
+  if (z === 'casa' || /^casa/.test(z)) return { x: FARM.x - 11, z: FARM.z + 1, name: 'a casa' + quem };
+  if (z === 'castelo') return null;
+  return { x: Tower.door.x, z: Tower.door.z + 3, name: 'a porta da Torre do Cisma' + quem };
+}
 function questTarget() {
   if (typeof Quests !== 'undefined') {
-    if (inTower(P.z)) return null; const t = Quests.target(); if (!t) return null;
+    if (inTower(P.z)) return null; let t = Quests.target(); if (!t) return null;
+    // o alvo está dentro da Torre, do Abismo, de uma masmorra ou de uma casa (lugares "fora do mapa"): vai até a ENTRADA
+    // (antes andava em linha reta até a posição lá dentro e ficava preso no mato seguindo o Imperyon na Torre)
+    if (inTower(t.z)) { const e = entradaDe(t); if (!e) return null;
+      if (t === P.qGo && Math.hypot(P.x - e.x, P.z - e.z) < 4) { log(`🧭 Você chegou: <b>${e.name}</b>. Entre para encontrar.`, 'sys'); P.qGo = null; return null; }
+      t = e; }
     const aqui = mapaDe(P.x, P.z), la = mapaDe(t.x, t.z); if (aqui === la || la === 'torre') return t;
     // o caminho entre os mapas: Reino ↔ Valdora ↔ Floresta Morta
     if (aqui === 'praia') return { x: PGATE.x - 4, z: PGATE.z, name: 'Passagem para o Reino' };
@@ -3037,7 +3063,7 @@ function fazerReset(t) {
   if (t === 'atr') {
     const r = CLASSES[P.cls].hero ? {} : (RACES[P.race] || { bonus: {} }).bonus, c = CLASSES[P.cls].bonus || {};
     for (const k of STAT_KEYS) P[k] = Math.max(1, 3 + (r[k] || 0) + (c[k] || 0));
-    P.statPts = ptsTotais(P.lv, P.tier);
+    P.statPts = ptsTotais(P.lv, P.tier) + (P.ptsExtra || 0);   // + pontos dos cômodos completos da casa
   } else {
     let tot = 0; for (const id in P.skillLv) tot += P.skillLv[id] || 0;
     const primeira = SKILLS[0].id; P.skillLv = { [primeira]: 1 }; P.skillPts += Math.max(0, tot - 1);
@@ -3147,7 +3173,7 @@ function toggleSkills() { $('statwin').classList.add('hidden'); $('skillwin').cl
 
 // ---------------------------------------------------------------- diálogos
 function dialog(title, text, opts) {
-  const d = $('dialog');
+  const d = $('dialog'); delete d.dataset.ped;
   d.innerHTML = `<div class="wt">${title}<button class="x" aria-label="Fechar">✕</button></div><div class="dtext">${text}</div><div class="dopts"></div>`;
   const o = d.querySelector('.dopts');
   // ✕ no canto: fecha na hora, sem rolar até o "Fechar" (se a janela tem "Fechar"/"Sair", faz o mesmo que ele)
@@ -3368,7 +3394,7 @@ function showHelp() {
   Caminho: Solmira → Campos Dourados → Areias Rubras → Cidadela do Cisma. O jogo salva sozinho.`, HELP_OPTS());
 }
 // ---------------- uma janela de cada vez: abrir uma fecha as outras (antes ficavam empilhadas: mochila + diário + guilda + loja...)
-const JANELAS = ['statwin', 'skillwin', 'invwin', 'bestwin', 'coswin', 'guildwin', 'bauwin', 'chatbox', 'dialog', 'bigmap', 'avisos', 'kvx'];
+const JANELAS = ['statwin', 'skillwin', 'invwin', 'bestwin', 'coswin', 'guildwin', 'bauwin', 'chatbox', 'dialog', 'bigmap', 'avisos', 'kvx', 'grupowin'];
 function fecharJanelas(exceto) {
   for (const id of JANELAS) {
     if (id === exceto) continue; const el = $(id); if (!el) continue;
@@ -3380,7 +3406,7 @@ function fecharJanelas(exceto) {
   }
 }
 // qual janela cada botão abre (as outras fecham antes)
-const JANELA_DO_BOTAO = { 'btn-tarefas': 'dialog', 'btn-masmorras': 'dialog', 'btn-recordes': 'dialog', 'btn-stat': 'statwin', 'btn-skill': 'skillwin', 'btn-bag': 'invwin', 'btn-best': 'bestwin', 'btn-shop': 'coswin', 'btn-guild': 'guildwin', 'btn-chat': 'chatbox', 'btn-help': 'dialog', 'btn-grupo': 'dialog' };
+const JANELA_DO_BOTAO = { 'btn-tarefas': 'dialog', 'btn-masmorras': 'dialog', 'btn-recordes': 'dialog', 'btn-stat': 'statwin', 'btn-skill': 'skillwin', 'btn-bag': 'invwin', 'btn-best': 'bestwin', 'btn-shop': 'coswin', 'btn-guild': 'guildwin', 'btn-chat': 'chatbox', 'btn-help': 'dialog', 'btn-grupo': 'grupowin' };
 document.addEventListener('click', e => {
   const b = e.target.closest && e.target.closest('#menu button'); if (!b || !(b.id in JANELA_DO_BOTAO)) return;
   fecharJanelas(JANELA_DO_BOTAO[b.id]);
@@ -3429,6 +3455,18 @@ $('chat-hist').addEventListener('click', e => { const a = e.target.closest('.ite
 $('btn-chat').onclick = openChat;
 $('chat-send').onclick = sendChat;
 $('chat-in').addEventListener('blur', () => setTimeout(fitScreen, 400));
+// 💬 teclado aberto no celular (principalmente deitado): o teclado come quase a tela toda e o chat ficava cortado,
+// sem dar para ver o que se escreve. Aí o chat ocupa só o pedaço que sobra, com a caixa de texto embaixo, logo acima do teclado.
+function ajustarChat() {
+  const cb = $('chatbox'), vv = window.visualViewport;
+  const aberto = !cb.classList.contains('hidden') && document.activeElement === $('chat-in') && vv && vv.height < innerHeight * 0.8;
+  cb.classList.toggle('teclado', !!aberto);
+  if (aberto) { cb.style.top = (vv.offsetTop + 4) + 'px'; cb.style.height = Math.max(90, vv.height - 8) + 'px'; const h = $('chat-hist'); h.scrollTop = h.scrollHeight; }
+  else { cb.style.top = ''; cb.style.height = ''; }
+}
+if (window.visualViewport) { visualViewport.addEventListener('resize', ajustarChat); visualViewport.addEventListener('scroll', ajustarChat); }
+$('chat-in').addEventListener('focus', () => { ajustarChat(); setTimeout(ajustarChat, 350); setTimeout(ajustarChat, 800); });
+$('chat-in').addEventListener('blur', () => setTimeout(ajustarChat, 50));
 $('chat-in').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') sendChat(); if (e.key === 'Escape') fecharChat(); });
 $('btn-stat').onclick = toggleStats; $('btn-skill').onclick = toggleSkills; $('btn-music').onclick = toggleMusic; $('btn-help').onclick = showHelp;
 $('btn-sit').onclick = () => { P.sit = !P.sit; };
@@ -3463,7 +3501,7 @@ function start(fromSave) {
   if (fromSave && P.statV !== 2) {
     const r = CLASSES[P.cls].hero ? {} : (RACES[P.race] || { bonus: {} }).bonus, c = CLASSES[P.cls].bonus || {};
     for (const k of STAT_KEYS) P[k] = Math.max(1, 3 + (r[k] || 0) + (c[k] || 0));
-    P.statPts = ptsTotais(P.lv, P.tier); P.statV = 2;
+    P.statPts = ptsTotais(P.lv, P.tier) + (P.ptsExtra || 0); P.statV = 2;
     setTimeout(() => { P.hp = Math.min(P.hp, stats.maxHp()); P.sp = Math.min(P.sp, stats.maxSp());
       dialog('📊 Atributos novos', `O jogo agora vai até o <b>nível 200</b>. Para isso, os atributos mudaram como no Ragnarok: menos pontos por nível, e <b>cada ponto custa mais</b> quanto mais alto o atributo (do 1 ao 10 custa 1, do 11 ao 20 custa 2…).<br>Seus pontos foram <b>devolvidos</b>: você tem <b>${P.statPts}</b> para distribuir de novo.`,
         [{ label: '📊 Distribuir agora', fn: () => { toggleStats(); } }, { label: 'Depois' }]); }, 3500);
@@ -3563,7 +3601,7 @@ function loop(now) {
   if (running && typeof Net !== 'undefined' && Net.pausa) {      // sem conexão: o mundo para (o jogo é todo on-line)
     Net.update(dt); sky.position.copy(camera.position); draw();
   } else if (running) {
-    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Comodos !== 'undefined') Comodos.update(dt); for (const k in MASMORRAS) MASMORRAS[k].update(dt); if (typeof Eventos !== 'undefined') Eventos.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); bossBar(dt); wingTick(dt); railTick(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
+    update(dt); if (typeof Chefes !== 'undefined') { Chefes.update(dt); Alfas.update(dt); } if (typeof Casa !== 'undefined') Casa.update(dt); if (typeof Comodos !== 'undefined') Comodos.update(dt); if (typeof Castelo !== 'undefined') Castelo.update(dt); for (const k in MASMORRAS) MASMORRAS[k].update(dt); if (typeof Eventos !== 'undefined') Eventos.update(dt); if (typeof Cos !== 'undefined') Cos.update(dt); if (typeof PvP !== 'undefined') PvP.update(dt); evoCard(dt); bossBar(dt); wingTick(dt); railTick(dt); if (typeof VFX !== 'undefined') VFX.update(dt); animateLyra(dt); updateCamera(dt); SpriteKit.tick(dt); updateQuestArrow(); watchFps(dt);
     sky.position.copy(camera.position); draw();
     updateLabels(); updateHUD(); drawBeat(); drawMinimap(); if (BigMap.open) BigMap.draw();
   } else {
