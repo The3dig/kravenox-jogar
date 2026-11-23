@@ -1,5 +1,5 @@
 // Service worker: guarda os arquivos do jogo no aparelho (abre rápido e gasta menos internet).
-const CACHE = 'kravenox-mmo-v191';
+const CACHE = 'kravenox-mmo-v192';
 const FILES = [
   './', './index.html', './2d.html', './manifest.webmanifest', './css/style.css',
   './js/compat.js', './js/audio.js', './js/maps.js', './js/sprites.js', './js/game.js',
