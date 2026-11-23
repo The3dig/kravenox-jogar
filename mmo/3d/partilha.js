@@ -18,6 +18,7 @@ const Partilha = (() => {
   const me = () => Net.me;
   const meu = m => !!m.dono && m.dono === me();
   let envT = 0;
+  const dgMortos = new Set();                                        // chefes que o servidor diz que já caíram (castelo)
 
   function tirar(m) { m.dead = true; mobs = mobs.filter(o => o !== m); scene.remove(m.model.g); m.lab.remove(); }
   function spawnDe(id) { const si = parseInt(id, 10), s = SPAWNS[si]; return s || null; }
@@ -76,7 +77,7 @@ const Partilha = (() => {
       const grupo = gq && gq.parte > 0;
       if (m.by === me()) killMob(mb, { parte: Math.max(parte, 0.5) });       // último golpe: itens, coroas e pelo menos metade do XP
       else if (grupo) killMob(mb, { ajuda: gq.parte, grupo: true, n: gq.n, w: gq.w });   // companheiro de grupo perto: a parte dele do XP e conta nas missões
-      else if (gq && gq.leech) killMob(mb, { leech: true, de: (Net.peers().find(r => r.peer === m.by) || {}).n });   // 🍼 carona: companheiro bem mais forte matou perto
+      else if (gq && gq.leech) killMob(mb, { leech: true, lvK: gq.lvK, de: (Net.peers().find(r => r.peer === m.by) || {}).n });   // 🍼 carona: companheiro bem mais forte matou perto
       else if (parte > 0.02) killMob(mb, { ajuda: parte });
       else killMob(mb, { semPremio: true });
     });
@@ -87,6 +88,8 @@ const Partilha = (() => {
       Net.send({ t: 'nasceu', id: m.id, x: +mb.x.toFixed(2), z: +mb.z.toFixed(2) });
     });
     Net.on('caiu', () => { });
+    // resposta do "dgver": os monstros que já estavam na Torre/masmorra quando cheguei
+    Net.on('dgl', m => { const loc = porId(); for (const o of m.l || []) if (o.vivo === false) dgMortos.add(o.id); else if (!loc.get(o.id)) { const mb = criar(o); if (mb) { mb.dono = o.dono; mb.hp = Math.min(mb.maxHp, o.hp ?? mb.maxHp); } } });
     Net.on('dgfim', m => { for (const mb of mobs.filter(x => x.nid && x.nid.startsWith(m.pref))) tirar(mb); });   // a corrida em grupo acabou
     Net.on('some', m => { const mb = porId().get(m.id); if (mb) { mortos.set(m.id, mb.type); tirar(mb); } });   // o servidor diz que ele já tinha morrido
   }
@@ -99,7 +102,7 @@ const Partilha = (() => {
     const l = [];
     for (const m of mobs) {
       if (!m.nid || !meu(m)) continue;
-      const st = (m.moving ? 1 : 0) | ((m.swing || 0) > 0.5 ? 2 : 0) | (m.stun > 0 ? 4 : 0);
+      const st = (m.moving ? 1 : 0) | ((m.swing || 0) > 0.5 ? 2 : 0) | (m.stun > 0 ? 4 : 0) | (m.evade ? 8 : 0);   // 8 = chefe voltando para casa (imune)
       const k = m.x.toFixed(1) + ',' + m.z.toFixed(1) + ',' + st + ',' + m.face.toFixed(1);
       if (m.envK === k) continue; m.envK = k;
       l.push([m.nid, +m.x.toFixed(2), +m.z.toFixed(2), +m.face.toFixed(2), st]);
@@ -112,7 +115,7 @@ const Partilha = (() => {
     const dx = m.nx - m.x, dz = m.nz - m.z, d = Math.hypot(dx, dz), k = Math.min(1, dt * 7);
     m.x += dx * k; m.z += dz * k; m.moving = d > 0.05 || ((m.netSt || 0) & 1) === 1;
     if (((m.netSt || 0) & 2) && (m.swing || 0) < 0.2) m.swing = 1;
-    m.stun = ((m.netSt || 0) & 4) ? 0.1 : 0;
+    m.stun = ((m.netSt || 0) & 4) ? 0.1 : 0; m.evade = ((m.netSt || 0) & 8) === 8;
   }
-  return { init, update, dano, cura, mover, meu };
+  return { dgMortos, init, update, dano, cura, mover, meu };
 })();

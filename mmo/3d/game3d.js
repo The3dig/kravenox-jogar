@@ -1587,6 +1587,7 @@ function applyRhythm(r) {
 
 // ---------------------------------------------------------------- combate
 function dmgMob(m, base, crit, magic, color) {
+  if (m.evade) { if ((m.imuneT || 0) < time) { m.imuneT = time + 0.6; floater(m.x, groundY(m.x, m.z) + (m.model.h || 2) + 0.4, m.z, 'IMUNE', 'miss'); } return 0; }   // chefe voltando para casa
   if (m.dead) return 0;
   if (m.isPeer) return PvP.hit(m, base, crit);
   if (m.invul) { floater(m.x, groundY(m.x, m.z) + 1, m.z, 'Imune', 'miss'); return 0; }      // Verme debaixo da terra
@@ -1623,10 +1624,17 @@ function killMob(m, o = {}) {
   else if (m.model.m3) corpses.push({ g: m.model.g, m3: m.model.body, t: 1.0 });
   else scene.remove(m.model.g);
   if (o.semPremio) return;                                              // morreu na mão de outro jogador
-  if (o.leech) {                                                        // 🍼 carona do grupo: só XP (sem missão, item nem bestiário), no máximo 0,8% de um nível por bicho
-    const xp = Math.max(1, Math.round(Math.min(m.d.xp * 0.6, xpNeed(P.lv) * 0.008) * (1 + gBon('xp'))));
-    if (!P.leechAviso2) { P.leechAviso2 = 1; log('🍼 <b>Carona no grupo:</b> quando alguém bem mais forte do seu grupo mata perto de você, você ganha um pouco de XP (até 0,8% de um nível por bicho). Missões e itens só valem caçando você mesmo!', 'gold'); }
-    log(`🍼 +${xp} XP de carona${o.de ? ` (${o.de} derrotou ${m.d.name})` : ''}`, 'xp'); gainXp(xp); return;
+  if (o.leech) {                                                        // 🍼 carona do grupo (leech): proporcional à diferença de nível
+    // quanto mais abaixo de quem matou, mais rápido sobe (para encostar), mas sem virar elevador:
+    // 11 níveis abaixo: até 0,45% de um nível por bicho · 20 abaixo: 0,9% · 40 abaixo: 1,9% · 60+ abaixo: 2,9% (teto 3%)
+    const gap = Math.max(11, (o.lvK || P.lv + 11) - P.lv), pct = Math.min(0.03, 0.004 + (gap - 10) * 0.0005);
+    const xp = Math.max(1, Math.round(Math.min(m.d.xp * 0.6, xpNeed(P.lv) * pct) * (1 + gBon('xp'))));
+    if (!P.leechAviso3) { P.leechAviso3 = 1; log('🍼 <b>Carona no grupo:</b> quando alguém bem mais forte do seu grupo mata <b>perto</b> de você, você ganha XP: quanto maior a diferença de nível, mais você ganha. E o bicho <b>conta nas suas missões</b> e no bestiário, mas só se você estiver lá junto, no mapa. Itens e coroas só para quem mata.', 'gold'); }
+    log(`🍼 +${xp} XP de carona${o.de ? ` (${o.de} derrotou ${m.d.name})` : ''}`, 'xp');
+    P.kills = (P.kills || 0) + 1; if (typeof Tarefas !== 'undefined') Tarefas.evento('mata');
+    if (typeof Vida !== 'undefined') Vida.onKill(m); if (typeof Quests !== 'undefined') Quests.onKill(m); if (typeof Evo !== 'undefined') Evo.onKill(m); if (typeof Desafios !== 'undefined') Desafios.onKill(m);
+    const q = QUESTS[P.quest]; if (q && q.mob === m.type && P.qcount < q.n) { P.qcount++; if (P.qcount === q.n) log(`📜 Missão concluída! Volte à <b>Mestra Odete</b>.`, 'gold'); }
+    gainXp(xp); return;
   }
   if (!o.ajuda || o.ajuda >= 0.25 || o.grupo) { P.kills = (P.kills || 0) + 1; if (typeof Trajes !== 'undefined') Trajes.kill(); }
   if (m.castelo && typeof Castelo !== 'undefined') Castelo.onKill(m);
@@ -2209,7 +2217,7 @@ function updatePlayer(dt) {
     P.deadT -= dt;
     if (P.deadT <= 0) {
       P.dead = false; P.hp = Math.round(stats.maxHp() * 0.5); P.sp = Math.round(stats.maxSp() * 0.5);
-      const h = P.voltaArena && typeof Arena !== 'undefined' ? Arena.volta() : homePos();
+      const h = P.voltaCastelo && typeof Castelo !== 'undefined' ? Castelo.volta() : P.voltaArena && typeof Arena !== 'undefined' ? Arena.volta() : homePos(); if (P.voltaCastelo) { P.voltaCastelo = false; P.hp = stats.maxHp(); P.sp = stats.maxSp(); }
       P.x = h.x; P.z = h.z; P.y = groundY(P.x, P.z);
     }
     return;
@@ -2372,7 +2380,7 @@ function updateMob(m, dt) {
   else if (m.stun > 0) m.stun -= dt;
   else {
     const dP = Math.hypot(m.x - P.x, m.z - P.z);
-    if (m.state !== 'chase' && m.d.aggro && dP < m.d.aggro && !P.dead) m.state = 'chase';
+    if (m.state !== 'chase' && m.state !== 'return' && m.d.aggro && dP < m.d.aggro && !P.dead) m.state = 'chase';   // voltando para casa não se distrai
     const reach = m.d.boss ? 4.2 : 1.6;
     if (m.state === 'chase') {
       // longe demais de casa: volta (e se cura um pouco). Na Torre o salão é fechado: ninguém foge, ninguém se cura.
@@ -2389,8 +2397,14 @@ function updateMob(m, dt) {
       }
     } else if (m.state === 'return') {
       m.retT = (m.retT || 0) + dt;
-      if (Math.hypot(m.x - m.sx, m.z - m.sz) < 1 || m.retT > 12) { m.state = 'idle'; m.retT = 0; }     // preso no caminho: desiste de voltar
-      else stepMob(m, m.sx, m.sz, m.d.speed * 1.6, dt);
+      // chefe voltando para casa fica IMUNE e se cura (antes parava no limite e quem batia de longe matava "de boa": bug do Rivas no deserto)
+      const chefe = m.d.boss || m.d.field || m.d.mini; m.evade = !!chefe;
+      if (chefe) { m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.08 * dt); if (m.nid && typeof Partilha !== 'undefined' && (m.curaT = (m.curaT || 0) - dt) <= 0) { m.curaT = 0.5; Partilha.cura(m); } }
+      if (Math.hypot(m.x - m.sx, m.z - m.sz) < 1 || m.retT > 8) {                                   // chegou (ou travou no caminho: volta direto para casa)
+        if (m.retT > 8) { m.x = m.tx = m.sx; m.z = m.tz = m.sz; }
+        m.state = 'idle'; m.retT = 0; m.evade = false; if (chefe) { m.hp = m.maxHp; if (m.nid && typeof Partilha !== 'undefined') Partilha.cura(m); }
+      }
+      else stepMob(m, m.sx, m.sz, m.d.speed * 2.2, dt);
     } else {
       m.timer -= dt;
       if (m.timer <= 0) { m.timer = rand(2, 5); const a = rand(0, TAU), r = rand(1, 5); m.tx = m.sx + Math.cos(a) * r; m.tz = m.sz + Math.sin(a) * r; }
@@ -2509,7 +2523,8 @@ function updateCamera(dt) {
     const d = camS.dist * k / 16, x = camS.x + dx * d, z = camS.z + dz * d, y = camS.y + dy * d;
     const l = OB.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL));
     if (l && y < groundY(x, z) + 5 && l.some(o => o.r > 2 && Math.hypot(x - o.x, z - o.z) < o.r + 0.8)) { want = Math.max(2.2, camS.dist * (k - 1) / 16); break; }
-    if (inTower(camS.z)) { const fc = floorAt(x, z); if (!fc || Math.hypot(x - fc.x, z - fc.z) > fc.r - (fc.casa ? 1 : 0.4)) { want = Math.max(1.4, camS.dist * (k - 1) / 16); break; } }   // só a parede da Torre aproxima a câmera (corrimão e pilar não)
+    if (inTower(camS.z)) { const fc = floorAt(x, z); if (!fc || Math.hypot(x - fc.x, z - fc.z) > fc.r - (fc.casa ? 1 : 0.4)) { want = Math.max(1.4, camS.dist * (k - 1) / 16); break; } }
+    if (typeof Castelo !== 'undefined' && Castelo.camFora(x, z, y)) { want = Math.max(1.6, camS.dist * (k - 1) / 16); break; }   // 🏰 dentro do castelo a câmera não atravessa parede nem teto   // só a parede da Torre aproxima a câmera (corrimão e pilar não)
   }
   camS.cur = lerp(camS.cur ?? want, want, Math.min(1, dt * (want < (camS.cur ?? want) ? 20 : 2.5)));
   const cx = camS.x + dx * camS.cur, cz = camS.z + dz * camS.cur;
@@ -3115,13 +3130,22 @@ function scaleSkill(s, L) {
 }
 function reqMet(i) { const s = SKILLS[i]; return tierOk(s) && (SK_REQ[i] || []).every(([j, lv]) => (P.skillLv[SKILLS[j].id] || 0) >= lv) && (!s.pre || (P.skillLv[s.pre[0]] || 0) >= s.pre[1]); }
 function canLearn(i) { const s = SKILLS[i]; return P.skillPts > 0 && (P.skillLv[s.id] || 0) < SK_MAX && P.lv >= s.lv && reqMet(i); }
+// ✅ pontos de habilidade só valem depois de CONFIRMAR (pedido do Rone: ele colocou errado e teve que resetar).
+// Enquanto não confirma, dá para desfazer tudo de uma vez.
+let skRasc = null, skSel = 0;
 function learn(i) {
   if (!canLearn(i)) return;
-  const s = SKILLS[i]; P.skillLv[s.id] = (P.skillLv[s.id] || 0) + 1; P.skillPts--;
-  Audio8.sfx(P.skillLv[s.id] === 1 ? 'buff' : 'click');
-  if (P.skillLv[s.id] === 1) { log(`✨ Você aprendeu <b>${s.icon} ${s.name}</b>!`, 'gold'); if (s.type !== 'passiva' && !ensureBar().includes('s:' + s.id) && ensureBar().includes(null)) ensureBar()[ensureBar().indexOf(null)] = 's:' + s.id; }
+  if (!skRasc) skRasc = { lv: { ...P.skillLv }, pts: P.skillPts };
+  const s = SKILLS[i]; P.skillLv[s.id] = (P.skillLv[s.id] || 0) + 1; P.skillPts--; skSel = i;
+  Audio8.sfx('click'); renderSkills();
+}
+function skConfirmar() {
+  if (!skRasc) return;
+  for (const s of SKILLS) if (!skRasc.lv[s.id] && P.skillLv[s.id]) { log(`✨ Você aprendeu <b>${s.icon} ${s.name}</b>!`, 'gold'); if (s.type !== 'passiva' && !ensureBar().includes('s:' + s.id) && ensureBar().includes(null)) ensureBar()[ensureBar().indexOf(null)] = 's:' + s.id; }
+  const n = skRasc.pts - P.skillPts; skRasc = null; Audio8.sfx('buff'); log(`✅ ${n} ponto${n > 1 ? 's' : ''} de habilidade confirmado${n > 1 ? 's' : ''}.`, 'sys');
   buildHotbar(); renderSkills(); save();
 }
+function skDesfazer() { if (!skRasc) return; P.skillLv = skRasc.lv; P.skillPts = skRasc.pts; skRasc = null; Audio8.sfx('miss'); renderSkills(); }
 const PAS_N = { atk: ['ataque', '%'], matk: ['magia', '%'], aspd: ['vel. de golpe', '%'], speed: ['velocidade', '%'], hp: ['HP', '%'], sp: ['SP', '%'], def: ['defesa', ''], crit: ['crítico', '%'], flee: ['esquiva', '%'], regen: ['HP por segundo', '%'], roubo: ['roubo de vida', '%'], cura: ['cura', '%'] };
 function describe(s, L) {
   if (s.type === 'passiva') return Object.entries(s.pas).map(([k, v]) => { const [n, u] = PAS_N[k] || [k, '']; const t = v * Math.max(1, L); return `+${u ? (Math.round(t * 1000) / 10).toString().replace('.', ',') + '%' : Math.round(t * 10) / 10} de ${n}`; }).join(' · ');
@@ -3144,17 +3168,25 @@ function renderSkills() {
     if (s.pre && (P.skillLv[s.pre[0]] || 0) < s.pre[1]) { const ps = SKILLS.find(o => o.id === s.pre[0]); if (ps) reqs.push(`${ps.name} Nv ${s.pre[1]}`); }
     if (!tierOk(s)) reqs.push(`${s.tier === 1 ? '2ª' : '3ª'} classe (${TIERS[P.cls][s.tier]})`);
     for (const [j, lv] of (SK_REQ[i] || [])) if ((P.skillLv[SKILLS[j].id] || 0) < lv) reqs.push(`${SKILLS[j].name} Nv ${lv}`);
-    return `<div class="snode ${cls} ${L ? 'learned' : ''} ${reqs.length && !L ? 'locked' : ''}">
+    const novo = skRasc && L > (skRasc.lv[s.id] || 0);
+    return `<div class="snode ${cls} ${L ? 'learned' : ''} ${reqs.length && !L ? 'locked' : ''} ${i === skSel ? 'sel' : ''} ${novo ? 'novo' : ''}" data-sel="${i}">
       <span class="si2">${s.icon}</span>
-      <div class="sb"><div class="sn">${s.name}${s.type === 'passiva' ? ' <small style="color:#8affb0">· passiva</small>' : ''}</div><div class="sl2">Nível ${L}/${SK_MAX}</div>
+      <div class="sb"><div class="sn">${s.name}${s.type === 'passiva' ? ' <small style="color:#8affb0">· passiva</small>' : ''}</div><div class="sl2">Nv ${L}/${SK_MAX}${novo ? ` <b class="sk-mais">+${L - (skRasc.lv[s.id] || 0)}</b>` : ''}</div>
       <div class="sd">${s.desc}<br>${L ? 'Atual: ' + describe(s, L) : 'Nv 1: ' + describe(s, 1)}${L && L < SK_MAX ? '<br>Próximo: ' + describe(s, L + 1) : ''}</div>
       ${reqs.length ? `<div class="req">Requer: ${reqs.join(', ')}</div>` : ''}</div>
       <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button>${L && tierOk(s) && s.type !== 'passiva' ? `<button class="spin" data-pin="${i}" title="Pôr/tirar da barra de atalhos">${naBarra('s:' + s.id) ? '✖' : '📌'}</button>` : ''}</div>`;
   };
   // as habilidades novas (passivas e ativas) de cada classe, embaixo das antigas
   const extras = t => { const l = SKILLS.map((s, i) => [s, i]).filter(([s, i]) => i >= 8 && (s.tier || 0) === t); return l.length ? `<div class="stree">${l.map(([s, i]) => node(i, s.type === 'passiva' ? 'pas' : '')).join('')}</div>` : ''; };
+  // detalhe da habilidade tocada (as caixas ficam pequenas para caber o caminho todo)
+  const det = (() => { const i = Math.min(skSel, SKILLS.length - 1), s = SKILLS[i]; if (!s) return ''; const L = P.skillLv[s.id] || 0, d = document.createElement('div'); d.innerHTML = node(i, ''); const rq = d.querySelector('.req');
+    return `<div class="sk-det"><span class="si2">${s.icon}</span><div><b>${s.name}</b>${s.type === 'passiva' ? ' <small style="color:#8affb0">· passiva</small>' : ''} <small>· Nível ${L}/${SK_MAX}</small><div class="sd">${s.desc}<br>${L ? 'Atual: ' + describe(s, L) : 'Nv 1: ' + describe(s, 1)}${L && L < SK_MAX ? '<br>Próximo: ' + describe(s, L + 1) : ''}</div>${rq ? rq.outerHTML : ''}</div>
+      <button data-learn="${i}" ${canLearn(i) ? '' : 'disabled'}>+</button>${L && tierOk(s) && s.type !== 'passiva' ? `<button class="spin" data-pin="${i}" title="Pôr/tirar da barra de atalhos">${naBarra('s:' + s.id) ? '✖' : '📌'}</button>` : ''}</div>`; })();
+  const usados = skRasc ? skRasc.pts - P.skillPts : 0;
   const html = `<div class="wt">📜 Habilidades — ${className(P.cls, P.gender)} <button class="x" data-close>×</button></div>
-    <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(1 por nível · não dá para pegar tudo: escolha o seu caminho)</small> ${botaoReset('hab')}</div>
+    <div class="spts">Pontos de habilidade: <b style="color:#f2c86a">${P.skillPts}</b> <small>(1 por nível · toque numa habilidade para ver o que ela faz)</small> ${skRasc ? '' : botaoReset('hab')}</div>
+    ${skRasc ? `<div class="sk-conf"><span>Você colocou <b>${usados}</b> ponto${usados > 1 ? 's' : ''}. Confira o caminho:</span><button data-skok>✅ Confirmar</button><button data-skvolta>↩️ Desfazer</button></div>` : ''}
+    ${det}
     <div class="stier">1ª classe — <b>${TIERS[P.cls] ? TIERS[P.cls][0] : ''}</b></div>
     <div class="stree">${node(0, 'root')}<div class="sarrow">▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼</div>${node(1, '')}${node(2, '')}<div class="sarrow">▼</div>${node(3, 'ult')}</div>${extras(0)}
     ${SKILLS.length > 4 ? `<div class="stier ${(P.tier || 0) >= 1 ? '' : 'off'}">2ª classe — <b>${TIERS[P.cls][1]}</b> ${(P.tier || 0) >= 1 ? '✅' : '<small>🔒 provação a partir do nível 20 (fale com o Vigia Morvan, na Cidadela)</small>'}</div>
@@ -3166,10 +3198,17 @@ function renderSkills() {
 $('skillwin').addEventListener('click', e => {
   if (e.target.closest('[data-close]')) return toggleSkills();
   if (e.target.closest('[data-reset]')) return pedirReset('hab');
-  const b = e.target.closest('[data-learn]'); if (b) learn(+b.dataset.learn);
+  if (e.target.closest('[data-skok]')) return skConfirmar();
+  if (e.target.closest('[data-skvolta]')) return skDesfazer();
+  const b = e.target.closest('[data-learn]'); if (b) { learn(+b.dataset.learn); return; }
+  const sn = e.target.closest('[data-sel]'); if (sn && !e.target.closest('button')) { skSel = +sn.dataset.sel; Audio8.sfx('click'); renderSkills(); return; }
   const pn = e.target.closest('[data-pin]'); if (pn) { const s = SKILLS[+pn.dataset.pin], r = barToggle('s:' + s.id, () => renderSkills()); Audio8.sfx('click'); if (r === true) log(`📌 <b>${s.name}</b> foi para a barra de atalhos.`, 'sys'); renderSkills(); }
 });
-function toggleSkills() { $('statwin').classList.add('hidden'); $('skillwin').classList.toggle('hidden'); renderSkills(); }
+function toggleSkills() {
+  // fechando com pontos sem confirmar: pergunta (não perde nada sem querer)
+  if (skRasc && !$('skillwin').classList.contains('hidden')) { const n = skRasc.pts - P.skillPts; dialog('📜 Pontos de habilidade', `Você colocou <b>${n}</b> ponto${n > 1 ? 's' : ''} e ainda não confirmou.`, [{ label: '✅ Confirmar', fn: () => { skConfirmar(); $('skillwin').classList.add('hidden'); } }, { label: '↩️ Desfazer', fn: () => { skDesfazer(); $('skillwin').classList.add('hidden'); } }, { label: 'Continuar escolhendo' }]); return; }
+  $('statwin').classList.add('hidden'); $('skillwin').classList.toggle('hidden'); renderSkills();
+}
 
 // ---------------------------------------------------------------- diálogos
 function dialog(title, text, opts) {
@@ -3291,7 +3330,19 @@ addEventListener('pointerup', e => {
   const d = drag; drag = null;
   // PC: clique rápido (sem arrastar) = clicar no mundo, como no Ragnarok. Arrastar continua girando a câmera.
   if (d.mouse && d.b === 0 && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 7 && performance.now() - d.t0 < 450) cliqueMundo(e.clientX, e.clientY);
+  // celular: toque rápido em cima de outro jogador (no boneco ou no nome) abre o menu dele (convidar para grupo/guilda, seguir...)
+  else if (!d.mouse && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 14 && performance.now() - d.t0 < 400) { const pr = jogadorNoToque(e.clientX, e.clientY); if (pr && typeof Jogadores !== 'undefined') { Audio8.sfx('click'); Jogadores.menu(pr); } }
 });
+// outro jogador debaixo do dedo/cursor (o corpo ou o nome em cima da cabeça)
+function jogadorNoToque(cx, cy) {
+  if (typeof Net === 'undefined' || !Net.peers || dialogOpen) return null;
+  let best = null, bd = 48;
+  for (const r of Net.peers()) {
+    if (!r.n || typeof r.x !== 'number') continue; const y0 = (r.s && r.s.y) || groundY(r.x, r.z);
+    for (const h of [0.9, 2.3]) { const sp = toScreen(r.x, y0 + h, r.z); if (!sp.vis) continue; const dd = Math.hypot(sp.x - cx, sp.y - cy); if (dd < bd) { bd = dd; best = r.peer; } }
+  }
+  return best;
+}
 // o que está debaixo do mouse: monstro (o mais perto do cursor na tela) ou NPC
 function soMouse(cx, cy) {
   let best = null, bd = 46;
@@ -3302,6 +3353,7 @@ function soMouse(cx, cy) {
 const _ray = new THREE.Raycaster(), _ndc = new THREE.Vector2(), _plano = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), _pt = new THREE.Vector3();
 function cliqueMundo(cx, cy) {
   if (P.dead || dialogOpen) return;
+  { const pr = jogadorNoToque(cx, cy); if (pr && typeof Jogadores !== 'undefined') { Jogadores.menu(pr); return; } }   // clicou em outro jogador: menu dele
   const alvo = soMouse(cx, cy);
   if (alvo && alvo.tipo === 'mob') { if (AUTO.on) autoStop(''); P.caca = alvo.o; P.face = Math.atan2(alvo.o.x - P.x, alvo.o.z - P.z); return; }        // clicou no monstro: vai até ele e ataca até cair
   if (alvo && alvo.tipo === 'npc') { const n = alvo.o; P.caca = null; if (Math.hypot(n.x - P.x, n.z - P.z) < 3.2) talk(n); else { P.qGo = { x: n.x, z: n.z, name: n.name }; P.falarCom = n; if (typeof autoStart === 'function') autoStart(); } return; }
@@ -3461,7 +3513,7 @@ function ajustarChat() {
   const cb = $('chatbox'), vv = window.visualViewport;
   const aberto = !cb.classList.contains('hidden') && document.activeElement === $('chat-in') && vv && vv.height < innerHeight * 0.8;
   cb.classList.toggle('teclado', !!aberto);
-  if (aberto) { cb.style.top = (vv.offsetTop + 4) + 'px'; cb.style.height = Math.max(90, vv.height - 8) + 'px'; const h = $('chat-hist'); h.scrollTop = h.scrollHeight; }
+  if (aberto) { cb.style.top = (vv.offsetTop + 4) + 'px'; cb.style.height = Math.max(90, Math.min(vv.height - 8, 320)) + 'px'; const h = $('chat-hist'); h.scrollTop = h.scrollHeight; }
   else { cb.style.top = ''; cb.style.height = ''; }
 }
 if (window.visualViewport) { visualViewport.addEventListener('resize', ajustarChat); visualViewport.addEventListener('scroll', ajustarChat); }
