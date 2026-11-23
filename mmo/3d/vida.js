@@ -29,6 +29,11 @@ const Vida = (() => {
     presa: ['Presa Curva', '🦷', 38, 0, 'mat'], escama: ['Escama Encouraçada', '🪨', 44, 0, 'mat'], nucleo_ferro: ['Núcleo de Ferro', '⚙️', 600, 0, 'mat'],
     estilhaco: ['Estilhaço do Cisma', '🔮', 52, 0, 'mat'], po_estelar: ['Pó Estelar', '🌟', 650, 0, 'mat'],
     po_forja: ['Pó de Forja', '⚙️', 20, 0, 'mat'],
+    // refino (caem só na Mina da Forja): minério para arma, anéis e colar; têmpera para capacete, armadura, luvas e botas
+    minerio: ['Minério Rúnico', '🔶', 40, 0, 'mat'], tempera: ['Pedra de Têmpera', '🔷', 40, 0, 'mat'],
+    selo_forja: ['Selo da Forja Eterna', '🔰', 2500, 0, 'mat'],
+    // Despertar ★ (só caem na Torre, no Abismo e do Kravenox): mesmo quem já tem o melhor equipamento sempre tem o que buscar
+    frag_cisma: ['Fragmento do Cisma', '🔺', 300, 0, 'mat'], nucleo_abismo: ['Núcleo do Abismo', '🌑', 1500, 0, 'mat'], lagrima_soberano: ['Lágrima do Soberano', '🩸', 6000, 0, 'mat'],
     presa_verme: ['Presa do Abismo', '🦷', 2500, 0, 'mat'], quitina_colossal: ['Quitina Colossal', '🪨', 9000, 0, 'mat'],
     placa_vazio: ['Placa do Vazio', '⬛', 70, 0, 'mat'], olho_vazio: ['Olho do Vazio', '🟣', 900, 0, 'mat'],
     // Valdora
@@ -121,6 +126,12 @@ const Vida = (() => {
     lamina_verme: ['Lâmina de Dente Colossal', '🦷', 'arma', 0, { pow: 125, crit: 0.1, spd: 0.06, hp: 250 }, 4],
     couraca_verme: ['Couraça de Quitina Abissal', '🪨', 'armadura', 0, { def: 100, hp: 1350, pow: 20 }, 4],
     anel_ninho: ['Anel do Ninho', '💍', 'anel', 0, { pow: 42, hp: 480, crit: 0.07, def: 24 }, 4],
+    // PRIMORDIAL: só caem do Verme Colossal (o chefe mais impossível do jogo). As melhores peças que existem, de longe.
+    presa_primordial: ['Presa Primordial do Verme', '🦷', 'arma', 0, { pow: 185, crit: 0.17, spd: 0.07, hp: 450 }, 5, 'primordial'],
+    elmo_primordial: ['Bocarra Primordial', '🪖', 'capacete', 0, { def: 74, hp: 1000, pow: 52, crit: 0.08 }, 5, 'primordial'],
+    carapaca_primordial: ['Carapaça Primordial', '🪨', 'armadura', 0, { def: 150, hp: 2000, pow: 44, crit: 0.06 }, 5, 'primordial'],
+    anel_primordial: ['Anel do Ninho Primordial', '💍', 'anel', 0, { pow: 62, hp: 680, crit: 0.09, def: 34 }, 5, 'primordial'],
+    coracao_verme: ['Coração do Verme Colossal', '❤️‍🔥', 'colar', 0, { pow: 58, crit: 0.15, hp: 850, sp: 360, spd: 0.06 }, 5, 'primordial'],
     // Vale dos Mortos (Nv 55–72): o conjunto da névoa e o cajado do Primeiro Guardião (lendários)
     capuz_vale: ['Capuz do Vale dos Mortos', '🧕', 'capacete', 0, { def: 22, hp: 240 }, 3, 'vale'],
     manto_vale: ['Manto da Névoa', '🌫️', 'armadura', 0, { def: 46, hp: 460 }, 3, 'vale'],
@@ -139,7 +150,7 @@ const Vida = (() => {
     manto_soberano: ['Manto do Soberano Adormecido', '🦇', 'armadura', 0, { def: 105, hp: 1400, pow: 30, crit: 0.05 }, 4, 'soberano'],
     olho_kravenox: ['Olho de Kravenox', '🔴', 'colar', 0, { pow: 40, crit: 0.12, hp: 600, sp: 300, spd: 0.05 }, 4, 'soberano'],
   };
-  const RARITY = [{ n: 'Comum', c: '#e8e4dc', hex: 0xe8e4dc }, { n: 'Raro', c: '#6ab0ff', hex: 0x4a90ff }, { n: 'Épico', c: '#c27aff', hex: 0xa050ff }, { n: 'Lendário', c: '#ffb640', hex: 0xffa020 }, { n: 'Mítico', c: '#ff4a4a', hex: 0xff2020 }];
+  const RARITY = [{ n: 'Comum', c: '#e8e4dc', hex: 0xe8e4dc }, { n: 'Raro', c: '#6ab0ff', hex: 0x4a90ff }, { n: 'Épico', c: '#c27aff', hex: 0xa050ff }, { n: 'Lendário', c: '#ffb640', hex: 0xffa020 }, { n: 'Mítico', c: '#ff4a4a', hex: 0xff2020 }, { n: 'Primordial', c: '#3dffd2', hex: 0x20ffc8 }];   // Primordial: só do Verme Colossal, acima de tudo
   const SETS = {
     couro: { name: 'Conjunto de Couro', bonus: { hp: 60, def: 3 } },
     areias: { name: 'Conjunto das Areias', bonus: { crit: 0.05, spd: 0.05, hp: 80 } },
@@ -152,8 +163,9 @@ const Vida = (() => {
     // uma peça por amigo do Rone (desafios.js); bônus em níveis: 2, 4 e as 8 peças (o completo é muito mais forte)
     amigos: { name: 'Conjunto da Irmandade Eterna', pecas: 8, tiers: [[2, { pow: 15, def: 15, hp: 250 }], [4, { pow: 40, def: 35, hp: 600, crit: 0.05 }], [8, { pow: 120, def: 90, hp: 1800, crit: 0.15, spd: 0.15, sp: 300 }]] },
     soberano: { name: 'Conjunto do Soberano', bonus: { pow: 60, def: 50, hp: 800, crit: 0.12, spd: 0.1 } },
+    primordial: { name: 'Conjunto Primordial', pecas: 5, tiers: [[3, { pow: 55, def: 45, hp: 750, crit: 0.05 }], [5, { pow: 150, def: 120, hp: 2400, crit: 0.16, spd: 0.12, sp: 300 }]] },
   };
-  for (const [id, [name, ic, slot, price, mods, rar, set]] of Object.entries(GEAR)) ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar, set, price: price || 0, sell: Math.round((price || [60, 220, 700, 2000, 15000][rar]) / 2) };
+  for (const [id, [name, ic, slot, price, mods, rar, set]] of Object.entries(GEAR)) ITEMS[id] = { name, ic, kind: 'equip', slot, mods, rar, set, price: price || 0, sell: Math.round((price || [60, 220, 700, 2000, 15000, 60000][rar]) / 2) };
   const SLOTS = { arma: 'Arma', capacete: 'Capacete', armadura: 'Armadura', luvas: 'Luvas', botas: 'Botas', anel1: 'Anel', anel2: 'Anel', colar: 'Colar' };
   const MODN = { pow: 'Dano', def: 'Defesa', hp: 'HP', sp: 'SP', crit: 'Crítico', spd: 'Velocidade' };
   const modTxt = m => Object.entries(m || {}).map(([k, v]) => `${MODN[k]} +${['crit', 'spd'].includes(k) ? Math.round(v * 100) + '%' : v}`).join(' · ');
@@ -277,10 +289,23 @@ const Vida = (() => {
   const nivTab = t => { const D = MOBDEF[t] || {}; return D.boss || D.mini || D.field ? NIV_CHEFE : NIV_COMUM; };
   function nivelCaca(t) { const n = (P.bestiary || {})[t] || 0, T = nivTab(t); let lv = 0; while (lv < 10 && n >= T[lv]) lv++; return { lv, n, prox: lv < 10 ? T[lv] : null, ant: lv ? T[lv - 1] : 0 }; }
   const bonusCarta = t => 1 + nivelCaca(t).lv * 0.1;
-  // refino (+1 a +7): cada nível soma 10% do dano/defesa/HP da peça; falhar só volta um nível, nunca quebra
-  const REF = [[100, 1], [200, 1], [400, 1], [800, 1], [1500, 0.6], [2500, 0.4], [4000, 0.25]];
+  // refino (+1 a +15): cada nível soma 10% do dano/defesa/HP da peça. [coroas, chance, material]
+  // material: 🔶 Minério Rúnico (arma, anéis, colar) ou 🔷 Pedra de Têmpera (capacete, armadura, luvas, botas), da Mina da Forja.
+  // Até o +10, falhar só volta um nível (do +5 em diante). Do +11 ao +15, falhar QUEBRA a peça (ela some),
+  // a não ser que use o 🔰 Selo da Forja Eterna (cai do Capataz da Mina): aí ela só volta um nível.
+  const REF = [[100, 1, 1], [200, 1, 1], [400, 1, 2], [800, 1, 2], [1500, 0.8, 3], [2500, 0.7, 4], [4000, 0.6, 5], [6000, 0.5, 6], [9000, 0.4, 8], [13000, 0.35, 10],
+    [20000, 0.3, 12], [30000, 0.25, 15], [45000, 0.2, 18], [65000, 0.15, 22], [90000, 0.1, 25]];
+  const REF_MAX = REF.length, REF_QUEBRA = 10;
+  const matRef = id => ['arma', 'anel', 'colar'].includes(ITEMS[id] && ITEMS[id].slot) ? 'minerio' : 'tempera';
   const refOf = id => (P.refine && P.refine[id]) || 0;
-  const nameOf = id => (refOf(id) ? '+' + refOf(id) + ' ' : '') + it(id).name;
+  const despOf = id => (P.desp && P.desp[id]) || 0;
+  const nameOf = id => (refOf(id) ? '+' + refOf(id) + ' ' : '') + it(id).name + (despOf(id) ? ' ' + '★'.repeat(despOf(id)) : '');
+  // ---------------- Despertar ★ (1 a 10): cada estrela soma 8% de TODOS os atributos da peça (no ★10, +80%).
+  // Materiais só da Torre (🔺), do Abismo (🌑) e do Kravenox (🩸): a Torre, o Abismo e o chefe semanal sempre valem a pena.
+  // [fragmentos, núcleos, lágrimas, coroas, chance]; se falhar, perde os materiais mas a peça fica como estava (não quebra).
+  const DESP = [[5, 0, 0, 20000, 1], [10, 0, 0, 40000, 1], [15, 0, 0, 70000, 0.9], [20, 3, 0, 100000, 0.8], [25, 6, 0, 150000, 0.7],
+    [30, 10, 0, 220000, 0.6], [35, 12, 1, 300000, 0.55], [40, 15, 2, 400000, 0.5], [50, 20, 3, 550000, 0.45], [60, 25, 5, 800000, 0.4]];
+  const DESP_MAX = DESP.length;
 
   // ---------------------------------------------------------------- Sítio
   const CROPS = {
@@ -686,7 +711,8 @@ const Vida = (() => {
     dialog('⚒️ Forjar', `Traga os materiais que os monstros soltam e eu faço a peça. <small>(✅ = você já tem tudo)</small><br><small>Coroas: <b>${P.zeny} cr</b></small>`, opts);
   }
   // desmontar: cada peça vira Pó de Forja (mais pela raridade e pelo refino); com o pó o Doran faz outra peça
-  const poDe = id => { const I = ITEMS[id]; return [2, 5, 12, 30, 80][I.rar || 0] + refOf(id) * 5; };
+  const poBase = id => [2, 5, 12, 30, 80, 200][ITEMS[id].rar || 0];                        // cópias sem refino (desmontar todos)
+  const poDe = id => { const I = ITEMS[id]; return [2, 5, 12, 30, 80, 200][I.rar || 0] + refOf(id) * 5; };
   function refazer() {
     const pool = r => Object.keys(ITEMS).filter(k => { const I = ITEMS[k]; return I.kind === 'equip' && I.rar === r && !I.desafio && !I.preso && !['soberano', 'amigos'].includes(I.set) && !['lamina_verme', 'couraca_verme', 'anel_ninho'].includes(k); });
     const OP = [[1, 'rara', 40, 5000], [2, 'épica', 120, 20000], [3, 'lendária', 400, 60000]];
@@ -701,6 +727,10 @@ const Vida = (() => {
   function smith(eu) {
     dialog('💬 Ferreiro Doran', `${eu ? `Ah, <b>${eu}</b>. ` : ''}O fogo desta forja nunca apagou, nem no dia do Cisma. Trago o aço de volta à vida: refino suas peças e forjo novas com o que você trouxer das caçadas.`, [
       { label: '🔨 Refinar equipamento', fn: () => { refine(); return true; } },
+      { label: '✨ Despertar equipamento (★1 a ★10)', fn: () => { despertar(); return true; } },
+      { label: `⛏️ Mina da Forja: sozinho · restam ${typeof Minas !== 'undefined' ? Minas.restam() : 0} de 5 esta semana`, fn: () => { if (typeof Minas !== 'undefined') Minas.entrar(); } },
+      { label: typeof Minas !== 'undefined' && Minas.corridaDoGrupo() ? `👥 Descer à Mina com o seu grupo (${Minas.corridaDoGrupo().nome} já começou)` : '👥 Mina da Forja em grupo (2 a 6: mais difícil, saque bem maior)', fn: () => { if (typeof Minas !== 'undefined') Minas.entrar('grupo'); } },
+      { label: '🏆 Ranking da Mina da Forja', fn: () => { Ranking.mostrar('minas', () => smith(eu)); return true; } },
       { label: '⚒️ Forjar equipamento', fn: () => { forge(); return true; } },
       { label: '♻️ Refazer com Pó de Forja (peça nova sorteada)', fn: () => { refazer(); return true; } },
       { label: 'Até mais' }]);
@@ -720,25 +750,82 @@ const Vida = (() => {
     box(0.9, 0.22, 0.35, metal, 2.2, 0.71, 1.2); box(0.35, 0.14, 0.22, metal, 2.75, 0.75, 1.2);   // bigorna
     addOb(fx, fz, 1.6); addOb(fx + 2.2, fz + 1.2, 0.6);
   }
+  // ---------------- refino: o Doran martela a peça na bigorna (animação) e o resultado aparece no fim
+  let usarSelo = false;
   function refine() {
     P.refine = P.refine || {};
     const eq = Object.keys(SLOTS).map(sl => P.equip && P.equip[sl]).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
-    const opts = eq.map(id => {
+    const selos = P.inv.selo_forja || 0;
+    const opts = [];
+    if (eq.some(id => refOf(id) >= REF_QUEBRA && refOf(id) < REF_MAX)) opts.push({ label: usarSelo ? `🔰 Selo da Forja: LIGADO (tem ${selos}) — a peça não quebra` : `▫️ Selo da Forja: desligado (tem ${selos}) — toque para usar`, fn: () => { if (!usarSelo && !selos) { log('Você não tem 🔰 <b>Selo da Forja Eterna</b>. Ele cai do <b>Capataz da Mina</b>, no fim da Mina da Forja.', 'bad'); Audio8.sfx('miss'); } else usarSelo = !usarSelo; refine(); return true; } });
+    for (const id of eq) {
       const r = refOf(id);
-      if (r >= 7) return { label: `${it(id).ic} +7 ${it(id).name} — refino máximo`, fn: () => { refine(); return true; } };
-      const [z, ch] = REF[r], lasca = r >= 4;
-      return { label: `${it(id).ic} ${nameOf(id)} → +${r + 1} — ${z}z${lasca ? ' + 1 🛡️ Lasca' : ''} · ${Math.round(ch * 100)}%`, fn: () => {
+      if (r >= REF_MAX) { opts.push({ label: `${it(id).ic} +${r} ${it(id).name} — refino máximo`, fn: () => { refine(); return true; } }); continue; }
+      const [z, ch, n] = REF[r], mat = matRef(id), arrisca = r >= REF_QUEBRA;
+      const risco = arrisca ? (usarSelo ? ' · 🔰 protegida' : ' · ⚠️ se falhar, QUEBRA') : r >= 4 ? ' · se falhar, volta 1' : '';
+      opts.push({ label: `${it(id).ic} ${nameOf(id)} → +${r + 1} — ${n} ${it(mat).ic} + ${z.toLocaleString('pt-BR')} cr · ${Math.round(ch * 100)}%${risco}`, fn: () => {
         if (P.zeny < z) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); refine(); return true; }
-        if (lasca && !has('lasca')) { log('Falta 🛡️ <b>Lasca de Armadura</b> (cai das criaturas da Torre).', 'bad'); Audio8.sfx('miss'); refine(); return true; }
-        P.zeny -= z; if (lasca) add('lasca', -1);
-        Audio8.sfx('anvil');
-        if (Math.random() < ch) { P.refine[id] = r + 1; setTimeout(() => Audio8.sfx('level'), 600); burst(new THREE.Vector3(P.x, P.y + 1.4, P.z), 0xffd060, 30, 4, 0.9); log(`🔨 Sucesso! <b>${nameOf(id)}</b>.`, 'gold'); if (r + 1 >= 5) banner(`Refino +${r + 1}!`); }
-        else { P.refine[id] = Math.max(4, r - 1); Audio8.sfx('miss'); log(`🔨 O refino falhou... a peça voltou para +${P.refine[id]} (ela nunca quebra).`, 'bad'); }
-        refine(); return true; } };
-    });
-    if (!opts.length) opts.push({ label: 'Equipe uma peça para refinar.', fn: () => { refine(); return true; } });
+        if ((P.inv[mat] || 0) < n) { log(`Falta material: precisa de <b>${n} ${it(mat).ic} ${it(mat).name}</b> (você tem ${P.inv[mat] || 0}). Ele cai na <b>⛏️ Mina da Forja</b> (fale com o Doran para descer).`, 'bad'); Audio8.sfx('miss'); refine(); return true; }
+        const selo = arrisca && usarSelo && (P.inv.selo_forja || 0) > 0;
+        if (arrisca && !selo) {
+          dialog('⚠️ A peça pode QUEBRAR', `Do <b>+${REF_QUEBRA}</b> para cima, se o refino falhar a peça <b>QUEBRA e some para sempre</b>.<br>Chance de dar certo: <b>${Math.round(ch * 100)}%</b>.<br><small>Para não correr esse risco, use o 🔰 <b>Selo da Forja Eterna</b> (cai do Capataz da Mina): com ele, se falhar, a peça só volta um nível.</small>`, [
+            { label: `🔨 Arriscar mesmo assim (${it(id).name})`, fn: () => { martelar(id, r, z, ch, n, mat, false); return true; } },
+            { label: '← Voltar', fn: () => { refine(); return true; } }]);
+          return true;
+        }
+        martelar(id, r, z, ch, n, mat, selo); return true; } });
+    }
+    if (!eq.length) opts.push({ label: 'Equipe uma peça para refinar.', fn: () => { refine(); return true; } });
     opts.push({ label: '← Voltar', fn: () => { smith(); return true; } });
-    dialog('🔨 Refinar', `Até +4 sempre dá certo. Do +5 ao +7 pode falhar, mas a peça só perde um nível — <b>nunca quebra</b>. Cada + soma 10% de dano, defesa e HP da peça.<br><small>Coroas: <b>${P.zeny} cr</b> · Lascas: ${P.inv.lasca || 0}</small>`, opts);
+    dialog('🔨 Refinar (até +15)', `Até <b>+4</b> sempre dá certo. Do <b>+5 ao +10</b> pode falhar e a peça volta um nível. <b style="color:#ff7060">Do +11 ao +15, se falhar, a peça QUEBRA e some</b>, a não ser que você use o 🔰 <b>Selo da Forja Eterna</b>. Cada + soma 10% de dano, defesa e HP da peça.<br><small>Arma, anéis e colar usam 🔶 <b>Minério Rúnico</b>; capacete, armadura, luvas e botas usam 🔷 <b>Pedra de Têmpera</b>. Os dois caem na ⛏️ Mina da Forja.<br>Você tem: <b>${P.inv.minerio || 0} 🔶 · ${P.inv.tempera || 0} 🔷 · ${P.inv.selo_forja || 0} 🔰 · ${P.zeny.toLocaleString('pt-BR')} cr</b></small>`, opts);
+  }
+  // paga, sorteia e mostra o Doran martelando; o resultado só vale no fim da animação (mas já fica decidido aqui, para não dar para fugir)
+  function martelar(id, r, z, ch, n, mat, selo) {
+    P.zeny -= z; add(mat, -n); if (selo) add('selo_forja', -1);
+    const ok = Math.random() < ch, quebra = !ok && r >= REF_QUEBRA && !selo;
+    let res;
+    if (ok) { P.refine[id] = r + 1; res = 'sucesso'; }
+    else if (quebra) {
+      for (const sl of Object.keys(P.equip || {})) if (P.equip[sl] === id) { P.equip[sl] = null; break; }
+      delete P.refine[id]; res = 'quebrou';
+    } else { P.refine[id] = r >= 4 ? Math.max(4, r - 1) : r; res = 'falhou'; }
+    try { save(); } catch (e) { }
+    closeDialog();
+    Forja.animar({ ic: it(id).ic, nome: it(id).name, de: r, para: res === 'sucesso' ? r + 1 : res === 'falhou' ? P.refine[id] : 0, res, selo }, () => {
+      if (res === 'sucesso') { log(`🔨 <b>SUCESSO!</b> <b>+${r + 1} ${it(id).name}</b>.`, 'gold'); if (r + 1 >= 7) banner(`Refino +${r + 1}!`); burst(new THREE.Vector3(P.x, P.y + 1.4, P.z), 0xffd060, 30, 4, 0.9); }
+      else if (res === 'quebrou') log(`💥 <b>QUEBROU!</b> A <b>+${r} ${it(id).name}</b> se partiu na bigorna e sumiu.`, 'bad');
+      else log(`🔨 O refino falhou${selo ? ' (o 🔰 Selo protegeu a peça)' : ''}: <b>${it(id).name}</b> ficou <b>+${P.refine[id]}</b>.`, 'bad');
+      refine();
+    });
+  }
+  // ---------------- Despertar ★
+  function despertar() {
+    P.desp = P.desp || {};
+    const eq = Object.keys(SLOTS).map(sl => P.equip && P.equip[sl]).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
+    const tem = id => P.inv[id] || 0, opts = [];
+    for (const id of eq) {
+      const s = despOf(id);
+      if (s >= DESP_MAX) { opts.push({ label: `${it(id).ic} ${nameOf(id)} — despertar máximo`, fn: () => { despertar(); return true; } }); continue; }
+      const [fr, nu, la, z, ch] = DESP[s];
+      const custo = [fr && `${fr} 🔺`, nu && `${nu} 🌑`, la && `${la} 🩸`].filter(Boolean).join(' + ');
+      opts.push({ label: `${it(id).ic} ${nameOf(id)} → ★${s + 1} — ${custo} + ${z.toLocaleString('pt-BR')} cr · ${Math.round(ch * 100)}%`, fn: () => {
+        if (P.zeny < z) { log('Coroas insuficientes!', 'bad'); Audio8.sfx('miss'); despertar(); return true; }
+        const falta = [[fr, 'frag_cisma', 'na Torre do Cisma (guardiões e andares altos)'], [nu, 'nucleo_abismo', 'no Abismo do Cisma'], [la, 'lagrima_soberano', 'só do Kravenox (sábado, 20h)']].find(([n, m]) => tem(m) < n);
+        if (falta) { log(`Falta <b>${falta[0]} ${it(falta[1]).ic} ${it(falta[1]).name}</b> (você tem ${tem(falta[1])}). Cai ${falta[2]}.`, 'bad'); Audio8.sfx('miss'); despertar(); return true; }
+        P.zeny -= z; add('frag_cisma', -fr); if (nu) add('nucleo_abismo', -nu); if (la) add('lagrima_soberano', -la);
+        const ok = Math.random() < ch; if (ok) P.desp[id] = s + 1;
+        try { save(); } catch (e) { }
+        closeDialog();
+        Forja.animar({ ic: it(id).ic, nome: it(id).name + (s ? ' ' + '★'.repeat(s) : ''), de: refOf(id), para: refOf(id), res: ok ? 'sucesso' : 'falhou', selo: false, desp: ok ? s + 1 : s }, () => {
+          if (ok) { log(`✨ <b>DESPERTOU!</b> <b>${nameOf(id)}</b>: todos os atributos da peça +${(s + 1) * 8}%.`, 'gold'); if (s + 1 >= 5) banner(`★${s + 1} ${it(id).name}!`); burst(new THREE.Vector3(P.x, P.y + 1.4, P.z), 0xff6ad0, 40, 4, 1); }
+          else log(`✨ O despertar falhou: os materiais se perderam, mas a <b>${nameOf(id)}</b> continua inteira.`, 'bad');
+          despertar();
+        });
+        return true; } });
+    }
+    if (!eq.length) opts.push({ label: 'Equipe uma peça para despertar.', fn: () => { despertar(); return true; } });
+    opts.push({ label: '← Voltar', fn: () => { smith(); return true; } });
+    dialog('✨ Despertar (★1 a ★10)', `Cada <b>★</b> soma <b>8% de todos os atributos</b> da peça (no ★10, +80%), e vale junto com o refino. Se falhar, perde os materiais, mas a peça <b>não quebra</b>.<br>Materiais: <b>🔺 Fragmento do Cisma</b> (Torre do Cisma) <b>${tem('frag_cisma')}</b> · <b>🌑 Núcleo do Abismo</b> (Abismo) <b>${tem('nucleo_abismo')}</b> · <b>🩸 Lágrima do Soberano</b> (só do Kravenox) <b>${tem('lagrima_soberano')}</b>`, opts);
   }
   // vende ao NPC (materiais e colheita)
   function sellAll(kinds = ['mat', 'colheita']) {
@@ -754,13 +841,16 @@ const Vida = (() => {
   const setTxt = st => SETS[st].tiers ? SETS[st].tiers.map(([q, b]) => `${q === SETS[st].pecas ? 'completo' : q} peças: ${modTxt(b)}`).join(' · ') : `4 peças: ${modTxt(SETS[st].bonus)}`;
   function setCount() { const c = {}; for (const sl in (P.equip || {})) { const I = ITEMS[P.equip[sl]]; if (I && I.set) c[I.set] = (c[I.set] || 0) + 1; } return c; }
   const gear = k => {
-    let v = 0; for (const sl in (P.equip || {})) { const id = P.equip[sl]; if (id && ITEMS[id] && ITEMS[id].mods) v += (ITEMS[id].mods[k] || 0) * (['pow', 'def', 'hp'].includes(k) ? 1 + 0.1 * refOf(id) : 1); }
+    let v = 0; for (const sl in (P.equip || {})) { const id = P.equip[sl]; if (id && ITEMS[id] && ITEMS[id].mods) v += (ITEMS[id].mods[k] || 0) * (['pow', 'def', 'hp'].includes(k) ? 1 + 0.1 * refOf(id) : 1) * (1 + 0.08 * despOf(id)); }   // refino + despertar ★
     for (const sl in (P.cards || {})) { const c = P.cards[sl]; if (c && P.equip && P.equip[sl] && ITEMS[c]) v += ITEMS[c].mods[k] || 0; }   // carta só vale com peça no espaço
     if (k === 'pow' || k === 'def' || k === 'hp' || k === 'sp') v = Math.round(v);
     const sc = setCount(); for (const st in sc) { const B = setBonus(st, sc[st]); if (B) v += B[k] || 0; }
     return v;
   };
-  let sel = null, tab = 'tudo', trashArm = null;
+  let sel = null, tab = 'tudo', trashArm = null, cardPick = null;
+  // cartas da mochila que cabem neste espaço (o anel vale para os dois anéis), as mais fortes primeiro
+  const forcaCarta = c => { const m = it(c).mods || {}; return (m.pow || 0) + (m.def || 0) + (m.hp || 0) / 10 + (m.sp || 0) / 12 + (m.crit || 0) * 300 + (m.spd || 0) * 300; };
+  const cartasPara = sl => Object.keys(P.inv).filter(c => P.inv[c] > 0 && ITEMS[c] && ITEMS[c].kind === 'carta' && (ITEMS[c].cslot === sl || (ITEMS[c].cslot === 'anel' && sl.startsWith('anel')))).sort((a, b) => forcaCarta(b) - forcaCarta(a));
   // abas da mochila (do lado direito)
   const TABS = [
     ['tudo', '🎒', 'Tudo', () => true],
@@ -814,7 +904,7 @@ const Vida = (() => {
     const slotName = sl => sl === 'anel' ? 'Anel' : SLOTS[sl] || 'Peça';
     const mobImg = t => { const k = typeof SPR_MOBS !== 'undefined' && SPR_MOBS[t] && SPR_MOBS[t].img; const b = k && SPR[k] ? SPR[k] : t === 'kravenox' && SPR.k_down_0 ? SPR.k_down_0 : null; return b ? `<img src="data:image/png;base64,${b}">` : `<span class="nopic">${iconeMob(t)}</span>`; };
     // carta desenhada: moldura dourada, retrato do monstro, bônus e onde encaixa
-    const cardArt = I => `<div class="tcard"><div class="tc-t">${I.name.replace(/^Carta (da |de )?/, '')}</div><div class="tc-pic">${mobImg(I.mob)}</div><div class="tc-b">${modTxt(I.mods)}</div><div class="tc-s">Encaixa em: <b>${slotName(I.cslot)}</b></div></div>`;
+    const cardArt = I => `<div class="tcard"><div class="tc-t">${I.name.replace(/^Carta (da |de )?/, '')}</div><div class="tc-pic">${I.arte ? `<span class="nopic arte">${I.arte}</span>` : mobImg(I.mob)}</div><div class="tc-b">${modTxt(I.mods)}</div><div class="tc-s">Encaixa em: <b>${slotName(I.cslot)}</b></div></div>`;
     const bigArt = (I, id) => I.kind === 'carta' ? cardArt(I) : `<div class="ibig r${I.kind === 'equip' ? I.rar : 'x'}"><span>${I.ic}</span></div>`;
     if (sel && sel.startsWith('eq:')) {
       const sl = sel.slice(3), id = P.equip[sl], cd = P.cards && P.cards[sl];
@@ -823,12 +913,14 @@ const Vida = (() => {
         view = `<div class="iview"><div class="iv-art">${bigArt(I, id)}${cd ? `<div class="iv-mini">${cardArt(it(cd))}</div>` : ''}</div><div class="iv-txt">
           <b class="iv-n" style="color:${RARITY[I.rar || 0].c}">${nameOf(id)}</b><small>${RARITY[I.rar || 0].n} · ${slotName(sl.startsWith('anel') ? 'anel' : sl)} · equipado</small>
           <p>${modTxt(I.mods)}${refOf(id) ? `<br>🔨 Refino +${refOf(id)}: +${refOf(id) * 10}% de dano, defesa e HP` : ''}${I.set ? `<br>🔗 ${SETS[I.set].name} (${setTxt(I.set)})` : ''}${cd ? `<br>🃏 ${it(cd).name}: ${modTxt(it(cd).mods)}` : `<br><small>🃏 Espaço de carta vazio</small>`}</p>
-          <div class="ibtn"><button data-a="unequip" data-v="${sl}">Tirar</button>${cd ? `<button data-a="uncard" data-v="${sl}">Tirar carta</button>` : ''}<button data-a="unsel">Fechar</button></div></div></div>`;
+          <div class="ibtn"><button data-a="unequip" data-v="${sl}">Tirar</button>${cartasPara(sl).length ? `<button data-a="cardlist" data-v="${sl}">🃏 ${cd ? 'Trocar' : 'Encaixar'} carta (${cartasPara(sl).length})</button>` : ''}${cd ? `<button data-a="uncard" data-v="${sl}">Tirar carta</button>` : ''}<button data-a="unsel">Fechar</button></div>
+          ${cardPick === sl ? `<div class="clist"><b>🃏 Cartas que cabem em ${slotName(sl.startsWith('anel') ? 'anel' : sl)}</b>${cartasPara(sl).map(c => `<button data-a="cardpick" data-v="${c}">${it(c).name} <small>×${P.inv[c]}</small><br><em>${modTxt(it(c).mods)}</em></button>`).join('')}<button data-a="cardlist" data-v="">← Voltar</button></div>` : ''}</div></div>`;
       } else det = `<small>${SLOTS[sl]} vazio. Equipe algo da mochila.</small>`;
     } else if (sel && P.inv[sel] > 0) {
       const I = ITEMS[sel], btns = [];
       if (I.kind === 'equip') btns.push(`<button data-a="equip" data-v="${sel}">Equipar</button>`);
       if (I.kind === 'equip' && !I.preso && !I.desafio) btns.push(`<button data-a="desmontar" data-v="${sel}">⚒️ Desmontar (${poDe(sel)} ⚙️)</button>`);
+      if (I.kind === 'equip' && !I.preso && !I.desafio && P.inv[sel] > 1) btns.push(`<button data-a="desmontartodos" data-v="${sel}">⚒️ Desmontar todos (${(poBase(sel) * P.inv[sel]).toLocaleString('pt-BR')} ⚙️)</button>`);
       if (I.sell > 0 && !['red', 'blue'].includes(sel)) btns.push(`<button data-a="sell1" data-v="${sel}">💰 Vender 1 (${I.sell} cr)</button>`);
       if (I.sell > 0 && P.inv[sel] > 1 && !['red', 'blue'].includes(sel)) btns.push(`<button data-a="sellall" data-v="${sel}">💰 Vender todos (${(I.sell * P.inv[sel]).toLocaleString('pt-BR')} cr)</button>`);
       btns.push(`<button data-a="trash" data-v="${sel}" class="${trashArm === sel ? 'danger' : ''}">${trashArm === sel ? '⚠️ Toque de novo para destruir' : '🗑️ Destruir'}</button>`);
@@ -861,6 +953,7 @@ const Vida = (() => {
     if (a === 'unsel') sel = null;
     if (a !== 'trash') trashArm = null;
     if (a === 'desmontar' && P.inv[v] > 0) { const n = poDe(v); P.inv[v]--; P.inv.po_forja = (P.inv.po_forja || 0) + n; if (!P.inv[v] && P.refine) delete P.refine[v]; Audio8.sfx('hit'); log(`⚒️ Você desmontou <b>${it(v).name}</b> e ganhou <b>${n} ⚙️ Pó de Forja</b>. Com ele o Ferreiro Doran faz uma peça nova.`, 'item'); if (!P.inv[v]) sel = null; }
+    if (a === 'desmontartodos' && P.inv[v] > 0) { const q = P.inv[v], n = poBase(v) * q; P.inv[v] = 0; P.inv.po_forja = (P.inv.po_forja || 0) + n; Audio8.sfx('anvil'); log(`⚒️ Você desmontou <b>${q}× ${it(v).name}</b> de uma vez e ganhou <b>${n} ⚙️ Pó de Forja</b>.`, 'item'); sel = null; }
     if (a === 'sell1' || a === 'sellall') { const n = a === 'sell1' ? 1 : P.inv[v], z = ITEMS[v].sell * n; P.inv[v] -= n; P.zeny += z; Audio8.sfx('coin'); log(`💰 Vendeu ${n}× <b>${it(v).name}</b> por <b>${z.toLocaleString('pt-BR')} cr</b>.`, 'gold'); if (!P.inv[v]) sel = null; buildHotbar(); }
     if (a === 'trash') { if (trashArm !== v) trashArm = v; else { const n = P.inv[v]; P.inv[v] = 0; trashArm = null; sel = null; Audio8.sfx('miss'); log(`🗑️ Destruiu ${n}× <b>${it(v).name}</b>.`, 'sys'); buildHotbar(); } }
     if (a === 'hot') {                                   // põe/tira o item da barra de atalhos
@@ -875,6 +968,12 @@ const Vida = (() => {
     if (a === 'use') { use(v); if (!P.inv[v]) sel = null; }
     if (a === 'card' && sel && ITEMS[sel] && ITEMS[sel].kind === 'carta') {
       Audio8.sfx('anvil'); P.cards = P.cards || {}; if (P.cards[v]) add(P.cards[v], 1); P.cards[v] = sel; log(`🃏 Encaixou <b>${it(sel).name}</b> em ${SLOTS[v]}.`, 'gold'); Audio8.sfx('buff'); add(sel, -1); sel = 'eq:' + v; }
+    if (a === 'cardlist') cardPick = v || null;
+    else if (a !== 'cardpick') cardPick = null;
+    if (a === 'cardpick' && cardPick && P.inv[v] > 0 && P.equip[cardPick]) {
+      const sl = cardPick; P.cards = P.cards || {}; if (P.cards[sl]) add(P.cards[sl], 1); P.cards[sl] = v; add(v, -1);
+      Audio8.sfx('anvil'); Audio8.sfx('buff'); log(`🃏 Encaixou <b>${it(v).name}</b> em <b>${it(P.equip[sl]).name}</b>.`, 'gold'); cardPick = null; sel = 'eq:' + sl;
+    }
     if (a === 'uncard') { const c = P.cards && P.cards[v]; if (c) { add(c, 1); P.cards[v] = null; log(`Tirou <b>${it(c).name}</b>.`, 'sys'); } }
     if (a === 'trade') { closeInv(); return tradePick(); }
     if (a === 'stall') { closeInv(); return st.stall ? closeStall() : stallSetup(); }
@@ -1049,7 +1148,7 @@ const Vida = (() => {
     const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = -0.37; grp.add(sh);   // sombrinha no chão
     const rar = I.kind === 'equip' ? I.rar : I.kind === 'carta' ? 3 : -1;
     if (rar >= 0 || id === 'essencia') {          // todo equipamento ganha feixe; a cor e a força dizem a raridade
-      const col = rar >= 0 ? RARITY[rar].hex : 0xa050ff, base = [0.3, 0.5, 0.6, 0.7, 0.85][Math.max(0, rar)];
+      const col = rar >= 0 ? RARITY[rar].hex : 0xa050ff, base = [0.3, 0.5, 0.6, 0.7, 0.85, 1][Math.max(0, rar)];
       const mk = (o, fog) => new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, fog });
       const beam = new THREE.Mesh(beamGeo, mk(base, false)); beam.position.y = 2.6; grp.add(beam);
       const core = new THREE.Mesh(coreGeo, mk(Math.min(1, base + 0.3), false)); core.position.y = 2.6; grp.add(core);

@@ -100,7 +100,7 @@ const SpriteKit = (() => {
     sx *= 1 + lunge * 0.12; sy *= 1 - lunge * 0.05;
     let y = 0;
     if (a.opt.float) y += 0.35 + Math.sin(a.t * 2.4) * 0.18;
-    else if (st.moving && a.set.kind === 'one') { y += Math.abs(Math.sin(a.t * 8)) * 0.08 * a.h; sy *= 1 - Math.abs(Math.sin(a.t * 8)) * 0.05; }
+    else if (st.moving && a.set.kind === 'one') { y += Math.abs(Math.sin(a.t * 9)) * 0.14 * a.h; sy *= 1 - Math.abs(Math.sin(a.t * 9)) * 0.08; }   // pulinhos de quem anda (desenho de um quadro só)
     else if (!st.moving) sy *= 1 + Math.sin(a.t * 2.2) * 0.012;          // respiração
     if (st.sleeping) sy *= 0.92 + Math.sin(a.t * 0.8) * 0.02;
     if (st.sit) sy *= 0.78;
@@ -108,7 +108,7 @@ const SpriteKit = (() => {
     a.spr.scale.set(sx, sy, 1);
     // morte: deita e some
     if (st.dead) { a.mat.rotation = lerpA(a.mat.rotation, Math.PI / 2 * (sx < 0 ? -1 : 1), dt * 8); }
-    else a.mat.rotation = lerpA(a.mat.rotation, 0, dt * 10);
+    else a.mat.rotation = lerpA(a.mat.rotation, st.moving && a.set.kind === 'one' && !a.opt.float ? Math.sin(a.t * 9) * 0.13 : 0, dt * 10);   // e gingado de um lado para o outro
     a.spr.center.set(0.5, st.dead ? 0.15 : 0);
     a.spr.position.y = y;
     if (st.gy !== undefined) a.shadow.position.y = st.gy + 0.03;
@@ -124,12 +124,13 @@ const SpriteKit = (() => {
     const op = st.fade ?? 1;
     a.mat.transparent = op < 1; a.mat.opacity = op;
     // silhueta dourada por cima (funciona até com roupa preta): mesma imagem, pintada de ouro e somada à luz
-    if (st.dourado && !st.dead) {
+    const brilho = st.dourado ? 0xffb428 : st.traje;                 // dourado da Irmandade ou a cor do traje de classe
+    if (brilho && !st.dead) {
       if (!a.ouro) { const m = new THREE.SpriteMaterial({ color: 0xffb428, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false });
         m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n diffuseColor.rgb = diffuse;'); };
         a.ouro = new THREE.Sprite(m); a.ouro.renderOrder = 2; a.root.add(a.ouro); }
-      a.ouro.visible = true; a.ouro.material.map = a.mat.map; a.ouro.center.copy(a.spr.center); a.ouro.scale.copy(a.spr.scale); a.ouro.position.copy(a.spr.position); a.ouro.material.rotation = a.mat.rotation;
-      a.ouro.material.opacity = (st.dourado > 1 ? 0.36 : 0.15) * (0.75 + Math.sin(a.t * 3) * 0.25) * op;
+      a.ouro.visible = true; if (a.ouroCor !== brilho) { a.ouroCor = brilho; a.ouro.material.color.setHex(brilho); } a.ouro.material.map = a.mat.map; a.ouro.center.copy(a.spr.center); a.ouro.scale.copy(a.spr.scale); a.ouro.position.copy(a.spr.position); a.ouro.material.rotation = a.mat.rotation;
+      a.ouro.material.opacity = (st.dourado > 1 ? 0.36 : st.dourado ? 0.15 : st.trajeK || 0.22) * (0.75 + Math.sin(a.t * 3) * 0.25) * op;
     } else if (a.ouro) a.ouro.visible = false;
   }
   const lerpA = (c, t, k) => c + (t - c) * Math.min(1, k);

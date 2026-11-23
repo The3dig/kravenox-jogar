@@ -410,7 +410,7 @@ const Tower = (() => {
   const avanca = f => f.ab ? 'desce' : 'sobe';                      // a escadaria que leva adiante
   function waveOf(i) {
     if (i >= 100) { const k = i - 100, pool = k < 10 ? ['larvaAntiga', 'raizOssuda', 'larvaCristal', 'memoria'] : k < 20 ? ['maoPalida', 'sombraVale', 'guardaOssos', 'damaSemOlhos'] : ['larvaAbismo', 'ecoCidade', 'sentinelaSubmersa', 'cristalVivo'];
-      return Array.from({ length: Math.min(18, 11 + Math.floor(k / 3)) }, (_, j) => pool[(j * 7 + k) % pool.length]); }
+      return Array.from({ length: Math.min(22, 14 + Math.floor(k / 3)) }, (_, j) => pool[(j * 7 + k) % pool.length]); }
     const pool = i < 4 ? ['larva', 'verme'] : i < 10 ? ['larva', 'verme', 'esfera'] : i < 20 ? ['verme', 'esfera', 'sentinela', 'larva'] : ['sentinela', 'esfera', 'sentinela', 'verme'];
     const n = Math.min(18, 10 + Math.floor(i / 2));
     return Array.from({ length: n }, (_, k) => pool[(k * 7 + i) % pool.length]);
@@ -424,9 +424,18 @@ const Tower = (() => {
     for (const m of mobs.filter(m => m.towerFloor !== undefined)) { m.dead = true; scene.remove(m.model.g); m.lab.remove(); }
     mobs = mobs.filter(m => m.towerFloor === undefined);
   }
+  // XP igual ao de um monstro comum dos mapas do mesmo nível (ideia do Ludi: antes rendia quase o dobro e subia nível rápido demais),
+  // inclusive para os Guardiões de cada 5 andares
+  const XPC = Object.values(MOBDEF).filter(d => !d.boss && !d.mini && !d.world && d.xp > 0).map(d => [d.lv, d.xp]).sort((a, b) => a[0] - b[0]);
+  function xpCampo(L) {
+    const n = XPC.length; if (L <= XPC[0][0]) return XPC[0][1];
+    if (L >= XPC[n - 1][0]) return Math.round(XPC[n - 1][1] * Math.pow(L / XPC[n - 1][0], 2.3));
+    let i = 0; while (XPC[i + 1][0] < L) i++; const [l0, x0] = XPC[i], [l1, x1] = XPC[i + 1];
+    return Math.round(l1 === l0 ? Math.max(x0, x1) : x0 + (x1 - x0) * (L - l0) / (l1 - l0));
+  }
   function scaleMob(m, L, k) {
     const d0 = m.d, kf = L / d0.lv;
-    m.d = { ...d0, lv: L, hp: Math.round(d0.hp * Math.pow(kf, 1.7) * 1.4 * k), atk: Math.round(d0.atk * kf * 1.2 * Math.sqrt(k)), def: Math.round(d0.def * kf), xp: Math.round(d0.xp * kf * 1.8 * k), zeny: [Math.round(d0.zeny[0] * kf * k), Math.round(d0.zeny[1] * kf * 1.3 * k)], aggro: Math.max(d0.aggro, 18) };
+    m.d = { ...d0, lv: L, hp: Math.round(d0.hp * Math.pow(kf, 1.7) * 1.4 * k), atk: Math.round(d0.atk * kf * 1.2 * Math.sqrt(k)), def: Math.round(d0.def * kf), xp: xpCampo(L), zeny: [Math.round(d0.zeny[0] * kf * k), Math.round(d0.zeny[1] * kf * 1.3 * k)], aggro: Math.max(d0.aggro, 18) };
     m.hp = m.maxHp = m.d.hp; const sm = m.lab.querySelector('small'); if (sm) sm.textContent = 'Nv ' + L;
   }
   function spawnFloor(i) {
@@ -435,14 +444,21 @@ const Tower = (() => {
     list.forEach((type, k) => {
       const rin = f.r - RAMPA.larg - 0.3, a = (k / list.length) * TAU + i * 0.7, r = rin * (0.25 + (k % 3) * 0.22);
       const m = spawnMob(type, null, { x: f.x + Math.sin(a) * r, z: f.z + Math.cos(a) * r });
-      m.towerFloor = i; m.noRespawn = true; scaleMob(m, lvOf(i), 1);
+      m.towerFloor = i; m.noRespawn = true; scaleMob(m, lvOf(i), f.ab ? 2.8 : 1);   // Abismo: bem pior que a Torre (vida x2,8, ataque x1,7)
+      if (f.ab) m.d.perfura = 0.55;                                    // e o golpe atravessa mais a defesa
+      // materiais do Despertar ★ e do refino: a Torre e o Abismo sempre valem a pena, mesmo para quem já tem tudo
+      if (f.ab) m.d.drops = [...m.d.drops, ['frag_cisma', 0.12], ['nucleo_abismo', 0.025], ['minerio', 0.12], ['tempera', 0.12]];
+      else if (kk >= 15) m.d.drops = [...m.d.drops, ['frag_cisma', 0.05], ['minerio', 0.06], ['tempera', 0.06]];
     });
     if (GN) {                                                       // Guardião do andar (pula e esmaga como os chefes de campo)
       const big = kk % 10 === 9;
       const pg = pontoRampa(f, avanca(f), 0), m = spawnMob(f.ab ? 'verme' : 'guardiao', null, { x: f.x + (pg.x - f.x) * 0.55, z: f.z + (pg.z - f.z) * 0.55 });   // guarda a escadaria que sobe
       m.towerFloor = i; m.noRespawn = true; m.towerGuard = true; scaleMob(m, lvOf(i) + 3, big ? 1.6 : 0.9);
-      m.d.name = GN; m.d.mini = true; m.d.respawn = 1e9; m.hp = m.maxHp = m.d.hp = Math.round(14000 * Math.pow(m.d.lv / 22, 1.5) * (big ? 1.5 : 0.8));
+      m.d.name = GN; m.d.mini = true; m.d.respawn = 1e9; m.hp = m.maxHp = m.d.hp = Math.round(14000 * Math.pow(m.d.lv / 22, 1.5) * (big ? 1.5 : 0.8) * (f.ab ? 3 : 1));
+      if (f.ab) { m.d.atk = Math.round(m.d.atk * 2.6); m.d.perfura = 0.6; }   // antes batia mais fraco que os monstros comuns do andar
       m.d.drops = [...m.d.drops, ['essencia', 1], ...(f.ab ? [['presa_verme', 1], ...(big ? [['lamina_verme', 0.15], ['couraca_verme', 0.15], ['anel_ninho', 0.1]] : [['couraca_verme', 0.06]])] : []), ...(f.ab ? [] : big ? [['arma_cisma', 0.25], ['manto_cisma', 0.2], ['coroa_espinhos', 0.2], ['garras_cisma', 0.2], ['passos_cisma', 0.2], ['anel_kravenox', 0.12], ['marca', 0.1]] : [['arm_negra', 0.2], ['couraca_sentinela', 0.2], ['arma_essencia', 0.2]])];
+      const vezes = (id, n) => Array.from({ length: n }, () => [id, 1]);
+      m.d.drops = [...m.d.drops, ...vezes('frag_cisma', f.ab ? (big ? 10 : 6) : (big ? 6 : 3)), ...(f.ab ? vezes('nucleo_abismo', big ? 4 : 2) : []), ...vezes('minerio', big ? 4 : 2), ...vezes('tempera', big ? 4 : 2), ['selo_forja', f.ab ? (big ? 0.5 : 0.3) : (big ? 0.25 : 0.1)]];
       const sp = m.lab.querySelector('span'); if (sp) sp.innerHTML = `${GN} <small>Nv ${m.d.lv}</small>`;
       m.model.g.scale.multiplyScalar(big ? 1.5 : 1.2);
     }
@@ -470,6 +486,15 @@ const Tower = (() => {
     dialog('🕳️ Abismo do Cisma', 'A Torre sobe para o céu; o Abismo desce para dentro da terra. São <b>30 andares</b> (monstros nível 60 a 100) até o <b>Fundo</b>, o ninho do <b>Verme Colossal</b>.<br>Por onde você quer começar a descida?', opts);
   }
   function enter(i, fromAbove) {
+    // 🏆 ranking: Torre do 1º andar ao topo, Abismo do 1º andar ao Fundo (começar do meio, pelo ponto de retorno, não conta)
+    if (typeof Ranking !== 'undefined') {
+      if (i < 0 || i === 99) Ranking.cancelar();
+      else if (cur < 0 && i === 0) Ranking.comecar('torre');
+      else if (cur < 0 && i === 100) Ranking.comecar('abismo');
+      else if (cur < 0) Ranking.cancelar();
+      else if (i === TOP) Ranking.terminar('torre');
+      else if (i === AB_FUNDO) Ranking.terminar('abismo');
+    }
     clearFloorMobs();
     if (i === 99) {                                                    // sai do Abismo pela Cratera
       cur = -1; unbuild(); P.x = LAIR.x; P.z = LAIR.z + 7; P.y = groundY(P.x, P.z); P.face = 0; camS.yaw = Math.PI; crateraArmada = false; blackout();
@@ -483,7 +508,10 @@ const Tower = (() => {
     if (fromAbove) opened[i] = true;                                    // quem volta já passou por aqui: a escadaria fica aberta
     // avançou: chega no começo da escadaria de volta (no chão do andar novo); voltou: chega no fim da que avança
     const av = avanca(f), volta = av === 'sobe' ? 'desce' : 'sobe';
-    const pc = fromAbove ? pontoRampa(f, av, 0.9) : pontoRampa(f, volta, 0.06);
+    // avançando, chega no chão ao lado do pé da escadaria de volta, fora dela: ela fica selada até limpar o andar,
+    // e chegar em cima do trecho selado deixava a pessoa presa na escada (bug do Ludi no Abismo)
+    let pc = fromAbove ? pontoRampa(f, av, 0.9) : pontoRampa(f, volta, 0.06);
+    if (!fromAbove) { const rr = f.r - RAMPA.larg - 1.6, a0 = Math.atan2(pc.x - f.x, pc.z - f.z); pc = { x: f.x + Math.sin(a0) * rr, z: f.z + Math.cos(a0) * rr }; }
     P.x = pc.x; P.z = pc.z; P.face = Math.atan2(f.x - P.x, f.z - P.z);
     P.y = groundY(P.x, P.z); camS.yaw = P.face + Math.PI; camS.x = P.x; camS.z = P.z; camS.y = P.y; camS.pitch = Math.max(camS.pitch, 0.42);
     // a chegada é colada na parede: com a câmera atrás do herói ela batia na parede e ficava grudada nele
@@ -519,7 +547,7 @@ const Tower = (() => {
   // andar ainda com monstros: as DUAS escadas ficam trancadas (antes dava para fugir para o andar de trás e voltar, e ficava fácil)
   // só a saída do 1º andar continua livre (para ninguém ficar preso lá dentro)
   function selada(f, x, z) {
-    if (f.casa || f.i === TOP || f.fundo || opened[f.i]) return false; const r = rampa(f, x, z); if (!r || r.p >= 0.16) return false;
+    if (f.casa || f.mina || f.i === TOP || f.fundo || opened[f.i]) return false; const r = rampa(f, x, z); if (!r || r.p >= 0.16) return false;
     if (r.tipo === avanca(f)) return true;
     return !(f.i === 0 || f.i === 100);
   }
@@ -545,7 +573,7 @@ const Tower = (() => {
     if (!inTower(P.z) && !crateraArmada && dCrat > 6) crateraArmada = true;
     if (!inTower(P.z) && crateraArmada && dCrat < 2.8) { leaveT = 2.5; crateraArmada = false; enterFromCrater(); return; }
     if (!inTower(P.z)) { if (cur !== -1) { cur = -1; clearFloorMobs(); unbuild(); } return; }
-    const f = floorAt(P.x, P.z); if (!f || f.casa) return;
+    const f = floorAt(P.x, P.z); if (!f || f.casa || f.mina) return;
     if (f.i !== cur) { cur = f.i; buildFloor(f); }                  // asa de mosca / volta de outro jeito
     animFloor(dt);
     // escadaria norte: abre quando o andar está limpo e fica aberta
@@ -578,7 +606,7 @@ const Tower = (() => {
     g.fillStyle = '#b8a8d0'; g.font = '11px sans-serif'; if (cur < TOP) g.fillText(`monstros Nv ${lvOf(Math.max(0, cur))}`, W / 2, H / 2 + 41);
     g.textAlign = 'left';
   }
-  return { update, minimap, enter, corridor, selada, lvOf, get floor() { return cur; }, door: DOOR, roof };
+  return { update, minimap, enter, corridor, selada, lvOf, xpCampo, get floor() { return cur; }, door: DOOR, roof };
 })();
 
 // ---------------------------------------------------------------- modelos dos inimigos do Reino Quebrado

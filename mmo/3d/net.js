@@ -145,8 +145,8 @@ const Net = (() => {
       const pres = {
         n: P.name, lv: P.lv, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +P.y.toFixed(2), f: +P.face.toFixed(2), st, k: P.atkSeq || 0,
         hp: Math.round(P.hp / stats.maxHp() * 100), look: { race: P.race, cls: P.cls, gender: P.gender, hair: P.hair, skin: P.skin },
-        kd: P.kvxDmg || null, fb: P.fb || null, ...(typeof Cos !== 'undefined' ? Cos.pres() : {}), ...(typeof PvP !== 'undefined' ? PvP.pres() : {}), title: P.title || null, say: P.say || null,
-        ...(typeof Vida !== 'undefined' ? Vida.pres() : {}), ...(typeof Guilda !== 'undefined' ? Guilda.pres() : {}), ...(typeof Grupo !== 'undefined' ? Grupo.pres() : {}), ...(typeof Verme !== 'undefined' ? Verme.pres() : {}),
+        kd: P.kvxDmg || null, fb: P.fb || null, ...(typeof Cos !== 'undefined' ? Cos.pres() : {}), ...(typeof PvP !== 'undefined' ? PvP.pres() : {}), title: P.title || null, say: P.say || null, tj: typeof Trajes !== 'undefined' ? Trajes.cor() || null : null,
+        ...(typeof Vida !== 'undefined' ? Vida.pres() : {}), ...(typeof Guilda !== 'undefined' ? Guilda.pres() : {}), ...(typeof Grupo !== 'undefined' ? Grupo.pres() : {}), ...(typeof Verme !== 'undefined' ? Verme.pres() : {}), ...(typeof dgPres === 'function' ? dgPres() : {}),
       };
       const j = JSON.stringify(pres);
       if (j !== lastSent) { lastSent = j; room.presence(pres).catch(() => { }); }
@@ -162,7 +162,7 @@ const Net = (() => {
       if (r.L.sprite) {
         if ((s.k || 0) !== r.k) { r.k = s.k || 0; r.atkT = 0.3; }
         r.atkT = Math.max(0, (r.atkT || 0) - dt);
-        r.L.sprite.update(dt, { face: r.f, moving: moving || s.st === 'm' || s.st === 'r', atk: r.atkT / 0.3, dead: s.st === 'd', sit: s.st === 's', dourado: s.ir | 0 });
+        r.L.sprite.update(dt, { face: r.f, moving: moving || s.st === 'm' || s.st === 'r', atk: r.atkT / 0.3, dead: s.st === 'd', sit: s.st === 's', dourado: s.ir | 0, traje: s.tj || 0 });
       } else if (r.L.model) {
         const C = CLASSES[r.look.cls] || CLASSES.dancarina;
         let anim = s.st === 'd' ? 'Death' : s.st === 'r' ? 'Roll' : (moving || s.st === 'm') ? 'Run' : s.st === 's' ? 'Interact' : (C.ranged || C.weapon === 'ribbon' ? 'Idle' : 'Idle_Sword');
@@ -196,9 +196,11 @@ const Net = (() => {
   // dano que os outros jogadores já causaram no Kravenox nesta semana
   function kvxOthers(week) {
     let t = 0;
-    for (const r of remotes.values()) { const kd = r.s && r.s.kd; if (kd && kd.w === week && typeof kd.d === 'number') t += Math.max(0, Math.min(1e6, kd.d)); }
+    for (const r of remotes.values()) { const kd = r.s && r.s.kd; if (kd && kd.w === week && typeof kd.d === 'number') t += Math.max(0, Math.min(2e7, kd.d)); }
     return t;
   }
+  // quantos outros jogadores estão perto de um ponto (ex.: na arena do Kravenox)
+  function perto(x, z, r) { let n = 0; for (const rm of remotes.values()) if (Math.hypot(rm.tx - x, rm.tz - z) < r) n++; return n; }
   // dano que os outros jogadores já causaram no chefe de campo desta janela
   function fbOthers(slot) {
     let t = 0;
@@ -223,7 +225,7 @@ const Net = (() => {
   // jogadores remotos para o Sítio/troca/banca: { peer, n, x, z, s }
   function peers() { return [...remotes.entries()].map(([peer, r]) => ({ peer, n: r.s && r.s.n, x: r.x, z: r.z, s: r.s || {} })); }
   return { peers, get me() { return myPeer; },
-    init, update, kvxOthers, fbOthers, say, tickMyBubble, fora, jaConectou: false,
+    init, update, kvxOthers, fbOthers, perto, say, tickMyBubble, fora, jaConectou: false,
     on(t, f) { handlers[t] = f; }, economia, get uso() { return room && room.uso ? room.uso : { in: 0, out: 0, t0: Date.now() }; }, send(o) { return !!(room && room.send && room.send(o)); },
     get pausa() { return !!room && room.servidor && (!room.aberta || !!foraMsg); },
     get connected() { return !!room && (!room.servidor || room.aberta); }, get count() { return remotes.size + 1; } };
